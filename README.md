@@ -1,6 +1,8 @@
 # vtun
 
-A simple p2p vpn.
+A simple p2p vpn.  
+
+[![Travis](https://travis-ci.com/net-byte/vtun.svg?branch=master)](https://github.com/net-byte/vtun)
 
 # Usage  
 
