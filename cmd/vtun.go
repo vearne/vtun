@@ -1,16 +1,13 @@
 package cmd
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/exec"
 	"runtime"
+	"vtun/util"
 
 	"github.com/songgao/water"
 )
@@ -27,12 +24,12 @@ func New(local *string, remote *string, port *int, key *string) {
 		log.Fatal("Only support linux!")
 		return
 	}
-	hashKey := createHash(*key)
+	hashKey := util.CreateHash(*key)
 	// create tun
 	config := water.Config{
 		DeviceType: water.TAP,
 	}
-	config.Name = "vtun"
+	config.InterfaceName = "vtun"
 	iface, err := water.New(config)
 	if err != nil {
 		log.Fatal(err)
@@ -66,8 +63,8 @@ func New(local *string, remote *string, port *int, key *string) {
 				break
 			}
 			b := buf[:n]
-			// aes decrypt
-			decrypt(&b, hashKey)
+			// decrypt data
+			util.Decrypt(&b, hashKey)
 			iface.Write(b)
 		}
 	}()
@@ -79,8 +76,8 @@ func New(local *string, remote *string, port *int, key *string) {
 			break
 		}
 		b := packet[:n]
-		// aes encrypt
-		encrypt(&b, hashKey)
+		// encrypt data
+		util.Encrypt(&b, hashKey)
 		conn.WriteToUDP(b, remoteAddr)
 	}
 }
@@ -100,36 +97,4 @@ func execCmd(c string, args ...string) {
 	if nil != err {
 		log.Fatalln("Error running /sbin/ip:", err)
 	}
-}
-
-func createHash(key string) []byte {
-	hasher := md5.New()
-	hasher.Write([]byte(key))
-	return []byte(hex.EncodeToString(hasher.Sum(nil)))
-}
-
-func encrypt(data *[]byte, key []byte) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		log.Println(err)
-	}
-	iv := key[:aes.BlockSize]
-	stream := cipher.NewCFBEncrypter(block, iv)
-	dest := make([]byte, len(*data))
-	stream.XORKeyStream(dest, *data)
-	data = nil
-	data = &dest
-}
-
-func decrypt(data *[]byte, key []byte) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		log.Println(err)
-	}
-	iv := key[:aes.BlockSize]
-	stream := cipher.NewCFBDecrypter(block, iv)
-	dest := make([]byte, len(*data))
-	stream.XORKeyStream(dest, *data)
-	data = nil
-	data = &dest
 }
