@@ -29,7 +29,7 @@ func New(local *string, remote *string, port *int, key *string) {
 	config := water.Config{
 		DeviceType: water.TAP,
 	}
-	config.InterfaceName = "vtun"
+	config.Name = "vtun"
 	iface, err := water.New(config)
 	if err != nil {
 		log.Fatal(err)
