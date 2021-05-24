@@ -18,7 +18,7 @@ func main() {
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
 	flag.BoolVar(&config.TLS, "t", false, "enable tls")
 	flag.Parse()
-
+	config.Init()
 	switch config.Protocol {
 	case "udp":
 		if config.ServerMode {

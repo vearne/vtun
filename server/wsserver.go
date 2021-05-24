@@ -30,7 +30,6 @@ var upgrader = websocket.Upgrader{
 
 // StartWSServer start ws server
 func StartWSServer(config config.Config) {
-	config.Init()
 	iface := tun.CreateTun(config.CIDR)
 	c := cache.New(30*time.Minute, 10*time.Minute)
 	go tunToWs(iface, c)
@@ -128,7 +127,7 @@ func tunToWs(iface *water.Interface, c *cache.Cache) {
 		key := fmt.Sprintf("%v->%v", dstAddr, srcAddr)
 		v, ok := c.Get(key)
 		if ok {
-			b = cipher.Encrypt(b)
+			b = cipher.XOR(b)
 			v.(*websocket.Conn).WriteMessage(websocket.BinaryMessage, b)
 		}
 	}
@@ -142,7 +141,7 @@ func wsToTun(wsConn *websocket.Conn, iface *water.Interface, c *cache.Cache) {
 		if err != nil || err == io.EOF {
 			break
 		}
-		b = cipher.Decrypt(b)
+		b = cipher.XOR(b)
 		if !waterutil.IsIPv4(b) {
 			continue
 		}

@@ -17,7 +17,6 @@ import (
 
 // StartUDPServer start udp server
 func StartUDPServer(config config.Config) {
-	config.Init()
 	iface := tun.CreateTun(config.CIDR)
 	localAddr, err := net.ResolveUDPAddr("udp", config.LocalAddr)
 	if err != nil {
@@ -39,8 +38,7 @@ func StartUDPServer(config config.Config) {
 		if err != nil || n == 0 {
 			continue
 		}
-		// decrypt data
-		b := cipher.Decrypt(buf[:n])
+		b := cipher.XOR(buf[:n])
 		if !waterutil.IsIPv4(b) {
 			continue
 		}
@@ -77,8 +75,7 @@ func (f *Forwarder) forward(iface *water.Interface, conn *net.UDPConn) {
 		key := fmt.Sprintf("%v->%v", dstAddr, srcAddr)
 		v, ok := f.connCache.Get(key)
 		if ok {
-			// encrypt data
-			b = cipher.Encrypt(b)
+			b = cipher.XOR(b)
 			f.localConn.WriteToUDP(b, v.(*net.UDPAddr))
 		}
 	}

@@ -11,22 +11,12 @@ func GenerateKey(key string) {
 	_key = []byte(key)
 }
 
-func Encrypt(data []byte) []byte {
+func XOR(src []byte) []byte {
 	c, err := rc4.NewCipher(_key)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	dst := make([]byte, len(data))
-	c.XORKeyStream(dst, data)
-	return dst
-}
-
-func Decrypt(data []byte) []byte {
-	c, err := rc4.NewCipher(_key)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	dst := make([]byte, len(data))
-	c.XORKeyStream(dst, data)
+	dst := make([]byte, len(src))
+	c.XORKeyStream(dst, src)
 	return dst
 }

@@ -12,7 +12,6 @@ import (
 
 // StartUDPClient start udp client
 func StartUDPClient(config config.Config) {
-	config.Init()
 	iface := tun.CreateTun(config.CIDR)
 	serverAddr, err := net.ResolveUDPAddr("udp", config.ServerAddr)
 	if err != nil {
@@ -36,8 +35,7 @@ func StartUDPClient(config config.Config) {
 			if err != nil || n == 0 {
 				continue
 			}
-			// decrypt data
-			b := cipher.Decrypt(buf[:n])
+			b := cipher.XOR(buf[:n])
 			if !waterutil.IsIPv4(b) {
 				continue
 			}
@@ -54,8 +52,7 @@ func StartUDPClient(config config.Config) {
 		if !waterutil.IsIPv4(packet) {
 			continue
 		}
-		// encrypt data
-		b := cipher.Encrypt(packet[:n])
+		b := cipher.XOR(packet[:n])
 		conn.WriteToUDP(b, serverAddr)
 	}
 }

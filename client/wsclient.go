@@ -18,7 +18,6 @@ import (
 
 // StartWSClient start ws client
 func StartWSClient(config config.Config) {
-	config.Init()
 	iface := tun.CreateTun(config.CIDR)
 	c := cache.New(30*time.Minute, 10*time.Minute)
 	log.Printf("vtun ws client started,CIDR is %v", config.CIDR)
@@ -50,7 +49,7 @@ func StartWSClient(config config.Config) {
 			c.Set(key, conn, cache.DefaultExpiration)
 			go wsToTun(c, key, conn, iface)
 		}
-		b = cipher.Encrypt(b)
+		b = cipher.XOR(b)
 		conn.WriteMessage(websocket.BinaryMessage, b)
 	}
 }
@@ -63,7 +62,7 @@ func wsToTun(c *cache.Cache, key string, wsConn *websocket.Conn, iface *water.In
 		if err != nil || err == io.EOF {
 			break
 		}
-		b = cipher.Decrypt(b)
+		b = cipher.XOR(b)
 		if !waterutil.IsIPv4(b) {
 			continue
 		}
