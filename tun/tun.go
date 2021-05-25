@@ -2,7 +2,6 @@ package tun
 
 import (
 	"log"
-	"runtime"
 
 	"github.com/net-byte/vtun/common/osutil"
 	"github.com/songgao/water"
@@ -10,10 +9,6 @@ import (
 
 func CreateTun(cidr string) (iface *water.Interface) {
 	c := water.Config{DeviceType: water.TUN}
-	os := runtime.GOOS
-	if os != "darwin" {
-		c.Name = "vtun"
-	}
 	iface, err := water.New(c)
 	if err != nil {
 		log.Fatalln("failed to allocate TUN interface:", err)
