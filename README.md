@@ -1,6 +1,6 @@
 # vtun
 
-A simple VPN written in Golang.  
+A simple VPN written in golang.
 
 [![Travis](https://travis-ci.com/net-byte/vtun.svg?branch=master)](https://github.com/net-byte/vtun)
 [![Go Report Card](https://goreportcard.com/badge/github.com/net-byte/vtun)](https://goreportcard.com/report/github.com/net-byte/vtun)
@@ -28,19 +28,25 @@ Usage of ./vtun:
         local address (default "0.0.0.0:3000")
   -s string
         server address (default "0.0.0.0:3001")
-```  
+```
+
+## Build
+
+```
+sh scripts/build.sh 
+```
 
 ## Client
 
 ```
-sudo ./vtun -l=:3000 -s=server-addr:3001 -c=172.16.0.10/24 -k=123456 -p=ws
+sudo ./vtun-linux-amd64 -l=:3000 -s=server-addr:3001 -c=172.16.0.10/24 -k=123456
 
 ```
 
 ## Server
 
 ```
-sudo ./vtun -S -l=:3001 -c=172.16.0.1/24 -k=123456 -p=ws
+sudo ./vtun-linux-amd64 -S -l=:3001 -c=172.16.0.1/24 -k=123456
 
 ```
 
