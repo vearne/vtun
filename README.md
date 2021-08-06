@@ -64,6 +64,18 @@ sudo ./vtun-linux-amd64 -S -l=:3001 -c=172.16.0.1/24 -k=123456
   sudo iptables-save > /etc/iptables/rules.v4
 ```
 
+## Docker
+
+### Run client
+```
+docker run  -d --privileged --restart=always --net=host --name vtun-client netbyte/vtun -l=:3000 -s=server-addr:3001 -c=172.16.0.10/24 -k=123456
+```
+
+### Run server
+```
+docker run  -d --privileged --restart=always --net=host --name vtun-server netbyte/vtun -S -l=:3001 -c=172.16.0.1/24 -k=123456
+```
+
 ## Mobile client
 
 ### [Android](https://github.com/net-byte/vTunnel)
