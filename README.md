@@ -17,13 +17,12 @@ A simple VPN written in golang.
 ```
 Usage of ./vtun:
   -S    server mode
-  -t    enable tls
   -c string
         tun interface CIDR (default "172.16.0.1/24")
   -k string
         encryption key (default "6w9z$C&F)J@NcRfWjXn3r4u7x!A%D*G-")
   -p string
-        protocol ws/udp (default "ws")
+        protocol ws/wss/udp (default "wss")
   -l string
         local address (default "0.0.0.0:3000")
   -s string

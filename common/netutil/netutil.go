@@ -59,7 +59,7 @@ func GetPort(b []byte) (srcPort string, dstPort string) {
 }
 func ConnectWS(config config.Config) *websocket.Conn {
 	scheme := "ws"
-	if config.TLS {
+	if config.Protocol == "wss" {
 		scheme = "wss"
 	}
 	u := url.URL{Scheme: scheme, Host: config.ServerAddr, Path: "/way-to-freedom"}
