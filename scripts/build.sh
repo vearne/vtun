@@ -10,4 +10,4 @@ GOOS=darwin GOARCH=amd64 go build -o ./bin/vtun-darwin-amd64 ./main.go
 #Windows
 GOOS=windows GOARCH=amd64 go build -o ./bin/vtun-windows-amd64.exe ./main.go
 
-echo "done!"
+echo "DONE!!!"
