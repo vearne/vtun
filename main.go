@@ -32,5 +32,10 @@ func main() {
 			client.StartWSClient(config)
 		}
 	default:
+		if config.ServerMode {
+			server.StartWSServer(config)
+		} else {
+			client.StartWSClient(config)
+		}
 	}
 }
