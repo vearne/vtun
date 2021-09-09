@@ -1,10 +1,5 @@
 package cipher
 
-import (
-	"crypto/rc4"
-	"log"
-)
-
 var _key = []byte("8pUsXuZw4z6B9EhGdKgNjQnjmVsYv2x5")
 
 func GenerateKey(key string) {
@@ -12,11 +7,9 @@ func GenerateKey(key string) {
 }
 
 func XOR(src []byte) []byte {
-	c, err := rc4.NewCipher(_key)
-	if err != nil {
-		log.Fatalln(err)
+	_klen := len(_key)
+	for i := 0; i < len(src); i++ {
+		src[i] ^= _key[i%_klen]
 	}
-	dst := make([]byte, len(src))
-	c.XORKeyStream(dst, src)
-	return dst
+	return src
 }
