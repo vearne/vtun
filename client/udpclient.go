@@ -12,7 +12,7 @@ import (
 
 // StartUDPClient start udp client
 func StartUDPClient(config config.Config) {
-	iface := tun.CreateTun(config.CIDR)
+	iface := tun.CreateTun(config)
 	serverAddr, err := net.ResolveUDPAddr("udp", config.ServerAddr)
 	if err != nil {
 		log.Fatalln("failed to resolve server addr:", err)

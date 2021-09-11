@@ -18,7 +18,7 @@ import (
 
 // StartWSClient start ws client
 func StartWSClient(config config.Config) {
-	iface := tun.CreateTun(config.CIDR)
+	iface := tun.CreateTun(config)
 	c := cache.New(30*time.Minute, 10*time.Minute)
 	log.Printf("vtun ws client started,CIDR is %v", config.CIDR)
 	// read data from tun

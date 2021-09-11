@@ -30,7 +30,7 @@ var upgrader = websocket.Upgrader{
 
 // StartWSServer start ws server
 func StartWSServer(config config.Config) {
-	iface := tun.CreateTun(config.CIDR)
+	iface := tun.CreateTun(config)
 	c := cache.New(30*time.Minute, 10*time.Minute)
 	go tunToWs(iface, c)
 	log.Printf("vtun ws server started on %v,CIDR is %v", config.LocalAddr, config.CIDR)

@@ -17,7 +17,7 @@ import (
 
 // StartUDPServer start udp server
 func StartUDPServer(config config.Config) {
-	iface := tun.CreateTun(config.CIDR)
+	iface := tun.CreateTun(config)
 	localAddr, err := net.ResolveUDPAddr("udp", config.LocalAddr)
 	if err != nil {
 		log.Fatalln("failed to get UDP socket:", err)
@@ -28,9 +28,9 @@ func StartUDPServer(config config.Config) {
 	}
 	defer conn.Close()
 	log.Printf("vtun udp server started on %v,CIDR is %v", config.LocalAddr, config.CIDR)
-	// forward data to client
-	forwarder := &Forwarder{localConn: conn, connCache: cache.New(30*time.Minute, 10*time.Minute)}
-	go forwarder.forward(iface, conn)
+	// write data to client
+	f := &Forward{localConn: conn, connCache: cache.New(30*time.Minute, 10*time.Minute)}
+	go f.tunToUDP(iface, conn)
 	// read data from client
 	buf := make([]byte, 1500)
 	for {
@@ -48,16 +48,16 @@ func StartUDPServer(config config.Config) {
 			continue
 		}
 		key := fmt.Sprintf("%v->%v", srcAddr, dstAddr)
-		forwarder.connCache.Set(key, cliAddr, cache.DefaultExpiration)
+		f.connCache.Set(key, cliAddr, cache.DefaultExpiration)
 	}
 }
 
-type Forwarder struct {
+type Forward struct {
 	localConn *net.UDPConn
 	connCache *cache.Cache
 }
 
-func (f *Forwarder) forward(iface *water.Interface, conn *net.UDPConn) {
+func (f *Forward) tunToUDP(iface *water.Interface, conn *net.UDPConn) {
 	packet := make([]byte, 1500)
 	for {
 		n, err := iface.Read(packet)
