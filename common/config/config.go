@@ -1,6 +1,11 @@
 package config
 
-import "github.com/net-byte/vtun/common/cipher"
+import (
+	"encoding/json"
+	"log"
+
+	"github.com/net-byte/vtun/common/cipher"
+)
 
 type Config struct {
 	LocalAddr  string
@@ -15,4 +20,6 @@ type Config struct {
 
 func (config *Config) Init() {
 	cipher.GenerateKey(config.Key)
+	json, _ := json.Marshal(config)
+	log.Printf("init config:%s", string(json))
 }
