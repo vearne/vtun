@@ -34,23 +34,18 @@ func configTun(config config.Config, iface *water.Interface) {
 		execCmd("/sbin/ip", "addr", "add", config.CIDR, "dev", iface.Name())
 		execCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "up")
 		if config.Route != "" {
-			addRoute := fmt.Sprintf("route add %s dev %s", config.Route, iface.Name())
-			execCmd("/sbin/ip", addRoute)
+			execCmd("/sbin/ip", "route", "add", config.Route, "dev", iface.Name())
 		}
 	} else if os == "darwin" {
 		execCmd("ifconfig", iface.Name(), "inet", ip.String(), config.Gateway, "up")
 		if config.Route != "" {
-			addRoute := fmt.Sprintf("add -net %s -interface %s", config.Route, iface.Name())
-			execCmd("route", addRoute)
+			execCmd("route", "add", "-net", config.Route, "-interface", iface.Name())
 		}
 	} else if os == "windows" {
-		setAddress := fmt.Sprintf("interface ip set address name=%s source=static addr=%s mask=%s gateway=none", iface.Name(), ip.String(), ipMask(ipNet.Mask))
-		execCmd("netsh.exe", setAddress)
+		execCmd("netsh", "interface", "ip", "set", "address", "name="+iface.Name(), "source=static", "addr="+ip.String(), "mask="+ipMask(ipNet.Mask), "gateway=none")
 		if config.Route != "" {
-			deleteRoute := fmt.Sprintf("interface ip delete route prefix=%s interface=%s store=active", config.Route, iface.Name())
-			addRoute := fmt.Sprintf("interface ip add route prefix=%s interface=%s store=active", config.Route, iface.Name())
-			execCmd("netsh.exe", deleteRoute)
-			execCmd("netsh.exe", addRoute)
+			execCmd("netsh", "interface", "ip", "delete", "route", "prefix="+config.Route, "interface="+iface.Name(), "store=active")
+			execCmd("netsh", "interface", "ip", "add", "route", "prefix="+config.Route, "interface="+iface.Name(), "store=active")
 		}
 	} else {
 		log.Printf("not support os:%v", os)
@@ -58,13 +53,14 @@ func configTun(config config.Config, iface *water.Interface) {
 }
 
 func execCmd(c string, args ...string) {
+	log.Printf("exec cmd: %v %v:", c, args)
 	cmd := exec.Command(c, args...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	err := cmd.Run()
 	if err != nil {
-		log.Fatalln("failed to exec cmd:", err)
+		log.Println("failed to exec cmd:", err)
 	}
 }
 
