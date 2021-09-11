@@ -8,9 +8,8 @@ A simple VPN written in golang.
 ![image](https://img.shields.io/badge/License-Anti--996-red)
 
 # Features
-* Support tun over UDP
-* Support tun over WebSocket
-* Support data encryption
+* VPN over udp
+* VPN over websocket
 
 # Usage  
 
@@ -18,13 +17,17 @@ A simple VPN written in golang.
 Usage of ./vtun:
   -S    server mode
   -c string
-        tun interface CIDR (default "172.16.0.1/24")
+        tun interface CIDR (default "172.16.0.2/24")
+  -g string
+        gateway (default "172.16.0.1")
   -k string
         encryption key (default "6w9z$C&F)J@NcRfWjXn3r4u7x!A%D*G-")
-  -p string
-        protocol ws/wss/udp (default "wss")
   -l string
         local address (default "0.0.0.0:3000")
+  -p string
+        protocol ws/wss/udp (default "wss")
+  -r string
+        route to forward data
   -s string
         server address (default "0.0.0.0:3001")
 ```
