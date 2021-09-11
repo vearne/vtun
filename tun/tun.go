@@ -44,13 +44,13 @@ func configTun(config config.Config, iface *water.Interface) {
 			execCmd("route", addRoute)
 		}
 	} else if os == "windows" {
-		setAddress := fmt.Sprintf("set address name=%s source=static addr=%s mask=%s gateway=none", iface.Name(), ip.String(), ipMask(ipNet.Mask))
-		execCmd("netsh.exe interface ip", setAddress)
+		setAddress := fmt.Sprintf("interface ip set address name=%s source=static addr=%s mask=%s gateway=none", iface.Name(), ip.String(), ipMask(ipNet.Mask))
+		execCmd("netsh.exe", setAddress)
 		if config.Route != "" {
-			deleteRoute := fmt.Sprintf("delete route prefix=%s interface=%s store=active", config.Route, iface.Name())
-			addRoute := fmt.Sprintf("add route prefix=%s interface=%s store=active", config.Route, iface.Name())
-			execCmd("netsh.exe interface ip", deleteRoute)
-			execCmd("netsh.exe interface ip", addRoute)
+			deleteRoute := fmt.Sprintf("interface ip delete route prefix=%s interface=%s store=active", config.Route, iface.Name())
+			addRoute := fmt.Sprintf("interface ip add route prefix=%s interface=%s store=active", config.Route, iface.Name())
+			execCmd("netsh.exe", deleteRoute)
+			execCmd("netsh.exe", addRoute)
 		}
 	} else {
 		log.Printf("not support os:%v", os)
