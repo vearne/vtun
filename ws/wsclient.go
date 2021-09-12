@@ -1,4 +1,4 @@
-package client
+package ws
 
 import (
 	"fmt"
@@ -16,8 +16,8 @@ import (
 	"github.com/songgao/water/waterutil"
 )
 
-// StartWSClient start ws client
-func StartWSClient(config config.Config) {
+// StartClient starts ws client
+func StartClient(config config.Config) {
 	iface := tun.CreateTun(config)
 	c := cache.New(30*time.Minute, 10*time.Minute)
 	log.Printf("vtun ws client started,CIDR is %v", config.CIDR)

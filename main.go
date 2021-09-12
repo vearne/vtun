@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 
-	"github.com/net-byte/vtun/client"
 	"github.com/net-byte/vtun/common/config"
-	"github.com/net-byte/vtun/server"
+	"github.com/net-byte/vtun/udp"
+	"github.com/net-byte/vtun/ws"
 )
 
 func main() {
@@ -23,21 +23,21 @@ func main() {
 	switch config.Protocol {
 	case "udp":
 		if config.ServerMode {
-			server.StartUDPServer(config)
+			udp.StartServer(config)
 		} else {
-			client.StartUDPClient(config)
+			udp.StartClient(config)
 		}
 	case "ws":
 		if config.ServerMode {
-			server.StartWSServer(config)
+			ws.StartServer(config)
 		} else {
-			client.StartWSClient(config)
+			ws.StartClient(config)
 		}
 	default:
 		if config.ServerMode {
-			server.StartWSServer(config)
+			ws.StartServer(config)
 		} else {
-			client.StartWSClient(config)
+			ws.StartClient(config)
 		}
 	}
 }

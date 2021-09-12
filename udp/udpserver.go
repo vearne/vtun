@@ -1,4 +1,4 @@
-package server
+package udp
 
 import (
 	"fmt"
@@ -15,8 +15,8 @@ import (
 	"github.com/songgao/water/waterutil"
 )
 
-// StartUDPServer start udp server
-func StartUDPServer(config config.Config) {
+// StartServer starts udp server
+func StartServer(config config.Config) {
 	iface := tun.CreateTun(config)
 	localAddr, err := net.ResolveUDPAddr("udp", config.LocalAddr)
 	if err != nil {

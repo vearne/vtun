@@ -1,7 +1,6 @@
 package tun
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -25,7 +24,7 @@ func CreateTun(config config.Config) (iface *water.Interface) {
 
 func configTun(config config.Config, iface *water.Interface) {
 	os := runtime.GOOS
-	ip, ipNet, err := net.ParseCIDR(config.CIDR)
+	ip, _, err := net.ParseCIDR(config.CIDR)
 	if err != nil {
 		log.Panicf("error cidr %v", config.CIDR)
 	}
@@ -40,12 +39,6 @@ func configTun(config config.Config, iface *water.Interface) {
 		execCmd("ifconfig", iface.Name(), "inet", ip.String(), config.Gateway, "up")
 		if config.Route != "" {
 			execCmd("route", "add", "-net", config.Route, "-interface", iface.Name())
-		}
-	} else if os == "windows" {
-		execCmd("netsh", "interface", "ip", "set", "address", "name="+iface.Name(), "source=static", "addr="+ip.String(), "mask="+ipMask(ipNet.Mask), "gateway=none")
-		if config.Route != "" {
-			execCmd("netsh", "interface", "ip", "delete", "route", "prefix="+config.Route, "interface="+iface.Name(), "store=active")
-			execCmd("netsh", "interface", "ip", "add", "route", "prefix="+config.Route, "interface="+iface.Name(), "store=active")
 		}
 	} else {
 		log.Printf("not support os:%v", os)
@@ -62,8 +55,4 @@ func execCmd(c string, args ...string) {
 	if err != nil {
 		log.Println("failed to exec cmd:", err)
 	}
-}
-
-func ipMask(mask net.IPMask) string {
-	return fmt.Sprintf("%d.%d.%d.%d", mask[0], mask[1], mask[2], mask[3])
 }

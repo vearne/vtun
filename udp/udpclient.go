@@ -1,4 +1,4 @@
-package client
+package udp
 
 import (
 	"log"
@@ -10,8 +10,8 @@ import (
 	"github.com/songgao/water/waterutil"
 )
 
-// StartUDPClient start udp client
-func StartUDPClient(config config.Config) {
+// StartClient starts udp client
+func StartClient(config config.Config) {
 	iface := tun.CreateTun(config)
 	serverAddr, err := net.ResolveUDPAddr("udp", config.ServerAddr)
 	if err != nil {

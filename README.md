@@ -24,12 +24,13 @@ Usage of ./vtun:
         encryption key (default "6w9z$C&F)J@NcRfWjXn3r4u7x!A%D*G-")
   -l string
         local address (default "0.0.0.0:3000")
+  -s string
+        server address (default "0.0.0.0:3001")
   -p string
         protocol ws/wss/udp (default "wss")
   -r string
         route to forward data
-  -s string
-        server address (default "0.0.0.0:3001")
+ 
 ```
 
 ## Build
@@ -52,7 +53,7 @@ sudo ./vtun-linux-amd64 -S -l=:3001 -c=172.16.0.1/24 -k=123456
 
 ```
 
-## Server setup
+## Server setup on Linux
 
 1. Add TLS for websocket,reverse proxy server(3001) via nginx/caddy(443)
 
@@ -62,8 +63,6 @@ sudo ./vtun-linux-amd64 -S -l=:3001 -c=172.16.0.1/24 -k=123456
   sudo echo 1 > /proc/sys/net/ipv4/ip_forward
   sudo sysctl -p
   sudo iptables -t nat -A POSTROUTING -s 172.16.0.0/24 -o ens3 -j MASQUERADE
-  sudo apt-get install iptables-persistent
-  sudo iptables-save > /etc/iptables/rules.v4
 ```
 
 ## Docker
@@ -81,4 +80,7 @@ docker run  -d --privileged --restart=always --net=host --name vtun-server netby
 ## Mobile client
 
 ### [Android](https://github.com/net-byte/vTunnel)
+
+## Caution
+Only support on Linux and MacOS
 
