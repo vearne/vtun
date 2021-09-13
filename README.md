@@ -11,7 +11,7 @@ A simple VPN written in golang.
 * VPN over udp
 * VPN over websocket
 
-# Usage  
+# Usage
 
 ```
 Usage of ./vtun:
@@ -31,13 +31,13 @@ Usage of ./vtun:
   -r string
         route
   -o    obfuscate data (default true)
- 
+
 ```
 
 ## Build
 
 ```
-sh scripts/build.sh 
+sh scripts/build.sh
 ```
 
 ## Client
@@ -83,6 +83,6 @@ docker run  -d --privileged --restart=always --net=host --name vtun-server netby
 ### [Android](https://github.com/net-byte/vTunnel)
 
 ## Caution
-Only support on Linux and MacOS
-Only support IPv4
+1. Only support on Linux and MacOS
+2. Only support IPv4
 
