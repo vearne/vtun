@@ -39,7 +39,7 @@ func StartServer(config config.Config) {
 			continue
 		}
 		var b []byte
-		if config.Encrypt {
+		if config.Obfuscate {
 			b = cipher.XOR(buf[:n])
 		} else {
 			b = buf[:n]
@@ -80,7 +80,7 @@ func (f *Forward) tunToUDP(config config.Config, iface *water.Interface, conn *n
 		key := fmt.Sprintf("%v->%v", dstAddr, srcAddr)
 		v, ok := f.connCache.Get(key)
 		if ok {
-			if config.Encrypt {
+			if config.Obfuscate {
 				b = cipher.XOR(b)
 			}
 			f.localConn.WriteToUDP(b, v.(*net.UDPAddr))

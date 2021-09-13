@@ -36,7 +36,7 @@ func StartClient(config config.Config) {
 				continue
 			}
 			var b []byte
-			if config.Encrypt {
+			if config.Obfuscate {
 				b = cipher.XOR(buf[:n])
 			} else {
 				b = buf[:n]
@@ -58,7 +58,7 @@ func StartClient(config config.Config) {
 			continue
 		}
 		var b []byte
-		if config.Encrypt {
+		if config.Obfuscate {
 			b = cipher.XOR(packet[:n])
 		} else {
 			b = packet[:n]

@@ -49,7 +49,7 @@ func StartClient(config config.Config) {
 			c.Set(key, conn, cache.DefaultExpiration)
 			go wsToTun(config, c, key, conn, iface)
 		}
-		if config.Encrypt {
+		if config.Obfuscate {
 			b = cipher.XOR(b)
 		}
 		conn.WriteMessage(websocket.BinaryMessage, b)
@@ -64,7 +64,7 @@ func wsToTun(config config.Config, c *cache.Cache, key string, wsConn *websocket
 		if err != nil || err == io.EOF {
 			break
 		}
-		if config.Encrypt {
+		if config.Obfuscate {
 			b = cipher.XOR(b)
 		}
 		if !waterutil.IsIPv4(b) {

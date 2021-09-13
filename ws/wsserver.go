@@ -127,7 +127,7 @@ func tunToClientWs(config config.Config, iface *water.Interface, c *cache.Cache)
 		key := fmt.Sprintf("%v->%v", dstAddr, srcAddr)
 		v, ok := c.Get(key)
 		if ok {
-			if config.Encrypt {
+			if config.Obfuscate {
 				b = cipher.XOR(b)
 			}
 			v.(*websocket.Conn).WriteMessage(websocket.BinaryMessage, b)
@@ -143,7 +143,7 @@ func wsToServerTun(config config.Config, wsConn *websocket.Conn, iface *water.In
 		if err != nil || err == io.EOF {
 			break
 		}
-		if config.Encrypt {
+		if config.Obfuscate {
 			b = cipher.XOR(b)
 		}
 		if !waterutil.IsIPv4(b) {
