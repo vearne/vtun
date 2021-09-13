@@ -32,14 +32,14 @@ var upgrader = websocket.Upgrader{
 func StartServer(config config.Config) {
 	iface := tun.CreateTun(config)
 	c := cache.New(30*time.Minute, 10*time.Minute)
-	go tunToClientWs(iface, c)
+	go tunToClientWs(config, iface, c)
 	log.Printf("vtun ws server started on %v,CIDR is %v", config.LocalAddr, config.CIDR)
 	http.HandleFunc("/way-to-freedom", func(w http.ResponseWriter, r *http.Request) {
 		wsConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			return
 		}
-		wsToServerTun(wsConn, iface, c)
+		wsToServerTun(config, wsConn, iface, c)
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
@@ -109,7 +109,7 @@ func error403(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("403 No Permission"))
 }
 
-func tunToClientWs(iface *water.Interface, c *cache.Cache) {
+func tunToClientWs(config config.Config, iface *water.Interface, c *cache.Cache) {
 	buffer := make([]byte, 1500)
 	for {
 		n, err := iface.Read(buffer)
@@ -127,13 +127,15 @@ func tunToClientWs(iface *water.Interface, c *cache.Cache) {
 		key := fmt.Sprintf("%v->%v", dstAddr, srcAddr)
 		v, ok := c.Get(key)
 		if ok {
-			b = cipher.XOR(b)
+			if config.Encrypt {
+				b = cipher.XOR(b)
+			}
 			v.(*websocket.Conn).WriteMessage(websocket.BinaryMessage, b)
 		}
 	}
 }
 
-func wsToServerTun(wsConn *websocket.Conn, iface *water.Interface, c *cache.Cache) {
+func wsToServerTun(config config.Config, wsConn *websocket.Conn, iface *water.Interface, c *cache.Cache) {
 	defer netutil.CloseWS(wsConn)
 	for {
 		wsConn.SetReadDeadline(time.Now().Add(time.Duration(30) * time.Second))
@@ -141,7 +143,9 @@ func wsToServerTun(wsConn *websocket.Conn, iface *water.Interface, c *cache.Cach
 		if err != nil || err == io.EOF {
 			break
 		}
-		b = cipher.XOR(b)
+		if config.Encrypt {
+			b = cipher.XOR(b)
+		}
 		if !waterutil.IsIPv4(b) {
 			continue
 		}

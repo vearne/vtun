@@ -18,6 +18,7 @@ func main() {
 	flag.StringVar(&config.Route, "r", "", "route to forward data")
 	flag.StringVar(&config.Protocol, "p", "wss", "protocol ws/wss/udp")
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
+	flag.BoolVar(&config.Encrypt, "e", true, "data encryption")
 	flag.Parse()
 	config.Init()
 	switch config.Protocol {

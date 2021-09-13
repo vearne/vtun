@@ -30,7 +30,7 @@ func StartServer(config config.Config) {
 	log.Printf("vtun udp server started on %v,CIDR is %v", config.LocalAddr, config.CIDR)
 	// write data to client
 	f := &Forward{localConn: conn, connCache: cache.New(30*time.Minute, 10*time.Minute)}
-	go f.tunToUDP(iface, conn)
+	go f.tunToUDP(config, iface, conn)
 	// read data from client
 	buf := make([]byte, 1500)
 	for {
@@ -38,7 +38,12 @@ func StartServer(config config.Config) {
 		if err != nil || n == 0 {
 			continue
 		}
-		b := cipher.XOR(buf[:n])
+		var b []byte
+		if config.Encrypt {
+			b = cipher.XOR(buf[:n])
+		} else {
+			b = buf[:n]
+		}
 		if !waterutil.IsIPv4(b) {
 			continue
 		}
@@ -57,7 +62,7 @@ type Forward struct {
 	connCache *cache.Cache
 }
 
-func (f *Forward) tunToUDP(iface *water.Interface, conn *net.UDPConn) {
+func (f *Forward) tunToUDP(config config.Config, iface *water.Interface, conn *net.UDPConn) {
 	packet := make([]byte, 1500)
 	for {
 		n, err := iface.Read(packet)
@@ -75,7 +80,9 @@ func (f *Forward) tunToUDP(iface *water.Interface, conn *net.UDPConn) {
 		key := fmt.Sprintf("%v->%v", dstAddr, srcAddr)
 		v, ok := f.connCache.Get(key)
 		if ok {
-			b = cipher.XOR(b)
+			if config.Encrypt {
+				b = cipher.XOR(b)
+			}
 			f.localConn.WriteToUDP(b, v.(*net.UDPAddr))
 		}
 	}

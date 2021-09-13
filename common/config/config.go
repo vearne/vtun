@@ -16,6 +16,7 @@ type Config struct {
 	Key        string
 	Protocol   string
 	ServerMode bool
+	Encrypt    bool
 }
 
 func (config *Config) Init() {

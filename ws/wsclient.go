@@ -47,14 +47,16 @@ func StartClient(config config.Config) {
 				continue
 			}
 			c.Set(key, conn, cache.DefaultExpiration)
-			go wsToTun(c, key, conn, iface)
+			go wsToTun(config, c, key, conn, iface)
 		}
-		b = cipher.XOR(b)
+		if config.Encrypt {
+			b = cipher.XOR(b)
+		}
 		conn.WriteMessage(websocket.BinaryMessage, b)
 	}
 }
 
-func wsToTun(c *cache.Cache, key string, wsConn *websocket.Conn, iface *water.Interface) {
+func wsToTun(config config.Config, c *cache.Cache, key string, wsConn *websocket.Conn, iface *water.Interface) {
 	defer netutil.CloseWS(wsConn)
 	for {
 		wsConn.SetReadDeadline(time.Now().Add(time.Duration(30) * time.Second))
@@ -62,7 +64,9 @@ func wsToTun(c *cache.Cache, key string, wsConn *websocket.Conn, iface *water.In
 		if err != nil || err == io.EOF {
 			break
 		}
-		b = cipher.XOR(b)
+		if config.Encrypt {
+			b = cipher.XOR(b)
+		}
 		if !waterutil.IsIPv4(b) {
 			continue
 		}

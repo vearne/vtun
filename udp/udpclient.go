@@ -35,7 +35,12 @@ func StartClient(config config.Config) {
 			if err != nil || n == 0 {
 				continue
 			}
-			b := cipher.XOR(buf[:n])
+			var b []byte
+			if config.Encrypt {
+				b = cipher.XOR(buf[:n])
+			} else {
+				b = buf[:n]
+			}
 			if !waterutil.IsIPv4(b) {
 				continue
 			}
@@ -52,7 +57,12 @@ func StartClient(config config.Config) {
 		if !waterutil.IsIPv4(packet) {
 			continue
 		}
-		b := cipher.XOR(packet[:n])
+		var b []byte
+		if config.Encrypt {
+			b = cipher.XOR(packet[:n])
+		} else {
+			b = packet[:n]
+		}
 		conn.WriteToUDP(b, serverAddr)
 	}
 }

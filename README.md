@@ -30,6 +30,7 @@ Usage of ./vtun:
         protocol ws/wss/udp (default "wss")
   -r string
         route to forward data
+  -e    data encryption (default true)
  
 ```
 
