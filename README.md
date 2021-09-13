@@ -21,7 +21,7 @@ Usage of ./vtun:
   -g string
         gateway (default "172.16.0.1")
   -k string
-        encryption key (default "6w9z$C&F)J@NcRfWjXn3r4u7x!A%D*G-")
+        key (default "6w9z$C&F)J@NcRfWjXn3r4u7x!A%D*G-")
   -l string
         local address (default "0.0.0.0:3000")
   -s string
@@ -29,7 +29,7 @@ Usage of ./vtun:
   -p string
         protocol ws/wss/udp (default "wss")
   -r string
-        route to forward data
+        route
   -o    obfuscate data (default true)
  
 ```
