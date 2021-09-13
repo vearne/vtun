@@ -84,4 +84,5 @@ docker run  -d --privileged --restart=always --net=host --name vtun-server netby
 
 ## Caution
 Only support on Linux and MacOS
+Only support IPv4
 
