@@ -18,7 +18,7 @@ func main() {
 	flag.StringVar(&config.Route, "r", "", "route")
 	flag.StringVar(&config.Protocol, "p", "wss", "protocol ws/wss/udp")
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
-	flag.BoolVar(&config.Obfuscate, "o", true, "obfuscate data")
+	flag.BoolVar(&config.Obfuscate, "o", false, "obfuscate data")
 	flag.Parse()
 	config.Init()
 	switch config.Protocol {

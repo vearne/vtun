@@ -30,7 +30,7 @@ Usage of ./vtun:
         protocol ws/wss/udp (default "wss")
   -r string
         route
-  -o    obfuscate data (default true)
+  -o    obfuscate data (default false)
 
 ```
 
