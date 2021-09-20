@@ -30,7 +30,8 @@ Usage of ./vtun:
         protocol ws/wss/udp (default "wss")
   -r string
         route
-  -o    obfuscate data (default false)
+  -o    obfuscate data
+  -P    enable pporf server on :6060
 
 ```
 

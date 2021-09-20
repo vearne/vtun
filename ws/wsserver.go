@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"strings"
 	"time"
 
@@ -29,6 +30,14 @@ var upgrader = websocket.Upgrader{
 
 // StartServer starts ws server
 func StartServer(config config.Config) {
+	if config.Pprof {
+		go func() {
+			log.Printf("pprof server on :6060")
+			if err := http.ListenAndServe(":6060", nil); err != nil {
+				log.Printf("pprof failed: %v", err)
+			}
+		}()
+	}
 	iface := tun.CreateTun(config)
 	c := cache.New(30*time.Minute, 10*time.Minute)
 	go tunToClientWs(config, iface, c)

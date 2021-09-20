@@ -19,6 +19,7 @@ func main() {
 	flag.StringVar(&config.Protocol, "p", "wss", "protocol ws/wss/udp")
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
 	flag.BoolVar(&config.Obfuscate, "o", false, "obfuscate data")
+	flag.BoolVar(&config.Pprof, "P", false, "enable pporf server on :6060")
 	flag.Parse()
 	config.Init()
 	switch config.Protocol {

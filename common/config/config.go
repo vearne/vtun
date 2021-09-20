@@ -17,6 +17,7 @@ type Config struct {
 	Protocol   string
 	ServerMode bool
 	Obfuscate  bool
+	Pprof      bool
 }
 
 func (config *Config) Init() {
