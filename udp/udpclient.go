@@ -19,11 +19,11 @@ func StartClient(config config.Config) {
 	}
 	localAddr, err := net.ResolveUDPAddr("udp", config.LocalAddr)
 	if err != nil {
-		log.Fatalln("failed to get UDP socket:", err)
+		log.Fatalln("failed to get udp socket:", err)
 	}
 	conn, err := net.ListenUDP("udp", localAddr)
 	if err != nil {
-		log.Fatalln("failed to listen on UDP socket:", err)
+		log.Fatalln("failed to listen on udp socket:", err)
 	}
 	defer conn.Close()
 	log.Printf("vtun udp client started on %v,CIDR is %v", config.LocalAddr, config.CIDR)

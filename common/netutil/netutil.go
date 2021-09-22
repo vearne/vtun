@@ -1,10 +1,11 @@
 package netutil
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -15,7 +16,7 @@ import (
 func GetAddr(b []byte) (srcAddr string, dstAddr string) {
 	defer func() {
 		if err := recover(); err != nil {
-			log.Println(err)
+			log.Printf("failed to get addr:%v", err)
 			srcAddr = ""
 			dstAddr = ""
 		}
@@ -25,9 +26,9 @@ func GetAddr(b []byte) (srcAddr string, dstAddr string) {
 		dstIp := waterutil.IPv4Destination(b)
 		srcPort := waterutil.IPv4SourcePort(b)
 		dstPort := waterutil.IPv4DestinationPort(b)
-		src := fmt.Sprintf("%s:%v", srcIp.To4().String(), srcPort)
-		dst := fmt.Sprintf("%s:%v", dstIp.To4().String(), dstPort)
-		log.Printf("%s->%v", src, dst)
+		src := strings.Join([]string{srcIp.To4().String(), strconv.FormatUint(uint64(srcPort), 10)}, ":")
+		dst := strings.Join([]string{dstIp.To4().String(), strconv.FormatUint(uint64(dstPort), 10)}, ":")
+		//log.Printf("%s->%v", src, dst)
 		return src, dst
 	} else if waterutil.IPv4Protocol(b) == waterutil.ICMP {
 		srcIp := waterutil.IPv4Source(b)

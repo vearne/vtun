@@ -132,7 +132,7 @@ func tunToClientWs(config config.Config, iface *water.Interface, c *cache.Cache)
 		if srcAddr == "" || dstAddr == "" {
 			continue
 		}
-		key := fmt.Sprintf("%v->%v", dstAddr, srcAddr)
+		key := strings.Join([]string{dstAddr, srcAddr}, "->")
 		v, ok := c.Get(key)
 		if ok {
 			if config.Obfuscate {
@@ -161,7 +161,7 @@ func wsToServerTun(config config.Config, wsConn *websocket.Conn, iface *water.In
 		if srcAddr == "" || dstAddr == "" {
 			continue
 		}
-		key := fmt.Sprintf("%v->%v", srcAddr, dstAddr)
+		key := strings.Join([]string{srcAddr, dstAddr}, "->")
 		c.Set(key, wsConn, cache.DefaultExpiration)
 		iface.Write(b[:])
 	}

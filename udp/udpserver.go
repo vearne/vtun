@@ -1,9 +1,9 @@
 package udp
 
 import (
-	"fmt"
 	"log"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/net-byte/vtun/common/cipher"
@@ -20,11 +20,11 @@ func StartServer(config config.Config) {
 	iface := tun.CreateTun(config)
 	localAddr, err := net.ResolveUDPAddr("udp", config.LocalAddr)
 	if err != nil {
-		log.Fatalln("failed to get UDP socket:", err)
+		log.Fatalln("failed to get udp socket:", err)
 	}
 	conn, err := net.ListenUDP("udp", localAddr)
 	if err != nil {
-		log.Fatalln("failed to listen on UDP socket:", err)
+		log.Fatalln("failed to listen on udp socket:", err)
 	}
 	defer conn.Close()
 	log.Printf("vtun udp server started on %v,CIDR is %v", config.LocalAddr, config.CIDR)
@@ -52,7 +52,7 @@ func StartServer(config config.Config) {
 		if srcAddr == "" || dstAddr == "" {
 			continue
 		}
-		key := fmt.Sprintf("%v->%v", srcAddr, dstAddr)
+		key := strings.Join([]string{srcAddr, dstAddr}, "->")
 		f.connCache.Set(key, cliAddr, cache.DefaultExpiration)
 	}
 }
@@ -77,7 +77,7 @@ func (f *Forward) tunToUDP(config config.Config, iface *water.Interface, conn *n
 		if srcAddr == "" || dstAddr == "" {
 			continue
 		}
-		key := fmt.Sprintf("%v->%v", dstAddr, srcAddr)
+		key := strings.Join([]string{dstAddr, srcAddr}, "->")
 		v, ok := f.connCache.Get(key)
 		if ok {
 			if config.Obfuscate {

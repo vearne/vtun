@@ -1,9 +1,9 @@
 package ws
 
 import (
-	"fmt"
 	"io"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -36,7 +36,7 @@ func StartClient(config config.Config) {
 		if srcAddr == "" || dstAddr == "" {
 			continue
 		}
-		key := fmt.Sprintf("%v->%v", dstAddr, srcAddr)
+		key := strings.Join([]string{dstAddr, srcAddr}, "->")
 		var conn *websocket.Conn
 		v, ok := c.Get(key)
 		if ok {
