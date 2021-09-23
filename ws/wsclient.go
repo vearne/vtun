@@ -38,8 +38,7 @@ func StartClient(config config.Config) {
 		}
 		key := strings.Join([]string{dstAddr, srcAddr}, "->")
 		var conn *websocket.Conn
-		v, ok := c.Get(key)
-		if ok {
+		if v, ok := c.Get(key); ok {
 			conn = v.(*websocket.Conn)
 		} else {
 			conn = netutil.ConnectWS(config)

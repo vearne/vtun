@@ -26,7 +26,7 @@ func StartClient(config config.Config) {
 		log.Fatalln("failed to listen on udp socket:", err)
 	}
 	defer conn.Close()
-	log.Printf("vtun udp client started on %v,CIDR is %v", config.LocalAddr, config.CIDR)
+	log.Printf("vtun udp client started on %v", config.LocalAddr)
 	// read data from server
 	go func() {
 		buf := make([]byte, 1500)

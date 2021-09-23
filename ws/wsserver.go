@@ -40,14 +40,15 @@ func StartServer(config config.Config) {
 	}
 	iface := tun.CreateTun(config)
 	c := cache.New(30*time.Minute, 10*time.Minute)
-	go tunToClientWs(config, iface, c)
-	log.Printf("vtun ws server started on %v,CIDR is %v", config.LocalAddr, config.CIDR)
+	// server -> client
+	go toClient(config, iface, c)
+	// client -> server
 	http.HandleFunc("/way-to-freedom", func(w http.ResponseWriter, r *http.Request) {
 		wsConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			return
 		}
-		wsToServerTun(config, wsConn, iface, c)
+		toServer(config, wsConn, iface, c)
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
@@ -108,16 +109,16 @@ func StartServer(config config.Config) {
 		}
 		io.WriteString(w, strings.Join(register.ListClientIP(), "\r\n"))
 	})
-
+	log.Printf("vtun ws server started on %v", config.LocalAddr)
 	http.ListenAndServe(config.LocalAddr, nil)
 }
 
 func error403(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusForbidden)
-	w.Write([]byte("403 No Permission"))
+	w.Write([]byte("No permission"))
 }
 
-func tunToClientWs(config config.Config, iface *water.Interface, c *cache.Cache) {
+func toClient(config config.Config, iface *water.Interface, c *cache.Cache) {
 	buffer := make([]byte, 1500)
 	for {
 		n, err := iface.Read(buffer)
@@ -133,8 +134,7 @@ func tunToClientWs(config config.Config, iface *water.Interface, c *cache.Cache)
 			continue
 		}
 		key := strings.Join([]string{dstAddr, srcAddr}, "->")
-		v, ok := c.Get(key)
-		if ok {
+		if v, ok := c.Get(key); ok {
 			if config.Obfuscate {
 				b = cipher.XOR(b)
 			}
@@ -143,7 +143,7 @@ func tunToClientWs(config config.Config, iface *water.Interface, c *cache.Cache)
 	}
 }
 
-func wsToServerTun(config config.Config, wsConn *websocket.Conn, iface *water.Interface, c *cache.Cache) {
+func toServer(config config.Config, wsConn *websocket.Conn, iface *water.Interface, c *cache.Cache) {
 	defer netutil.CloseWS(wsConn)
 	for {
 		wsConn.SetReadDeadline(time.Now().Add(time.Duration(30) * time.Second))

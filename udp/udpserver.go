@@ -3,6 +3,7 @@ package udp
 import (
 	"log"
 	"net"
+	"net/http"
 	"strings"
 	"time"
 
@@ -17,6 +18,14 @@ import (
 
 // StartServer starts udp server
 func StartServer(config config.Config) {
+	if config.Pprof {
+		go func() {
+			log.Printf("pprof server on :6060")
+			if err := http.ListenAndServe(":6060", nil); err != nil {
+				log.Printf("pprof failed: %v", err)
+			}
+		}()
+	}
 	iface := tun.CreateTun(config)
 	localAddr, err := net.ResolveUDPAddr("udp", config.LocalAddr)
 	if err != nil {
@@ -28,10 +37,10 @@ func StartServer(config config.Config) {
 	}
 	defer conn.Close()
 	log.Printf("vtun udp server started on %v,CIDR is %v", config.LocalAddr, config.CIDR)
-	// write data to client
-	f := &Forward{localConn: conn, connCache: cache.New(30*time.Minute, 10*time.Minute)}
-	go f.tunToUDP(config, iface, conn)
-	// read data from client
+	// server -> client
+	reply := &Reply{localConn: conn, connCache: cache.New(30*time.Minute, 10*time.Minute)}
+	go reply.toClient(config, iface, conn)
+	// client -> server
 	buf := make([]byte, 1500)
 	for {
 		n, cliAddr, err := conn.ReadFromUDP(buf)
@@ -53,16 +62,16 @@ func StartServer(config config.Config) {
 			continue
 		}
 		key := strings.Join([]string{srcAddr, dstAddr}, "->")
-		f.connCache.Set(key, cliAddr, cache.DefaultExpiration)
+		reply.connCache.Set(key, cliAddr, cache.DefaultExpiration)
 	}
 }
 
-type Forward struct {
+type Reply struct {
 	localConn *net.UDPConn
 	connCache *cache.Cache
 }
 
-func (f *Forward) tunToUDP(config config.Config, iface *water.Interface, conn *net.UDPConn) {
+func (r *Reply) toClient(config config.Config, iface *water.Interface, conn *net.UDPConn) {
 	packet := make([]byte, 1500)
 	for {
 		n, err := iface.Read(packet)
@@ -78,12 +87,11 @@ func (f *Forward) tunToUDP(config config.Config, iface *water.Interface, conn *n
 			continue
 		}
 		key := strings.Join([]string{dstAddr, srcAddr}, "->")
-		v, ok := f.connCache.Get(key)
-		if ok {
+		if v, ok := r.connCache.Get(key); ok {
 			if config.Obfuscate {
 				b = cipher.XOR(b)
 			}
-			f.localConn.WriteToUDP(b, v.(*net.UDPAddr))
+			r.localConn.WriteToUDP(b, v.(*net.UDPAddr))
 		}
 	}
 }
