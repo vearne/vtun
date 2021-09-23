@@ -36,7 +36,7 @@ func StartServer(config config.Config) {
 		log.Fatalln("failed to listen on udp socket:", err)
 	}
 	defer conn.Close()
-	log.Printf("vtun udp server started on %v,CIDR is %v", config.LocalAddr, config.CIDR)
+	log.Printf("vtun udp server started on %v", config.LocalAddr)
 	// server -> client
 	reply := &Reply{localConn: conn, connCache: cache.New(30*time.Minute, 10*time.Minute)}
 	go reply.toClient(config, iface, conn)

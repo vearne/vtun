@@ -15,9 +15,9 @@ func CreateTun(config config.Config) (iface *water.Interface) {
 	c := water.Config{DeviceType: water.TUN}
 	iface, err := water.New(c)
 	if err != nil {
-		log.Fatalln("failed to allocate TUN interface:", err)
+		log.Fatalln("failed to create tun interface:", err)
 	}
-	log.Println("interface allocated:", iface.Name())
+	log.Println("interface created:", iface.Name())
 	configTun(config, iface)
 	return iface
 }

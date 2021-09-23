@@ -27,7 +27,7 @@ func StartClient(config config.Config) {
 	}
 	defer conn.Close()
 	log.Printf("vtun udp client started on %v", config.LocalAddr)
-	// read data from server
+	// server -> client
 	go func() {
 		buf := make([]byte, 1500)
 		for {
@@ -47,7 +47,7 @@ func StartClient(config config.Config) {
 			iface.Write(b)
 		}
 	}()
-	// read data from tun
+	// client -> server
 	packet := make([]byte, 1500)
 	for {
 		n, err := iface.Read(packet)
