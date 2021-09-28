@@ -9,8 +9,11 @@ echo "* hard nofile 1024000" >> /etc/security/limits.conf
 
 # enable bbr
 echo "enable bbr"
-echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
-echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
+echo "net.core.default_qdisc = fq" >> /etc/sysctl.conf
+echo "net.ipv4.tcp_congestion_control = bbr" >> /etc/sysctl.conf
+echo "net.ipv4.tcp_syncookies = 1" >> /etc/sysctl.conf
+echo "net.ipv4.tcp_tw_reuse = 1" >> /etc/sysctl.conf
+echo "net.ipv4.tcp_fin_timeout = 30" >> /etc/sysctl.conf
 
 # enable ip forward
 echo 1 > /proc/sys/net/ipv4/ip_forward
