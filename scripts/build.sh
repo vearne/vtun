@@ -8,6 +8,6 @@ GOOS=linux GOARCH=arm64 go build -o ./bin/vtun-linux-arm64 ./main.go
 #Mac amd64
 GOOS=darwin GOARCH=amd64 go build -o ./bin/vtun-darwin-amd64 ./main.go
 #Openwrt mipsel_24kc
-GOOS=linux GOARCH=mipsle GOMIPS=softfloat go build -o ./bin/vtun-mipsel_24kc ./main.go
+GOOS=linux GOARCH=mipsle GOMIPS=softfloat go build -o ./bin/vtun-mipsel-24kc ./main.go
 
 echo "DONE!!!"
