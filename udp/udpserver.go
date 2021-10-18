@@ -3,7 +3,6 @@ package udp
 import (
 	"log"
 	"net"
-	"net/http"
 	"strings"
 	"time"
 
@@ -18,14 +17,6 @@ import (
 
 // StartServer starts udp server
 func StartServer(config config.Config) {
-	if config.Pprof {
-		go func() {
-			log.Printf("pprof server on :6060")
-			if err := http.ListenAndServe(":6060", nil); err != nil {
-				log.Printf("pprof failed: %v", err)
-			}
-		}()
-	}
 	iface := tun.CreateTun(config)
 	localAddr, err := net.ResolveUDPAddr("udp", config.LocalAddr)
 	if err != nil {

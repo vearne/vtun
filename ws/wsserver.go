@@ -30,20 +30,15 @@ var upgrader = websocket.Upgrader{
 
 // StartServer starts ws server
 func StartServer(config config.Config) {
-	if config.Pprof {
-		go func() {
-			log.Printf("pprof server on :6060")
-			if err := http.ListenAndServe(":6060", nil); err != nil {
-				log.Printf("pprof failed: %v", err)
-			}
-		}()
-	}
 	iface := tun.CreateTun(config)
 	c := cache.New(30*time.Minute, 10*time.Minute)
 	// server -> client
 	go toClient(config, iface, c)
 	// client -> server
 	http.HandleFunc("/way-to-freedom", func(w http.ResponseWriter, r *http.Request) {
+		if !checkPermission(w, r, config) {
+			return
+		}
 		wsConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			return
@@ -64,10 +59,8 @@ func StartServer(config config.Config) {
 		io.WriteString(w, resp)
 	})
 
-	http.HandleFunc("/register/pick/ip", func(w http.ResponseWriter, req *http.Request) {
-		key := req.Header.Get("key")
-		if key != config.Key {
-			error403(w, req)
+	http.HandleFunc("/register/pick/ip", func(w http.ResponseWriter, r *http.Request) {
+		if !checkPermission(w, r, config) {
 			return
 		}
 		ip, pl := register.PickClientIP(config.CIDR)
@@ -75,36 +68,30 @@ func StartServer(config config.Config) {
 		io.WriteString(w, resp)
 	})
 
-	http.HandleFunc("/register/delete/ip", func(w http.ResponseWriter, req *http.Request) {
-		key := req.Header.Get("key")
-		if key != config.Key {
-			error403(w, req)
+	http.HandleFunc("/register/delete/ip", func(w http.ResponseWriter, r *http.Request) {
+		if !checkPermission(w, r, config) {
 			return
 		}
-		ip := req.URL.Query().Get("ip")
+		ip := r.URL.Query().Get("ip")
 		if ip != "" {
 			register.DeleteClientIP(ip)
 		}
 		io.WriteString(w, "OK")
 	})
 
-	http.HandleFunc("/register/keepalive/ip", func(w http.ResponseWriter, req *http.Request) {
-		key := req.Header.Get("key")
-		if key != config.Key {
-			error403(w, req)
+	http.HandleFunc("/register/keepalive/ip", func(w http.ResponseWriter, r *http.Request) {
+		if !checkPermission(w, r, config) {
 			return
 		}
-		ip := req.URL.Query().Get("ip")
+		ip := r.URL.Query().Get("ip")
 		if ip != "" {
 			register.KeepAliveClientIP(ip)
 		}
 		io.WriteString(w, "OK")
 	})
 
-	http.HandleFunc("/register/list/ip", func(w http.ResponseWriter, req *http.Request) {
-		key := req.Header.Get("key")
-		if key != config.Key {
-			error403(w, req)
+	http.HandleFunc("/register/list/ip", func(w http.ResponseWriter, r *http.Request) {
+		if !checkPermission(w, r, config) {
 			return
 		}
 		io.WriteString(w, strings.Join(register.ListClientIP(), "\r\n"))
@@ -112,10 +99,14 @@ func StartServer(config config.Config) {
 	log.Printf("vtun ws server started on %v", config.LocalAddr)
 	http.ListenAndServe(config.LocalAddr, nil)
 }
-
-func error403(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusForbidden)
-	w.Write([]byte("No permission"))
+func checkPermission(w http.ResponseWriter, req *http.Request, config config.Config) bool {
+	key := req.Header.Get("key")
+	if key != config.Key {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("No permission"))
+		return false
+	}
+	return true
 }
 
 func toClient(config config.Config, iface *water.Interface, c *cache.Cache) {

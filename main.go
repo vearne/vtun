@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"log"
+	"net/http"
 
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/udp"
@@ -22,6 +24,14 @@ func main() {
 	flag.BoolVar(&config.Pprof, "P", false, "enable pporf server on :6060")
 	flag.Parse()
 	config.Init()
+	if config.Pprof {
+		go func() {
+			log.Printf("pprof server on :6060")
+			if err := http.ListenAndServe(":6060", nil); err != nil {
+				log.Printf("pprof failed: %v", err)
+			}
+		}()
+	}
 	switch config.Protocol {
 	case "udp":
 		if config.ServerMode {
