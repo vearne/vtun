@@ -1,14 +1,15 @@
 package netutil
 
 import (
+	"context"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/gobwas/ws"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/songgao/water/waterutil"
 )
@@ -38,7 +39,7 @@ func GetAddr(b []byte) (srcAddr string, dstAddr string) {
 	return "", ""
 }
 
-func ConnectWS(config config.Config) *websocket.Conn {
+func ConnectServer(config config.Config) net.Conn {
 	scheme := "ws"
 	if config.Protocol == "wss" {
 		scheme = "wss"
@@ -47,15 +48,13 @@ func ConnectWS(config config.Config) *websocket.Conn {
 	header := make(http.Header)
 	header.Set("user-agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36")
 	header.Set("key", config.Key)
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), header)
+	dialer := ws.Dialer{
+		Header: ws.HandshakeHeaderHTTP(header),
+	}
+	c, _, _, err := dialer.Dial(context.Background(), u.String())
 	if err != nil {
-		log.Printf("[client] failed to dial websocket %v", err)
+		log.Printf("[client] failed to dial websocket %s %v", u.String(), err)
 		return nil
 	}
 	return c
-}
-
-func CloseWS(wsConn *websocket.Conn) {
-	wsConn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Now().Add(time.Second*5))
-	wsConn.Close()
 }

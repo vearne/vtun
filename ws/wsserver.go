@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"strings"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/netutil"
@@ -19,14 +21,6 @@ import (
 	"github.com/songgao/water"
 	"github.com/songgao/water/waterutil"
 )
-
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1500,
-	WriteBufferSize: 1500,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
 
 // StartServer starts ws server
 func StartServer(config config.Config) {
@@ -39,11 +33,12 @@ func StartServer(config config.Config) {
 		if !checkPermission(w, r, config) {
 			return
 		}
-		wsConn, err := upgrader.Upgrade(w, r, nil)
+		wsconn, _, _, err := ws.UpgradeHTTP(r, w)
 		if err != nil {
+			log.Printf("[server] failed to upgrade http %v", err)
 			return
 		}
-		toServer(config, wsConn, iface, c)
+		toServer(config, wsconn, iface, c)
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
@@ -129,16 +124,16 @@ func toClient(config config.Config, iface *water.Interface, c *cache.Cache) {
 			if config.Obfuscate {
 				b = cipher.XOR(b)
 			}
-			v.(*websocket.Conn).WriteMessage(websocket.BinaryMessage, b)
+			wsutil.WriteServerBinary(v.(net.Conn), b)
 		}
 	}
 }
 
-func toServer(config config.Config, wsConn *websocket.Conn, iface *water.Interface, c *cache.Cache) {
-	defer netutil.CloseWS(wsConn)
+func toServer(config config.Config, wsconn net.Conn, iface *water.Interface, c *cache.Cache) {
+	defer wsconn.Close()
 	for {
-		wsConn.SetReadDeadline(time.Now().Add(time.Duration(30) * time.Second))
-		_, b, err := wsConn.ReadMessage()
+		wsconn.SetReadDeadline(time.Now().Add(time.Duration(30) * time.Second))
+		b, err := wsutil.ReadClientBinary(wsconn)
 		if err != nil || err == io.EOF {
 			break
 		}
@@ -153,7 +148,7 @@ func toServer(config config.Config, wsConn *websocket.Conn, iface *water.Interfa
 			continue
 		}
 		key := strings.Join([]string{srcAddr, dstAddr}, "->")
-		c.Set(key, wsConn, cache.DefaultExpiration)
+		c.Set(key, wsconn, cache.DefaultExpiration)
 		iface.Write(b[:])
 	}
 }

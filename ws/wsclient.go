@@ -3,10 +3,11 @@ package ws
 import (
 	"io"
 	"log"
+	"net"
 	"strings"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/gobwas/ws/wsutil"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/netutil"
@@ -37,11 +38,11 @@ func StartClient(config config.Config) {
 			continue
 		}
 		key := strings.Join([]string{dstAddr, srcAddr}, "->")
-		var conn *websocket.Conn
+		var conn net.Conn
 		if v, ok := c.Get(key); ok {
-			conn = v.(*websocket.Conn)
+			conn = v.(net.Conn)
 		} else {
-			conn = netutil.ConnectWS(config)
+			conn = netutil.ConnectServer(config)
 			if conn == nil {
 				continue
 			}
@@ -51,15 +52,15 @@ func StartClient(config config.Config) {
 		if config.Obfuscate {
 			b = cipher.XOR(b)
 		}
-		conn.WriteMessage(websocket.BinaryMessage, b)
+		wsutil.WriteClientBinary(conn, b)
 	}
 }
 
-func wsToTun(config config.Config, c *cache.Cache, key string, wsConn *websocket.Conn, iface *water.Interface) {
-	defer netutil.CloseWS(wsConn)
+func wsToTun(config config.Config, c *cache.Cache, key string, wsconn net.Conn, iface *water.Interface) {
+	defer wsconn.Close()
 	for {
-		wsConn.SetReadDeadline(time.Now().Add(time.Duration(30) * time.Second))
-		_, b, err := wsConn.ReadMessage()
+		wsconn.SetReadDeadline(time.Now().Add(time.Duration(30) * time.Second))
+		b, err := wsutil.ReadServerBinary(wsconn)
 		if err != nil || err == io.EOF {
 			break
 		}
