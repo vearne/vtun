@@ -149,6 +149,6 @@ func toServer(config config.Config, wsconn net.Conn, iface *water.Interface, c *
 		}
 		key := strings.Join([]string{srcAddr, dstAddr}, "->")
 		c.Set(key, wsconn, cache.DefaultExpiration)
-		iface.Write(b[:])
+		iface.Write(b)
 	}
 }

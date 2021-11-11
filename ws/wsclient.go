@@ -21,7 +21,7 @@ import (
 func StartClient(config config.Config) {
 	iface := tun.CreateTun(config)
 	c := cache.New(30*time.Minute, 10*time.Minute)
-	log.Printf("vtun ws client started,CIDR is %v", config.CIDR)
+	log.Printf("vtun ws client started on %v", config.LocalAddr)
 	// read data from tun
 	packet := make([]byte, 1500)
 	for {
@@ -70,7 +70,7 @@ func wsToTun(config config.Config, c *cache.Cache, key string, wsconn net.Conn, 
 		if !waterutil.IsIPv4(b) {
 			continue
 		}
-		iface.Write(b[:])
+		iface.Write(b)
 	}
 	c.Delete(key)
 }
