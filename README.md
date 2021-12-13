@@ -15,23 +15,20 @@ A simple VPN written in golang.
 
 ```
 Usage of ./vtun:
-  -S    server mode
   -c string
-        tun interface CIDR (default "172.16.0.2/24")
-  -g string
-        gateway (default "172.16.0.1")
+        tun interface CIDR (default "172.16.0.10/24")
   -k string
         key (default "6w9z$C&F)J@NcRfWjXn3r4u7x!A%D*G-")
   -l string
-        local address (default "0.0.0.0:3000")
-  -s string
-        server address (default "0.0.0.0:3001")
+        local address (default ":3000")
   -p string
         protocol ws/wss/udp (default "wss")
-  -r string
-        route
-  -o    enable data obfuscation
+  -s string
+        server address (default ":3001")
   -P    enable pporf server on :6060
+  -S    server mode
+  -g    client global mode
+  -o    enable data obfuscation
 
 ```
 
@@ -45,6 +42,13 @@ sh scripts/build.sh
 
 ```
 sudo ./vtun-linux-amd64 -l=:3000 -s=server-addr:3001 -c=172.16.0.10/24 -k=123456
+
+```
+
+## Client with global mode(routing all your traffic to server)
+
+```
+sudo ./vtun-linux-amd64 -l=:3000 -s=server-addr:3001 -c=172.16.0.10/24 -k=123456 -g
 
 ```
 
@@ -71,19 +75,24 @@ sudo ./vtun-linux-amd64 -S -l=:3001 -c=172.16.0.1/24 -k=123456
 
 ### Run client
 ```
-docker run  -d --privileged --restart=always --net=host --name vtun-client netbyte/vtun -l=:3000 -s=server-addr:3001 -c=172.16.0.10/24 -k=123456
+docker run  -d --privileged --restart=always --net=host --name vtun-client netbyte/vtun -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456
+```
+
+### Run client with global mode
+```
+docker run  -d --privileged --restart=always --net=host --name vtun-client netbyte/vtun -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g
 ```
 
 ### Run server
 ```
-docker run  -d --privileged --restart=always --net=host --name vtun-server netbyte/vtun -S -l=:3001 -c=172.16.0.1/24 -k=123456
+docker run  -d --privileged --restart=always --net=host --name vtun-server netbyte/vtun -S -l :3001 -c 172.16.0.1/24 -k 123456
 ```
 
 ## Mobile client
 
 ### [Android](https://github.com/net-byte/vTunnel)
 
-## Caution
-1. Only support on Linux and MacOS
-2. Only support IPv4
+## TODO
+1. support windows
+2. support IPv6
 

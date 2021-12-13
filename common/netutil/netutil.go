@@ -73,6 +73,7 @@ func GetPhysicalInterface() (name string, gateway string, network string) {
 			ipNet[3]++
 			gateway = ipNet.String()
 			name = ifaces[0].Name
+			log.Printf("physical interface %v gateway %v network %v", name, gateway, network)
 			break
 		}
 	}
@@ -87,16 +88,19 @@ func getAllPhysicalInterfaces() []net.Interface {
 	}
 
 	var outInterfaces []net.Interface
-	for _, element := range ifaces {
-		if element.Flags&net.FlagLoopback == 0 && element.Flags&net.FlagUp == 1 && isPhysicalInterface(element.Name) {
-			outInterfaces = append(outInterfaces, element)
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagLoopback == 0 && iface.Flags&net.FlagUp == 1 && isPhysicalInterface(iface.Name) {
+			netAddrs, _ := iface.Addrs()
+			if len(netAddrs) > 0 {
+				outInterfaces = append(outInterfaces, iface)
+			}
 		}
 	}
 	return outInterfaces
 }
 
 func isPhysicalInterface(addr string) bool {
-	prefixArray := []string{"ens", "enp", "eth", "wlan", "wlp"}
+	prefixArray := []string{"ens", "enp", "enx", "eth", "wlan", "wlp"}
 	for _, pref := range prefixArray {
 		if strings.HasPrefix(strings.ToLower(addr), pref) {
 			return true

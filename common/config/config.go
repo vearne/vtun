@@ -11,11 +11,11 @@ type Config struct {
 	LocalAddr  string
 	ServerAddr string
 	CIDR       string
-	Route      string
 	Gateway    string
 	Key        string
 	Protocol   string
 	ServerMode bool
+	GlobalMode bool
 	Obfuscate  bool
 	Pprof      bool
 }
