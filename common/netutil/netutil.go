@@ -100,7 +100,7 @@ func getAllPhysicalInterfaces() []net.Interface {
 }
 
 func isPhysicalInterface(addr string) bool {
-	prefixArray := []string{"ens", "enp", "enx", "eth", "wlan", "wlp"}
+	prefixArray := []string{"ens", "enp", "enx", "eth", "en0", "wlan", "wlp"}
 	for _, pref := range prefixArray {
 		if strings.HasPrefix(strings.ToLower(addr), pref) {
 			return true

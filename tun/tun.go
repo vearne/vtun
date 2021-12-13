@@ -38,20 +38,30 @@ func configTun(config config.Config, iface *water.Interface) {
 			physicalIface, gateway, _ := netutil.GetPhysicalInterface()
 			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
 			if physicalIface != "" && serverIP != "" {
-				execCmd("/sbin/ip", "route", "add", "0.0.0.0/0", "dev", iface.Name())
+				execCmd("/sbin/ip", "route", "add", "0.0.0.0/1", "dev", iface.Name())
+				execCmd("/sbin/ip", "route", "add", "128.0.0.0/1", "dev", iface.Name())
 				execCmd("/sbin/ip", "route", "delete", strings.Join([]string{serverIP, "32"}, "/"), "via", gateway, "dev", physicalIface)
 				execCmd("/sbin/ip", "route", "add", strings.Join([]string{serverIP, "32"}, "/"), "via", gateway, "dev", physicalIface)
 			}
 		}
 
 	} else if os == "darwin" {
-		execCmd("ifconfig", iface.Name(), "inet", ip.String(), config.Gateway, "up")
+		gateway := ipNet.IP.To4()
+		gateway[3]++
+		execCmd("ifconfig", iface.Name(), "inet", ip.String(), gateway.String(), "up")
+		physicalIface, localGateway, _ := netutil.GetPhysicalInterface()
 		if config.GlobalMode {
-			_, _, localNetwork := netutil.GetPhysicalInterface()
-			if localNetwork != "" {
-				execCmd("route", "add", "0.0.0.0/0", "-interface", iface.Name())
-				execCmd("route", "add", localNetwork, "-interface", ipNet.IP.To4().String())
+			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
+			if physicalIface != "" && serverIP != "" {
+				execCmd("route", "add", serverIP, localGateway)
+				execCmd("route", "add", "0.0.0.0/1", "-interface", iface.Name())
+				execCmd("route", "add", "128.0.0.0/1", "-interface", iface.Name())
+				execCmd("route", "add", "default", gateway.String())
+				execCmd("route", "change", "default", gateway.String())
 			}
+		} else {
+			execCmd("route", "add", "default", localGateway)
+			execCmd("route", "change", "default", localGateway)
 		}
 	} else {
 		log.Printf("not support os:%v", os)

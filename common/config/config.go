@@ -11,7 +11,6 @@ type Config struct {
 	LocalAddr  string
 	ServerAddr string
 	CIDR       string
-	Gateway    string
 	Key        string
 	Protocol   string
 	ServerMode bool
