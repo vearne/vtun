@@ -58,3 +58,61 @@ func ConnectServer(config config.Config) net.Conn {
 	}
 	return c
 }
+
+func GetPhysicalInterface() (name string, gateway string, network string) {
+	ifaces := getAllPhysicalInterfaces()
+	if len(ifaces) == 0 {
+		return "", "", ""
+	}
+	netAddrs, _ := ifaces[0].Addrs()
+	for _, addr := range netAddrs {
+		ip, ok := addr.(*net.IPNet)
+		if ok && ip.IP.To4() != nil && !ip.IP.IsLoopback() {
+			ipNet := ip.IP.To4().Mask(ip.IP.DefaultMask()).To4()
+			network = strings.Join([]string{ipNet.String(), strings.Split(ip.String(), "/")[1]}, "/")
+			ipNet[3]++
+			gateway = ipNet.String()
+			name = ifaces[0].Name
+			break
+		}
+	}
+	return name, gateway, network
+}
+
+func getAllPhysicalInterfaces() []net.Interface {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	var outInterfaces []net.Interface
+	for _, element := range ifaces {
+		if element.Flags&net.FlagLoopback == 0 && element.Flags&net.FlagUp == 1 && isPhysicalInterface(element.Name) {
+			outInterfaces = append(outInterfaces, element)
+		}
+	}
+	return outInterfaces
+}
+
+func isPhysicalInterface(addr string) bool {
+	prefixArray := []string{"ens", "enp", "eth", "wlan", "wlp"}
+	for _, pref := range prefixArray {
+		if strings.HasPrefix(strings.ToLower(addr), pref) {
+			return true
+		}
+	}
+	return false
+}
+
+func LookupIP(domain string) string {
+	ips, err := net.LookupIP(domain)
+	if err != nil {
+		log.Println(err)
+		return ""
+	}
+	for _, ip := range ips {
+		return ip.To4().String()
+	}
+	return ""
+}
