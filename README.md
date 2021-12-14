@@ -98,4 +98,4 @@ docker run  -d --privileged --restart=always --net=host --name vtun-server netby
 3. Develop iOS app
 
 # License
-[The MIT License (MIT)](https://raw.githubusercontent.com/net-byte/vtun/main/LICENSE)
+[The MIT License (MIT)](https://raw.githubusercontent.com/net-byte/vtun/master/README.md)
