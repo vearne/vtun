@@ -40,6 +40,13 @@ func GetAddr(b []byte) (srcAddr string, dstAddr string) {
 }
 
 func ConnectServer(config config.Config) net.Conn {
+	net.DefaultResolver = &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
+			var dialer net.Dialer
+			return dialer.DialContext(ctx, network, config.DNS)
+		},
+	}
 	scheme := "ws"
 	if config.Protocol == "wss" {
 		scheme = "wss"

@@ -25,6 +25,8 @@ Usage of ./vtun:
         protocol ws/wss/udp (default "wss")
   -s string
         server address (default ":3001")
+  -d string
+        dns address (default "8.8.8.8:53")
   -P    enable pporf server on :6060
   -S    server mode
   -g    client global mode

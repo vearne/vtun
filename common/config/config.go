@@ -13,6 +13,7 @@ type Config struct {
 	CIDR       string
 	Key        string
 	Protocol   string
+	DNS        string
 	ServerMode bool
 	GlobalMode bool
 	Obfuscate  bool

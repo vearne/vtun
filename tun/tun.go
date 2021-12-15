@@ -40,8 +40,8 @@ func configTun(config config.Config, iface *water.Interface) {
 			if physicalIface != "" && serverIP != "" {
 				execCmd("/sbin/ip", "route", "add", "0.0.0.0/1", "dev", iface.Name())
 				execCmd("/sbin/ip", "route", "add", "128.0.0.0/1", "dev", iface.Name())
-				execCmd("/sbin/ip", "route", "delete", strings.Join([]string{serverIP, "32"}, "/"), "via", gateway, "dev", physicalIface)
 				execCmd("/sbin/ip", "route", "add", strings.Join([]string{serverIP, "32"}, "/"), "via", gateway, "dev", physicalIface)
+				execCmd("/sbin/ip", "route", "add", strings.Join([]string{strings.Split(config.DNS, ":")[0], "32"}, "/"), "via", gateway, "dev", physicalIface)
 			}
 		}
 
@@ -54,6 +54,7 @@ func configTun(config config.Config, iface *water.Interface) {
 			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
 			if physicalIface != "" && serverIP != "" {
 				execCmd("route", "add", serverIP, localGateway)
+				execCmd("route", "add", strings.Split(config.DNS, ":")[0], localGateway)
 				execCmd("route", "add", "0.0.0.0/1", "-interface", iface.Name())
 				execCmd("route", "add", "128.0.0.0/1", "-interface", iface.Name())
 				execCmd("route", "add", "default", gateway.String())

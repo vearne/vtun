@@ -17,6 +17,7 @@ func main() {
 	flag.StringVar(&config.ServerAddr, "s", ":3001", "server address")
 	flag.StringVar(&config.Key, "k", "6w9z$C&F)J@NcRfWjXn3r4u7x!A%D*G-", "key")
 	flag.StringVar(&config.Protocol, "p", "wss", "protocol ws/wss/udp")
+	flag.StringVar(&config.DNS, "d", "8.8.8.8:53", "dns address")
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
 	flag.BoolVar(&config.GlobalMode, "g", false, "client global mode")
 	flag.BoolVar(&config.Obfuscate, "o", false, "enable data obfuscation")
