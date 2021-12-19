@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/gobwas/ws v1.1.0
+	github.com/inhies/go-bytesize v0.0.0-20210819104631-275770b98743
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
 )

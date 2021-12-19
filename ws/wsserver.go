@@ -12,8 +12,10 @@ import (
 
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
+	"github.com/inhies/go-bytesize"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
+	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/vtun/register"
 	"github.com/net-byte/vtun/tun"
@@ -91,6 +93,12 @@ func StartServer(config config.Config) {
 		}
 		io.WriteString(w, strings.Join(register.ListClientIP(), "\r\n"))
 	})
+
+	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
+		resp := fmt.Sprintf("download %v upload %v", bytesize.New(float64(counter.TotalWriteByte)).String(), bytesize.New(float64(counter.TotalReadByte)).String())
+		io.WriteString(w, resp)
+	})
+
 	log.Printf("vtun ws server started on %v", config.LocalAddr)
 	http.ListenAndServe(config.LocalAddr, nil)
 }
@@ -124,6 +132,7 @@ func toClient(config config.Config, iface *water.Interface, c *cache.Cache) {
 			if config.Obfuscate {
 				b = cipher.XOR(b)
 			}
+			counter.IncrWriteByte(n)
 			wsutil.WriteServerBinary(v.(net.Conn), b)
 		}
 	}
@@ -149,6 +158,7 @@ func toServer(config config.Config, wsconn net.Conn, iface *water.Interface, c *
 		}
 		key := strings.Join([]string{srcAddr, dstAddr}, "->")
 		c.Set(key, wsconn, cache.DefaultExpiration)
+		counter.IncrReadByte(len(b))
 		iface.Write(b)
 	}
 }
