@@ -94,7 +94,7 @@ docker run  -d --privileged --restart=always --net=host --name vtun-server netby
 
 ### [Android](https://github.com/net-byte/vTunnel)
 
-## TODO (need help)
+## TODO (help wanted)
 1. Support windows
 2. Support IPv6
 3. Develop iOS app
