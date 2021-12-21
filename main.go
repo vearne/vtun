@@ -21,7 +21,7 @@ func main() {
 	flag.StringVar(&config.DNS, "d", "8.8.8.8:53", "dns address")
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
 	flag.BoolVar(&config.GlobalMode, "g", false, "client global mode")
-	flag.BoolVar(&config.Obfuscate, "o", false, "enable data obfuscation")
+	flag.BoolVar(&config.Obfuscate, "obfs", false, "enable obfuscation")
 	flag.BoolVar(&config.Pprof, "P", false, "enable pporf server on :6060")
 	flag.Parse()
 	config.Init()

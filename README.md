@@ -31,7 +31,7 @@ Usage of ./vtun:
   -P    enable pporf server on :6060
   -S    server mode
   -g    client global mode
-  -o    enable data obfuscation
+  -obfs enable obfuscation
 
 ```
 
