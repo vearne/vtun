@@ -10,7 +10,7 @@ import (
 	"github.com/songgao/water/waterutil"
 )
 
-// StartClient starts udp client
+// Start an udp client
 func StartClient(config config.Config) {
 	iface := tun.CreateTun(config)
 	serverAddr, err := net.ResolveUDPAddr("udp", config.ServerAddr)

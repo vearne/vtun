@@ -24,7 +24,7 @@ import (
 	"github.com/songgao/water/waterutil"
 )
 
-// StartServer starts ws server
+// Start a ws server
 func StartServer(config config.Config) {
 	iface := tun.CreateTun(config)
 	c := cache.New(30*time.Minute, 10*time.Minute)

@@ -1,4 +1,4 @@
-package ws
+package tcp
 
 import (
 	"io"
@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gobwas/ws/wsutil"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/netutil"
@@ -17,11 +16,11 @@ import (
 	"github.com/songgao/water/waterutil"
 )
 
-// Start a ws client
+// Start a tcp client
 func StartClient(config config.Config) {
 	iface := tun.CreateTun(config)
 	c := cache.New(30*time.Minute, 10*time.Minute)
-	log.Printf("vtun ws client started on %v", config.LocalAddr)
+	log.Printf("vtun tcp client started on %v", config.LocalAddr)
 	// read data from tun
 	packet := make([]byte, 1500)
 	for {
@@ -42,28 +41,30 @@ func StartClient(config config.Config) {
 		if v, ok := c.Get(key); ok {
 			conn = v.(net.Conn)
 		} else {
-			conn = netutil.ConnectServer(config)
-			if conn == nil {
+			conn, err = net.DialTimeout("tcp", config.ServerAddr, 30*time.Second)
+			if conn == nil || err != nil {
 				continue
 			}
 			c.Set(key, conn, cache.DefaultExpiration)
-			go wsToTun(config, c, key, conn, iface)
+			go tcpToTun(config, c, key, conn, iface)
 		}
 		if config.Obfuscate {
 			b = cipher.XOR(b)
 		}
-		wsutil.WriteClientBinary(conn, b)
+		conn.Write(b)
 	}
 }
 
-func wsToTun(config config.Config, c *cache.Cache, key string, wsconn net.Conn, iface *water.Interface) {
-	defer wsconn.Close()
+func tcpToTun(config config.Config, c *cache.Cache, key string, tcpconn net.Conn, iface *water.Interface) {
+	defer tcpconn.Close()
+	buffer := make([]byte, 1500)
 	for {
-		wsconn.SetReadDeadline(time.Now().Add(time.Duration(30) * time.Second))
-		b, err := wsutil.ReadServerBinary(wsconn)
+		tcpconn.SetReadDeadline(time.Now().Add(time.Duration(30) * time.Second))
+		n, err := tcpconn.Read(buffer)
 		if err != nil || err == io.EOF {
 			break
 		}
+		b := buffer[:n]
 		if config.Obfuscate {
 			b = cipher.XOR(b)
 		}

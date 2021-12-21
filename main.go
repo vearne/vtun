@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/net-byte/vtun/common/config"
+	"github.com/net-byte/vtun/tcp"
 	"github.com/net-byte/vtun/udp"
 	"github.com/net-byte/vtun/ws"
 )
@@ -16,7 +17,7 @@ func main() {
 	flag.StringVar(&config.LocalAddr, "l", ":3000", "local address")
 	flag.StringVar(&config.ServerAddr, "s", ":3001", "server address")
 	flag.StringVar(&config.Key, "k", "6w9z$C&F)J@NcRfWjXn3r4u7x!A%D*G-", "key")
-	flag.StringVar(&config.Protocol, "p", "wss", "protocol ws/wss/udp")
+	flag.StringVar(&config.Protocol, "p", "wss", "protocol tcp/udp/ws/wss")
 	flag.StringVar(&config.DNS, "d", "8.8.8.8:53", "dns address")
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
 	flag.BoolVar(&config.GlobalMode, "g", false, "client global mode")
@@ -38,6 +39,12 @@ func main() {
 			udp.StartServer(config)
 		} else {
 			udp.StartClient(config)
+		}
+	case "tcp":
+		if config.ServerMode {
+			tcp.StartServer(config)
+		} else {
+			tcp.StartClient(config)
 		}
 	case "ws":
 		if config.ServerMode {

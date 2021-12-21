@@ -8,6 +8,7 @@ A simple VPN written in golang.
 ![image](https://img.shields.io/badge/License-Anti--996-red)
 
 # Features
+* VPN over tcp
 * VPN over udp
 * VPN over websocket
 
@@ -22,7 +23,7 @@ Usage of ./vtun:
   -l string
         local address (default ":3000")
   -p string
-        protocol ws/wss/udp (default "wss")
+        protocol tcp/udp/ws/wss (default "wss")
   -s string
         server address (default ":3001")
   -d string
