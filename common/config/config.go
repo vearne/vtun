@@ -8,16 +8,17 @@ import (
 )
 
 type Config struct {
-	LocalAddr  string
-	ServerAddr string
-	CIDR       string
-	Key        string
-	Protocol   string
-	DNS        string
-	ServerMode bool
-	GlobalMode bool
-	Obfuscate  bool
-	Pprof      bool
+	LocalAddr     string
+	ServerAddr    string
+	CIDR          string
+	Key           string
+	Protocol      string
+	DNS           string
+	WebSocketPath string
+	ServerMode    bool
+	GlobalMode    bool
+	Obfuscate     bool
+	Pprof         bool
 }
 
 func (config *Config) Init() {

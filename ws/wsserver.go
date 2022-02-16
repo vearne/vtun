@@ -31,7 +31,7 @@ func StartServer(config config.Config) {
 	// server -> client
 	go toClient(config, iface, c)
 	// client -> server
-	http.HandleFunc("/way-to-freedom", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(config.WebSocketPath, func(w http.ResponseWriter, r *http.Request) {
 		if !checkPermission(w, r, config) {
 			return
 		}

@@ -28,6 +28,8 @@ Usage of ./vtun:
         server address (default ":3001")
   -d string
         dns address (default "8.8.8.8:53")
+  -path string
+        websocket path (default "/way-to-freedom")
   -P    enable pporf server on :6060
   -S    server mode
   -g    client global mode
