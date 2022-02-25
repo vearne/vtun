@@ -29,7 +29,7 @@ Usage of ./vtun:
   -d string
         dns address (default "8.8.8.8:53")
   -path string
-        websocket path (default "/way-to-freedom")
+        websocket path (default "/freedom")
   -P    enable pporf server on :6060
   -S    server mode
   -g    client global mode
