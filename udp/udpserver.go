@@ -3,7 +3,6 @@ package udp
 import (
 	"log"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/net-byte/vtun/common/cipher"
@@ -47,13 +46,12 @@ func StartServer(config config.Config) {
 		if !waterutil.IsIPv4(b) {
 			continue
 		}
-		iface.Write(b)
-		srcAddr, dstAddr := netutil.GetAddr(b)
-		if srcAddr == "" || dstAddr == "" {
+		srcIPv4, dstIPv4 := netutil.GetIPv4(b)
+		if srcIPv4 == "" || dstIPv4 == "" {
 			continue
 		}
-		key := strings.Join([]string{srcAddr, dstAddr}, "->")
-		reply.connCache.Set(key, cliAddr, cache.DefaultExpiration)
+		iface.Write(b)
+		reply.connCache.Set(srcIPv4, cliAddr, cache.DefaultExpiration)
 	}
 }
 
@@ -73,12 +71,11 @@ func (r *Reply) toClient(config config.Config, iface *water.Interface, conn *net
 		if !waterutil.IsIPv4(b) {
 			continue
 		}
-		srcAddr, dstAddr := netutil.GetAddr(b)
-		if srcAddr == "" || dstAddr == "" {
+		srcIPv4, dstIPv4 := netutil.GetIPv4(b)
+		if srcIPv4 == "" || dstIPv4 == "" {
 			continue
 		}
-		key := strings.Join([]string{dstAddr, srcAddr}, "->")
-		if v, ok := r.connCache.Get(key); ok {
+		if v, ok := r.connCache.Get(dstIPv4); ok {
 			if config.Obfuscate {
 				b = cipher.XOR(b)
 			}

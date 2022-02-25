@@ -4,7 +4,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/gobwas/ws/wsutil"
@@ -33,11 +32,11 @@ func StartClient(config config.Config) {
 		if !waterutil.IsIPv4(b) {
 			continue
 		}
-		srcAddr, dstAddr := netutil.GetAddr(b)
-		if srcAddr == "" || dstAddr == "" {
+		srcIPv4, dstIPv4 := netutil.GetIPv4(b)
+		if srcIPv4 == "" || dstIPv4 == "" {
 			continue
 		}
-		key := strings.Join([]string{dstAddr, srcAddr}, "->")
+		key := dstIPv4
 		var conn net.Conn
 		if v, ok := c.Get(key); ok {
 			conn = v.(net.Conn)

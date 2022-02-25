@@ -5,7 +5,6 @@ import (
 	"log"
 	"net"
 	_ "net/http/pprof"
-	"strings"
 	"time"
 
 	"github.com/net-byte/vtun/common/cipher"
@@ -52,11 +51,11 @@ func toClient(config config.Config, iface *water.Interface, c *cache.Cache) {
 		if !waterutil.IsIPv4(b) {
 			continue
 		}
-		srcAddr, dstAddr := netutil.GetAddr(b)
-		if srcAddr == "" || dstAddr == "" {
+		srcIPv4, dstIPv4 := netutil.GetIPv4(b)
+		if srcIPv4 == "" || dstIPv4 == "" {
 			continue
 		}
-		key := strings.Join([]string{dstAddr, srcAddr}, "->")
+		key := dstIPv4
 		if v, ok := c.Get(key); ok {
 			if config.Obfuscate {
 				b = cipher.XOR(b)
@@ -83,11 +82,11 @@ func toServer(config config.Config, tcpconn net.Conn, iface *water.Interface, c 
 		if !waterutil.IsIPv4(b) {
 			continue
 		}
-		srcAddr, dstAddr := netutil.GetAddr(b)
-		if srcAddr == "" || dstAddr == "" {
+		srcIPv4, dstIPv4 := netutil.GetIPv4(b)
+		if srcIPv4 == "" || dstIPv4 == "" {
 			continue
 		}
-		key := strings.Join([]string{srcAddr, dstAddr}, "->")
+		key := srcIPv4
 		c.Set(key, tcpconn, cache.DefaultExpiration)
 		counter.IncrReadByte(len(b))
 		iface.Write(b)

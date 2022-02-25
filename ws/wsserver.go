@@ -123,12 +123,11 @@ func toClient(config config.Config, iface *water.Interface, c *cache.Cache) {
 		if !waterutil.IsIPv4(b) {
 			continue
 		}
-		srcAddr, dstAddr := netutil.GetAddr(b)
-		if srcAddr == "" || dstAddr == "" {
+		srcIPv4, dstIPv4 := netutil.GetIPv4(b)
+		if srcIPv4 == "" || dstIPv4 == "" {
 			continue
 		}
-		key := strings.Join([]string{dstAddr, srcAddr}, "->")
-		if v, ok := c.Get(key); ok {
+		if v, ok := c.Get(dstIPv4); ok {
 			if config.Obfuscate {
 				b = cipher.XOR(b)
 			}
@@ -152,12 +151,11 @@ func toServer(config config.Config, wsconn net.Conn, iface *water.Interface, c *
 		if !waterutil.IsIPv4(b) {
 			continue
 		}
-		srcAddr, dstAddr := netutil.GetAddr(b)
-		if srcAddr == "" || dstAddr == "" {
+		srcIPv4, dstIPv4 := netutil.GetIPv4(b)
+		if srcIPv4 == "" || dstIPv4 == "" {
 			continue
 		}
-		key := strings.Join([]string{srcAddr, dstAddr}, "->")
-		c.Set(key, wsconn, cache.DefaultExpiration)
+		c.Set(srcIPv4, wsconn, cache.DefaultExpiration)
 		counter.IncrReadByte(len(b))
 		iface.Write(b)
 	}
