@@ -97,7 +97,7 @@ func StartServer(config config.Config) {
 		io.WriteString(w, resp)
 	})
 
-	log.Printf("vtun ws server started on %v", config.LocalAddr)
+	log.Printf("vtun websocket server started on %v", config.LocalAddr)
 	http.ListenAndServe(config.LocalAddr, nil)
 }
 func checkPermission(w http.ResponseWriter, req *http.Request, config config.Config) bool {

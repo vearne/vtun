@@ -18,7 +18,7 @@ import (
 
 // Start websocket client
 func StartClient(config config.Config) {
-	log.Printf("vtun ws client started on %v", config.LocalAddr)
+	log.Printf("vtun websocket client started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
 	// read data from tun
 	packet := make([]byte, config.MTU)

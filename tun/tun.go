@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/net-byte/vtun/common/config"
@@ -31,7 +32,7 @@ func configTun(config config.Config, iface *water.Interface) {
 		log.Panicf("error cidr %v", config.CIDR)
 	}
 	if os == "linux" {
-		execCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "mtu", "1500")
+		execCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "mtu", strconv.Itoa(config.MTU))
 		execCmd("/sbin/ip", "addr", "add", config.CIDR, "dev", iface.Name())
 		execCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "up")
 		if config.GlobalMode {
