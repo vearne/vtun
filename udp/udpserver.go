@@ -14,8 +14,9 @@ import (
 	"github.com/songgao/water/waterutil"
 )
 
-// Start an udp server
+// Start udp server
 func StartServer(config config.Config) {
+	log.Printf("vtun udp server started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
 	localAddr, err := net.ResolveUDPAddr("udp", config.LocalAddr)
 	if err != nil {
@@ -26,19 +27,18 @@ func StartServer(config config.Config) {
 		log.Fatalln("failed to listen on udp socket:", err)
 	}
 	defer conn.Close()
-	log.Printf("vtun udp server started on %v", config.LocalAddr)
 	// server -> client
 	reply := &Reply{localConn: conn, connCache: cache.New(30*time.Minute, 10*time.Minute)}
 	go reply.toClient(config, iface, conn)
 	// client -> server
-	buf := make([]byte, 1500)
+	buf := make([]byte, config.MTU)
 	for {
 		n, cliAddr, err := conn.ReadFromUDP(buf)
 		if err != nil || n == 0 {
 			continue
 		}
 		var b []byte
-		if config.Obfuscate {
+		if config.Obfs {
 			b = cipher.XOR(buf[:n])
 		} else {
 			b = buf[:n]
@@ -61,7 +61,7 @@ type Reply struct {
 }
 
 func (r *Reply) toClient(config config.Config, iface *water.Interface, conn *net.UDPConn) {
-	packet := make([]byte, 1500)
+	packet := make([]byte, config.MTU)
 	for {
 		n, err := iface.Read(packet)
 		if err != nil || n == 0 {
@@ -76,7 +76,7 @@ func (r *Reply) toClient(config config.Config, iface *water.Interface, conn *net
 			continue
 		}
 		if v, ok := r.connCache.Get(dstIPv4); ok {
-			if config.Obfuscate {
+			if config.Obfs {
 				b = cipher.XOR(b)
 			}
 			r.localConn.WriteToUDP(b, v.(*net.UDPAddr))

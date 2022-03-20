@@ -17,8 +17,9 @@ type Config struct {
 	WebSocketPath string
 	ServerMode    bool
 	GlobalMode    bool
-	Obfuscate     bool
-	Pprof         bool
+	Obfs          bool
+	MTU           int
+	Timeout       int
 }
 
 func (config *Config) Init() {

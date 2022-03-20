@@ -10,8 +10,9 @@ import (
 	"github.com/songgao/water/waterutil"
 )
 
-// Start an udp client
+// Start udp client
 func StartClient(config config.Config) {
+	log.Printf("vtun udp client started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
 	serverAddr, err := net.ResolveUDPAddr("udp", config.ServerAddr)
 	if err != nil {
@@ -26,17 +27,16 @@ func StartClient(config config.Config) {
 		log.Fatalln("failed to listen on udp socket:", err)
 	}
 	defer conn.Close()
-	log.Printf("vtun udp client started on %v", config.LocalAddr)
 	// server -> client
 	go func() {
-		buf := make([]byte, 1500)
+		buf := make([]byte, config.MTU)
 		for {
 			n, _, err := conn.ReadFromUDP(buf)
 			if err != nil || n == 0 {
 				continue
 			}
 			var b []byte
-			if config.Obfuscate {
+			if config.Obfs {
 				b = cipher.XOR(buf[:n])
 			} else {
 				b = buf[:n]
@@ -48,7 +48,7 @@ func StartClient(config config.Config) {
 		}
 	}()
 	// client -> server
-	packet := make([]byte, 1500)
+	packet := make([]byte, config.MTU)
 	for {
 		n, err := iface.Read(packet)
 		if err != nil || n == 0 {
@@ -58,7 +58,7 @@ func StartClient(config config.Config) {
 			continue
 		}
 		var b []byte
-		if config.Obfuscate {
+		if config.Obfs {
 			b = cipher.XOR(packet[:n])
 		} else {
 			b = packet[:n]

@@ -4,50 +4,48 @@ import (
 	"io"
 	"log"
 	"net"
-	_ "net/http/pprof"
 	"time"
 
+	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/vtun/tun"
-	"github.com/patrickmn/go-cache"
 	"github.com/songgao/water"
 	"github.com/songgao/water/waterutil"
 )
 
-// Start a tcp server
+// Start tcp server
 func StartServer(config config.Config) {
+	log.Printf("vtun tcp server started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
-	c := cache.New(30*time.Minute, 10*time.Minute)
 	// server -> client
-	go toClient(config, iface, c)
+	go toClient(config, iface)
 	ln, err := net.Listen("tcp", config.LocalAddr)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	log.Printf("vtun tcp server started on %v", config.LocalAddr)
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
 			continue
 		}
 		// client -> server
-		go toServer(config, conn, iface, c)
+		go toServer(config, conn, iface)
 	}
 
 }
 
-func toClient(config config.Config, iface *water.Interface, c *cache.Cache) {
-	buffer := make([]byte, 1500)
+func toClient(config config.Config, iface *water.Interface) {
+	buf := make([]byte, config.MTU)
 	for {
-		n, err := iface.Read(buffer)
+		n, err := iface.Read(buf)
 		if err != nil || err == io.EOF || n == 0 {
 			continue
 		}
-		b := buffer[:n]
+		b := buf[:n]
 		if !waterutil.IsIPv4(b) {
 			continue
 		}
@@ -56,8 +54,8 @@ func toClient(config config.Config, iface *water.Interface, c *cache.Cache) {
 			continue
 		}
 		key := dstIPv4
-		if v, ok := c.Get(key); ok {
-			if config.Obfuscate {
+		if v, ok := cache.GetCache().Get(key); ok {
+			if config.Obfs {
 				b = cipher.XOR(b)
 			}
 			counter.IncrWriteByte(n)
@@ -66,17 +64,17 @@ func toClient(config config.Config, iface *water.Interface, c *cache.Cache) {
 	}
 }
 
-func toServer(config config.Config, tcpconn net.Conn, iface *water.Interface, c *cache.Cache) {
+func toServer(config config.Config, tcpconn net.Conn, iface *water.Interface) {
 	defer tcpconn.Close()
-	buffer := make([]byte, 1500)
+	buf := make([]byte, config.MTU)
 	for {
-		tcpconn.SetReadDeadline(time.Now().Add(time.Duration(30) * time.Second))
-		n, err := tcpconn.Read(buffer)
+		tcpconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
+		n, err := tcpconn.Read(buf)
 		if err != nil || err == io.EOF {
 			break
 		}
-		b := buffer[:n]
-		if config.Obfuscate {
+		b := buf[:n]
+		if config.Obfs {
 			b = cipher.XOR(b)
 		}
 		if !waterutil.IsIPv4(b) {
@@ -87,7 +85,7 @@ func toServer(config config.Config, tcpconn net.Conn, iface *water.Interface, c 
 			continue
 		}
 		key := srcIPv4
-		c.Set(key, tcpconn, cache.DefaultExpiration)
+		cache.GetCache().Set(key, tcpconn, 10*time.Minute)
 		counter.IncrReadByte(len(b))
 		iface.Write(b)
 	}

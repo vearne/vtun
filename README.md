@@ -16,24 +16,28 @@ A simple VPN written in golang.
 
 ```
 Usage of ./vtun:
+  -S    server mode
   -c string
-        tun interface CIDR (default "172.16.0.10/24")
-  -k string
-        key (default "6w9z$C&F)J@NcRfWjXn3r4u7x!A%D*G-")
-  -l string
-        local address (default ":3000")
-  -p string
-        protocol tcp/udp/ws/wss (default "wss")
-  -s string
-        server address (default ":3001")
+        tun interface cidr (default "172.16.0.10/24")
   -d string
         dns address (default "8.8.8.8:53")
+  -g    client global mode
+  -k string
+        key (default "freedom@2022")
+  -l string
+        local address (default ":3000")
+  -mtu int
+        tun mtu (default 1500)
+  -obfs
+        enable data obfuscation
+  -p string
+        protocol tcp/udp/ws/wss (default "wss")
   -path string
         websocket path (default "/freedom")
-  -P    enable pporf server on :6060
-  -S    server mode
-  -g    client global mode
-  -obfs enable obfuscation
+  -s string
+        server address (default ":3001")
+  -t int
+        dial timeout in seconds (default 30)
 
 ```
 

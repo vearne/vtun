@@ -6,30 +6,28 @@ import (
 	"log"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
 	"strings"
 	"time"
 
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/inhies/go-bytesize"
+	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/vtun/register"
 	"github.com/net-byte/vtun/tun"
-	"github.com/patrickmn/go-cache"
 	"github.com/songgao/water"
 	"github.com/songgao/water/waterutil"
 )
 
-// Start a ws server
+// Start websocket server
 func StartServer(config config.Config) {
 	iface := tun.CreateTun(config)
-	c := cache.New(30*time.Minute, 10*time.Minute)
 	// server -> client
-	go toClient(config, iface, c)
+	go toClient(config, iface)
 	// client -> server
 	http.HandleFunc(config.WebSocketPath, func(w http.ResponseWriter, r *http.Request) {
 		if !checkPermission(w, r, config) {
@@ -40,11 +38,11 @@ func StartServer(config config.Config) {
 			log.Printf("[server] failed to upgrade http %v", err)
 			return
 		}
-		toServer(config, wsconn, iface, c)
+		toServer(config, wsconn, iface)
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		io.WriteString(w, "Hello，世界！")
+		io.WriteString(w, "Hello,世界!")
 	})
 
 	http.HandleFunc("/ip", func(w http.ResponseWriter, req *http.Request) {
@@ -112,14 +110,14 @@ func checkPermission(w http.ResponseWriter, req *http.Request, config config.Con
 	return true
 }
 
-func toClient(config config.Config, iface *water.Interface, c *cache.Cache) {
-	buffer := make([]byte, 1500)
+func toClient(config config.Config, iface *water.Interface) {
+	buf := make([]byte, config.MTU)
 	for {
-		n, err := iface.Read(buffer)
+		n, err := iface.Read(buf)
 		if err != nil || err == io.EOF || n == 0 {
 			continue
 		}
-		b := buffer[:n]
+		b := buf[:n]
 		if !waterutil.IsIPv4(b) {
 			continue
 		}
@@ -127,8 +125,8 @@ func toClient(config config.Config, iface *water.Interface, c *cache.Cache) {
 		if srcIPv4 == "" || dstIPv4 == "" {
 			continue
 		}
-		if v, ok := c.Get(dstIPv4); ok {
-			if config.Obfuscate {
+		if v, ok := cache.GetCache().Get(dstIPv4); ok {
+			if config.Obfs {
 				b = cipher.XOR(b)
 			}
 			counter.IncrWriteByte(n)
@@ -137,15 +135,15 @@ func toClient(config config.Config, iface *water.Interface, c *cache.Cache) {
 	}
 }
 
-func toServer(config config.Config, wsconn net.Conn, iface *water.Interface, c *cache.Cache) {
+func toServer(config config.Config, wsconn net.Conn, iface *water.Interface) {
 	defer wsconn.Close()
 	for {
-		wsconn.SetReadDeadline(time.Now().Add(time.Duration(30) * time.Second))
+		wsconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		b, err := wsutil.ReadClientBinary(wsconn)
 		if err != nil || err == io.EOF {
 			break
 		}
-		if config.Obfuscate {
+		if config.Obfs {
 			b = cipher.XOR(b)
 		}
 		if !waterutil.IsIPv4(b) {
@@ -155,7 +153,7 @@ func toServer(config config.Config, wsconn net.Conn, iface *water.Interface, c *
 		if srcIPv4 == "" || dstIPv4 == "" {
 			continue
 		}
-		c.Set(srcIPv4, wsconn, cache.DefaultExpiration)
+		cache.GetCache().Set(srcIPv4, wsconn, 10*time.Minute)
 		counter.IncrReadByte(len(b))
 		iface.Write(b)
 	}
