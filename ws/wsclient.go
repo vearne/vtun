@@ -1,13 +1,12 @@
 package ws
 
 import (
-	"io"
 	"log"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/gobwas/ws/wsutil"
-	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/netutil"
@@ -20,55 +19,61 @@ import (
 func StartClient(config config.Config) {
 	log.Printf("vtun websocket client started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
-	// read data from tun
-	packet := make([]byte, config.MTU)
 	for {
-		n, err := iface.Read(packet)
-		if err != nil || n == 0 {
-			continue
+		if conn := netutil.ConnectServer(config); conn != nil {
+			var wg sync.WaitGroup
+			wg.Add(2)
+			go wsToTun(&wg, config, conn, iface)
+			go tunToWs(&wg, config, conn, iface)
+			wg.Wait()
+			conn.Close()
 		}
-		b := packet[:n]
-		if !waterutil.IsIPv4(b) {
-			continue
-		}
-		srcIPv4, dstIPv4 := netutil.GetIPv4(b)
-		if srcIPv4 == "" || dstIPv4 == "" {
-			continue
-		}
-		key := dstIPv4
-		var conn net.Conn
-		if v, ok := cache.GetCache().Get(key); ok {
-			conn = v.(net.Conn)
-		} else {
-			conn = netutil.ConnectServer(config)
-			if conn == nil {
-				continue
-			}
-			cache.GetCache().Set(key, conn, 10*time.Minute)
-			go wsToTun(config, key, conn, iface)
-		}
-		if config.Obfs {
-			b = cipher.XOR(b)
-		}
-		wsutil.WriteClientBinary(conn, b)
 	}
 }
 
-func wsToTun(config config.Config, key string, wsconn net.Conn, iface *water.Interface) {
-	defer wsconn.Close()
+func wsToTun(wg *sync.WaitGroup, config config.Config, wsconn net.Conn, iface *water.Interface) {
+	defer wg.Done()
 	for {
+		var packet []byte
+		var err error
 		wsconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
-		b, err := wsutil.ReadServerBinary(wsconn)
-		if err != nil || err == io.EOF {
+		packet, err = wsutil.ReadServerBinary(wsconn)
+		if err != nil {
 			break
 		}
 		if config.Obfs {
-			b = cipher.XOR(b)
+			packet = cipher.XOR(packet)
 		}
-		if !waterutil.IsIPv4(b) {
+		if !waterutil.IsIPv4(packet) {
 			continue
 		}
-		iface.Write(b)
+		iface.Write(packet)
 	}
-	cache.GetCache().Delete(key)
+}
+
+func tunToWs(wg *sync.WaitGroup, config config.Config, wsconn net.Conn, iface *water.Interface) {
+	defer wg.Done()
+	packet := make([]byte, 0, config.MTU)
+	for {
+		n, err := iface.Read(packet)
+		if err != nil || n == 0 {
+			break
+		}
+		packet = packet[:n]
+		if !waterutil.IsIPv4(packet) {
+			continue
+		}
+		srcIPv4, dstIPv4 := netutil.GetIPv4(packet)
+		if srcIPv4 == "" || dstIPv4 == "" {
+			continue
+		}
+		if config.Obfs {
+			packet = cipher.XOR(packet)
+		}
+		wsconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
+		err = wsutil.WriteClientBinary(wsconn, packet)
+		if err != nil {
+			break
+		}
+	}
 }
