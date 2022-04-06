@@ -7,7 +7,7 @@ import (
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/tun"
-	"github.com/songgao/water/waterutil"
+	"github.com/songgao/water"
 )
 
 // Start udp client
@@ -27,34 +27,31 @@ func StartClient(config config.Config) {
 		log.Fatalln("failed to listen on udp socket:", err)
 	}
 	defer conn.Close()
-	// server -> client
-	go func() {
-		buf := make([]byte, config.MTU)
-		for {
-			n, _, err := conn.ReadFromUDP(buf)
-			if err != nil || n == 0 {
-				continue
-			}
-			var b []byte
-			if config.Obfs {
-				b = cipher.XOR(buf[:n])
-			} else {
-				b = buf[:n]
-			}
-			if !waterutil.IsIPv4(b) {
-				continue
-			}
-			iface.Write(b)
+	go udpToTun(config, conn, iface)
+	tunToUdp(config, conn, serverAddr, iface)
+}
+
+func udpToTun(config config.Config, conn *net.UDPConn, iface *water.Interface) {
+	buf := make([]byte, config.MTU)
+	for {
+		n, _, err := conn.ReadFromUDP(buf)
+		if err != nil || n == 0 {
+			continue
 		}
-	}()
-	// client -> server
+		var b []byte
+		if config.Obfs {
+			b = cipher.XOR(buf[:n])
+		} else {
+			b = buf[:n]
+		}
+		iface.Write(b)
+	}
+}
+func tunToUdp(config config.Config, conn *net.UDPConn, serverAddr *net.UDPAddr, iface *water.Interface) {
 	packet := make([]byte, config.MTU)
 	for {
 		n, err := iface.Read(packet)
 		if err != nil || n == 0 {
-			continue
-		}
-		if !waterutil.IsIPv4(packet) {
 			continue
 		}
 		var b []byte
