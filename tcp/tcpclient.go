@@ -46,14 +46,14 @@ func tunToTcp(wg *sync.WaitGroup, config config.Config, tcpconn net.Conn, iface 
 }
 func tcpToTun(wg *sync.WaitGroup, config config.Config, tcpconn net.Conn, iface *water.Interface) {
 	defer wg.Done()
-	buf := make([]byte, config.MTU)
+	packet := make([]byte, config.MTU)
 	for {
 		tcpconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
-		n, err := tcpconn.Read(buf)
+		n, err := tcpconn.Read(packet)
 		if err != nil || err == io.EOF {
 			break
 		}
-		b := buf[:n]
+		b := packet[:n]
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}

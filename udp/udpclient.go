@@ -32,17 +32,17 @@ func StartClient(config config.Config) {
 }
 
 func udpToTun(config config.Config, conn *net.UDPConn, iface *water.Interface) {
-	buf := make([]byte, config.MTU)
+	packet := make([]byte, config.MTU)
 	for {
-		n, _, err := conn.ReadFromUDP(buf)
+		n, _, err := conn.ReadFromUDP(packet)
 		if err != nil || n == 0 {
 			continue
 		}
 		var b []byte
 		if config.Obfs {
-			b = cipher.XOR(buf[:n])
+			b = cipher.XOR(packet[:n])
 		} else {
-			b = buf[:n]
+			b = packet[:n]
 		}
 		iface.Write(b)
 	}

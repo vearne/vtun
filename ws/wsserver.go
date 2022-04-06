@@ -111,13 +111,13 @@ func checkPermission(w http.ResponseWriter, req *http.Request, config config.Con
 }
 
 func toClient(config config.Config, iface *water.Interface) {
-	buf := make([]byte, config.MTU)
+	packet := make([]byte, config.MTU)
 	for {
-		n, err := iface.Read(buf)
+		n, err := iface.Read(packet)
 		if err != nil || err == io.EOF || n == 0 {
 			continue
 		}
-		b := buf[:n]
+		b := packet[:n]
 		if !waterutil.IsIPv4(b) {
 			continue
 		}

@@ -39,13 +39,13 @@ func StartServer(config config.Config) {
 }
 
 func toClient(config config.Config, iface *water.Interface) {
-	buf := make([]byte, config.MTU)
+	packet := make([]byte, config.MTU)
 	for {
-		n, err := iface.Read(buf)
+		n, err := iface.Read(packet)
 		if err != nil || err == io.EOF || n == 0 {
 			continue
 		}
-		b := buf[:n]
+		b := packet[:n]
 		if !waterutil.IsIPv4(b) {
 			continue
 		}
@@ -66,14 +66,14 @@ func toClient(config config.Config, iface *water.Interface) {
 
 func toServer(config config.Config, tcpconn net.Conn, iface *water.Interface) {
 	defer tcpconn.Close()
-	buf := make([]byte, config.MTU)
+	packet := make([]byte, config.MTU)
 	for {
 		tcpconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
-		n, err := tcpconn.Read(buf)
+		n, err := tcpconn.Read(packet)
 		if err != nil || err == io.EOF {
 			break
 		}
-		b := buf[:n]
+		b := packet[:n]
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}

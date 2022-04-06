@@ -31,17 +31,17 @@ func StartServer(config config.Config) {
 	reply := &Reply{localConn: conn, connCache: cache.New(30*time.Minute, 10*time.Minute)}
 	go reply.toClient(config, iface, conn)
 	// client -> server
-	buf := make([]byte, config.MTU)
+	packet := make([]byte, config.MTU)
 	for {
-		n, cliAddr, err := conn.ReadFromUDP(buf)
+		n, cliAddr, err := conn.ReadFromUDP(packet)
 		if err != nil || n == 0 {
 			continue
 		}
 		var b []byte
 		if config.Obfs {
-			b = cipher.XOR(buf[:n])
+			b = cipher.XOR(packet[:n])
 		} else {
-			b = buf[:n]
+			b = packet[:n]
 		}
 		if !waterutil.IsIPv4(b) {
 			continue
