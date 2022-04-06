@@ -12,7 +12,6 @@ import (
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/vtun/tun"
 	"github.com/songgao/water"
-	//"github.com/songgao/water/waterutil"
 )
 
 // Start websocket client
@@ -21,12 +20,12 @@ func StartClient(config config.Config) {
 	iface := tun.CreateTun(config)
 	for {
 		if conn := netutil.ConnectServer(config); conn != nil {
+			defer conn.Close()
 			var wg sync.WaitGroup
 			wg.Add(2)
 			go wsToTun(&wg, config, conn, iface)
 			go tunToWs(&wg, config, conn, iface)
 			wg.Wait()
-			conn.Close()
 		}
 	}
 }
