@@ -11,17 +11,7 @@ import (
 
 	"github.com/gobwas/ws"
 	"github.com/net-byte/vtun/common/config"
-	"github.com/songgao/water/waterutil"
 )
-
-func GetIPv4(b []byte) (srcIPv4 string, dstIPv4 string) {
-	if waterutil.IPv4Protocol(b) == waterutil.TCP || waterutil.IPv4Protocol(b) == waterutil.UDP || waterutil.IPv4Protocol(b) == waterutil.ICMP {
-		srcIp := waterutil.IPv4Source(b)
-		dstIp := waterutil.IPv4Destination(b)
-		return srcIp.To4().String(), dstIp.To4().String()
-	}
-	return "", ""
-}
 
 func ConnectServer(config config.Config) net.Conn {
 	net.DefaultResolver = &net.Resolver{

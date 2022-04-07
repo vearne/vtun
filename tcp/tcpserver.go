@@ -47,10 +47,10 @@ func toClient(config config.Config, iface *water.Interface) {
 		b := packet[:n]
 		key := ""
 		if netutil.IsIPv4(b) {
-			key = string(netutil.GetIPv4Destination(b))
+			key = string(netutil.GetIPv4Destination(b).To4())
 		}
 		if netutil.IsIPv6(b) {
-			key = string(netutil.GetIPv6Destination(b))
+			key = string(netutil.GetIPv6Destination(b).To16())
 		}
 		if v, ok := cache.GetCache().Get(key); ok {
 			if config.Obfs {
@@ -77,10 +77,10 @@ func toServer(config config.Config, tcpconn net.Conn, iface *water.Interface) {
 		}
 		key := ""
 		if netutil.IsIPv4(b) {
-			key = string(netutil.GetIPv4Source(b))
+			key = string(netutil.GetIPv4Source(b).To4())
 		}
 		if netutil.IsIPv6(b) {
-			key = string(netutil.GetIPv6Source(b))
+			key = string(netutil.GetIPv6Source(b).To16())
 		}
 		cache.GetCache().Set(key, tcpconn, 10*time.Minute)
 		counter.IncrReadByte(len(b))
