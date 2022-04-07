@@ -11,7 +11,6 @@ import (
 	"github.com/net-byte/vtun/tun"
 	"github.com/patrickmn/go-cache"
 	"github.com/songgao/water"
-	"github.com/songgao/water/waterutil"
 )
 
 // Start udp server
@@ -43,15 +42,15 @@ func StartServer(config config.Config) {
 		} else {
 			b = packet[:n]
 		}
-		if !waterutil.IsIPv4(b) {
-			continue
+		key := ""
+		if netutil.IsIPv4(b) {
+			key = string(netutil.GetIPv4Source(b))
 		}
-		srcIPv4, dstIPv4 := netutil.GetIPv4(b)
-		if srcIPv4 == "" || dstIPv4 == "" {
-			continue
+		if netutil.IsIPv6(b) {
+			key = string(netutil.GetIPv6Source(b))
 		}
 		iface.Write(b)
-		reply.connCache.Set(srcIPv4, cliAddr, cache.DefaultExpiration)
+		reply.connCache.Set(key, cliAddr, cache.DefaultExpiration)
 	}
 }
 
@@ -68,14 +67,14 @@ func (r *Reply) toClient(config config.Config, iface *water.Interface, conn *net
 			continue
 		}
 		b := packet[:n]
-		if !waterutil.IsIPv4(b) {
-			continue
+		key := ""
+		if netutil.IsIPv4(b) {
+			key = string(netutil.GetIPv4Destination(b))
 		}
-		srcIPv4, dstIPv4 := netutil.GetIPv4(b)
-		if srcIPv4 == "" || dstIPv4 == "" {
-			continue
+		if netutil.IsIPv6(b) {
+			key = string(netutil.GetIPv6Destination(b))
 		}
-		if v, ok := r.connCache.Get(dstIPv4); ok {
+		if v, ok := r.connCache.Get(key); ok {
 			if config.Obfs {
 				b = cipher.XOR(b)
 			}

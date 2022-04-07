@@ -112,3 +112,27 @@ func LookupIP(domain string) string {
 	}
 	return ""
 }
+
+func IsIPv4(packet []byte) bool {
+	return 4 == (packet[0] >> 4)
+}
+
+func IsIPv6(packet []byte) bool {
+	return 6 == (packet[0] >> 4)
+}
+
+func GetIPv4Source(packet []byte) net.IP {
+	return net.IPv4(packet[12], packet[13], packet[14], packet[15])
+}
+
+func GetIPv4Destination(packet []byte) net.IP {
+	return net.IPv4(packet[16], packet[17], packet[18], packet[19])
+}
+
+func GetIPv6Source(packet []byte) net.IP {
+	return net.IP(packet[8:24])
+}
+
+func GetIPv6Destination(packet []byte) net.IP {
+	return net.IP(packet[24:40])
+}

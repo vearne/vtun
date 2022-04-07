@@ -20,7 +20,6 @@ import (
 	"github.com/net-byte/vtun/register"
 	"github.com/net-byte/vtun/tun"
 	"github.com/songgao/water"
-	"github.com/songgao/water/waterutil"
 )
 
 // Start websocket server
@@ -118,14 +117,14 @@ func toClient(config config.Config, iface *water.Interface) {
 			continue
 		}
 		b := packet[:n]
-		if !waterutil.IsIPv4(b) {
-			continue
+		key := ""
+		if netutil.IsIPv4(b) {
+			key = string(netutil.GetIPv4Destination(b))
 		}
-		srcIPv4, dstIPv4 := netutil.GetIPv4(b)
-		if srcIPv4 == "" || dstIPv4 == "" {
-			continue
+		if netutil.IsIPv6(b) {
+			key = string(netutil.GetIPv6Destination(b))
 		}
-		if v, ok := cache.GetCache().Get(dstIPv4); ok {
+		if v, ok := cache.GetCache().Get(key); ok {
 			if config.Obfs {
 				b = cipher.XOR(b)
 			}
@@ -146,14 +145,14 @@ func toServer(config config.Config, wsconn net.Conn, iface *water.Interface) {
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		if !waterutil.IsIPv4(b) {
-			continue
+		key := ""
+		if netutil.IsIPv4(b) {
+			key = string(netutil.GetIPv4Source(b))
 		}
-		srcIPv4, dstIPv4 := netutil.GetIPv4(b)
-		if srcIPv4 == "" || dstIPv4 == "" {
-			continue
+		if netutil.IsIPv6(b) {
+			key = string(netutil.GetIPv6Source(b))
 		}
-		cache.GetCache().Set(srcIPv4, wsconn, 10*time.Minute)
+		cache.GetCache().Set(key, wsconn, 10*time.Minute)
 		counter.IncrReadByte(len(b))
 		iface.Write(b)
 	}
