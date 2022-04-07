@@ -104,8 +104,7 @@ docker run  -d --privileged --restart=always --net=host --name vtun-server netby
 
 ## TODO (help wanted)
 1. Support windows
-2. Support IPv6
-3. Develop iOS app
+2. Develop iOS app
 
 # License
 [The MIT License (MIT)](https://raw.githubusercontent.com/net-byte/vtun/master/LICENSE)
