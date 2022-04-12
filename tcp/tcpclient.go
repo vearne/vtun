@@ -42,7 +42,10 @@ func tunToTcp(wg *sync.WaitGroup, config config.Config, tcpconn net.Conn, iface 
 			b = cipher.XOR(b)
 		}
 		tcpconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
-		tcpconn.Write(b)
+		_, err = tcpconn.Write(b)
+		if err != nil {
+			break
+		}
 	}
 }
 func tcpToTun(wg *sync.WaitGroup, config config.Config, tcpconn net.Conn, iface *water.Interface) {
