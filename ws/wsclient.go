@@ -20,12 +20,12 @@ func StartClient(config config.Config) {
 	iface := tun.CreateTun(config)
 	for {
 		if conn := netutil.ConnectServer(config); conn != nil {
-			defer conn.Close()
 			var wg sync.WaitGroup
 			wg.Add(2)
 			go wsToTun(&wg, config, conn, iface)
 			go tunToWs(&wg, config, conn, iface)
 			wg.Wait()
+			conn.Close()
 		}
 	}
 }

@@ -19,12 +19,12 @@ func StartClient(config config.Config) {
 	iface := tun.CreateTun(config)
 	for {
 		if conn, err := net.DialTimeout("tcp", config.ServerAddr, time.Duration(config.Timeout)*time.Second); conn != nil && err == nil {
-			defer conn.Close()
 			var wg sync.WaitGroup
 			wg.Add(2)
 			go tcpToTun(&wg, config, conn, iface)
 			go tunToTcp(&wg, config, conn, iface)
 			wg.Wait()
+			conn.Close()
 		}
 	}
 }
@@ -41,6 +41,7 @@ func tunToTcp(wg *sync.WaitGroup, config config.Config, tcpconn net.Conn, iface 
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
+		tcpconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		tcpconn.Write(b)
 	}
 }
