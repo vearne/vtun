@@ -4,9 +4,9 @@ import (
 	"io"
 	"log"
 	"net"
-	"sync"
 	"time"
 
+	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/tun"
@@ -17,39 +17,40 @@ import (
 func StartClient(config config.Config) {
 	log.Printf("vtun tcp client started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
+	go tunToTcp(config, iface)
 	for {
 		if conn, err := net.DialTimeout("tcp", config.ServerAddr, time.Duration(config.Timeout)*time.Second); conn != nil && err == nil {
-			var wg sync.WaitGroup
-			wg.Add(2)
-			go tcpToTun(&wg, config, conn, iface)
-			go tunToTcp(&wg, config, conn, iface)
-			wg.Wait()
-			conn.Close()
+			cache.GetCache().Set("tcpconn", conn, 24*time.Hour)
+			tcpToTun(config, conn, iface)
+			cache.GetCache().Delete("tcpconn")
 		}
 	}
 }
 
-func tunToTcp(wg *sync.WaitGroup, config config.Config, tcpconn net.Conn, iface *water.Interface) {
-	defer wg.Done()
+func tunToTcp(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.MTU)
 	for {
 		n, err := iface.Read(packet)
 		if err != nil || n == 0 {
-			break
+			continue
 		}
-		b := packet[:n]
-		if config.Obfs {
-			b = cipher.XOR(b)
-		}
-		tcpconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
-		_, err = tcpconn.Write(b)
-		if err != nil {
-			break
+		if v, ok := cache.GetCache().Get("tcpconn"); ok {
+			b := packet[:n]
+			if config.Obfs {
+				packet = cipher.XOR(packet)
+			}
+			tcpconn := v.(net.Conn)
+			tcpconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
+			_, err = tcpconn.Write(b)
+			if err != nil {
+				continue
+			}
 		}
 	}
 }
-func tcpToTun(wg *sync.WaitGroup, config config.Config, tcpconn net.Conn, iface *water.Interface) {
-	defer wg.Done()
+
+func tcpToTun(config config.Config, tcpconn net.Conn, iface *water.Interface) {
+	defer tcpconn.Close()
 	packet := make([]byte, config.MTU)
 	for {
 		tcpconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
@@ -61,6 +62,9 @@ func tcpToTun(wg *sync.WaitGroup, config config.Config, tcpconn net.Conn, iface 
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		iface.Write(b)
+		_, err = iface.Write(b)
+		if err != nil {
+			break
+		}
 	}
 }
