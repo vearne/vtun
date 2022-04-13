@@ -45,12 +45,9 @@ func toClient(config config.Config, iface *water.Interface) {
 			continue
 		}
 		b := packet[:n]
-		key := ""
-		if netutil.IsIPv4(b) {
-			key = string(netutil.GetIPv4Destination(b).To4())
-		}
-		if netutil.IsIPv6(b) {
-			key = string(netutil.GetIPv6Destination(b).To16())
+		key := netutil.GetDestinationKey(b)
+		if key == "" {
+			continue
 		}
 		if v, ok := cache.GetCache().Get(key); ok {
 			if config.Obfs {
@@ -75,12 +72,9 @@ func toServer(config config.Config, tcpconn net.Conn, iface *water.Interface) {
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		key := ""
-		if netutil.IsIPv4(b) {
-			key = string(netutil.GetIPv4Source(b).To4())
-		}
-		if netutil.IsIPv6(b) {
-			key = string(netutil.GetIPv6Source(b).To16())
+		key := netutil.GetSourceKey(b)
+		if key == "" {
+			continue
 		}
 		cache.GetCache().Set(key, tcpconn, 10*time.Minute)
 		counter.IncrReadByte(len(b))

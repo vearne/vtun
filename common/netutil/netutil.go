@@ -126,3 +126,23 @@ func GetIPv6Source(packet []byte) net.IP {
 func GetIPv6Destination(packet []byte) net.IP {
 	return net.IP(packet[24:40])
 }
+
+func GetSourceKey(packet []byte) string {
+	key := ""
+	if IsIPv4(packet) && len(packet) >= 20 {
+		key = GetIPv4Source(packet).To4().String()
+	} else if IsIPv6(packet) && len(packet) >= 40 {
+		key = GetIPv6Source(packet).To16().String()
+	}
+	return key
+}
+
+func GetDestinationKey(packet []byte) string {
+	key := ""
+	if IsIPv4(packet) && len(packet) >= 20 {
+		key = GetIPv4Destination(packet).To4().String()
+	} else if IsIPv6(packet) && len(packet) >= 40 {
+		key = GetIPv6Destination(packet).To16().String()
+	}
+	return key
+}
