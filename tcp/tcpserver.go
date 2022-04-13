@@ -45,16 +45,14 @@ func toClient(config config.Config, iface *water.Interface) {
 			continue
 		}
 		b := packet[:n]
-		key := netutil.GetDestinationKey(b)
-		if key == "" {
-			continue
-		}
-		if v, ok := cache.GetCache().Get(key); ok {
-			if config.Obfs {
-				b = cipher.XOR(b)
+		if key := netutil.GetDestinationKey(b); key != "" {
+			if v, ok := cache.GetCache().Get(key); ok {
+				if config.Obfs {
+					b = cipher.XOR(b)
+				}
+				counter.IncrWriteByte(n)
+				v.(net.Conn).Write(b)
 			}
-			counter.IncrWriteByte(n)
-			v.(net.Conn).Write(b)
 		}
 	}
 }
@@ -72,12 +70,10 @@ func toServer(config config.Config, tcpconn net.Conn, iface *water.Interface) {
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		key := netutil.GetSourceKey(b)
-		if key == "" {
-			continue
+		if key := netutil.GetSourceKey(b); key != "" {
+			cache.GetCache().Set(key, tcpconn, 10*time.Minute)
+			counter.IncrReadByte(len(b))
+			iface.Write(b)
 		}
-		cache.GetCache().Set(key, tcpconn, 10*time.Minute)
-		counter.IncrReadByte(len(b))
-		iface.Write(b)
 	}
 }

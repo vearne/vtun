@@ -42,12 +42,10 @@ func StartServer(config config.Config) {
 		} else {
 			b = packet[:n]
 		}
-		key := netutil.GetSourceKey(b)
-		if key == "" {
-			continue
+		if key := netutil.GetSourceKey(b); key != "" {
+			iface.Write(b)
+			reply.connCache.Set(key, cliAddr, cache.DefaultExpiration)
 		}
-		iface.Write(b)
-		reply.connCache.Set(key, cliAddr, cache.DefaultExpiration)
 	}
 }
 
@@ -64,15 +62,13 @@ func (r *Reply) toClient(config config.Config, iface *water.Interface, conn *net
 			continue
 		}
 		b := packet[:n]
-		key := netutil.GetDestinationKey(b)
-		if key == "" {
-			continue
-		}
-		if v, ok := r.connCache.Get(key); ok {
-			if config.Obfs {
-				b = cipher.XOR(b)
+		if key := netutil.GetDestinationKey(b); key != "" {
+			if v, ok := r.connCache.Get(key); ok {
+				if config.Obfs {
+					b = cipher.XOR(b)
+				}
+				r.localConn.WriteToUDP(b, v.(*net.UDPAddr))
 			}
-			r.localConn.WriteToUDP(b, v.(*net.UDPAddr))
 		}
 	}
 }
