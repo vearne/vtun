@@ -19,11 +19,15 @@ func StartClient(config config.Config) {
 	iface := tun.CreateTun(config)
 	go tunToTcp(config, iface)
 	for {
-		if conn, err := net.DialTimeout("tcp", config.ServerAddr, time.Duration(config.Timeout)*time.Second); conn != nil && err == nil {
-			cache.GetCache().Set("tcpconn", conn, 24*time.Hour)
-			tcpToTun(config, conn, iface)
-			cache.GetCache().Delete("tcpconn")
+		conn, err := net.DialTimeout("tcp", config.ServerAddr, time.Duration(config.Timeout)*time.Second)
+		if err != nil {
+			time.Sleep(3 * time.Second)
+			continue
 		}
+		cache.GetCache().Set("tcpconn", conn, 24*time.Hour)
+		tcpToTun(config, conn, iface)
+		cache.GetCache().Delete("tcpconn")
+
 	}
 }
 

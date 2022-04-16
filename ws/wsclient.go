@@ -20,11 +20,14 @@ func StartClient(config config.Config) {
 	iface := tun.CreateTun(config)
 	go tunToWs(config, iface)
 	for {
-		if conn := netutil.ConnectServer(config); conn != nil {
-			cache.GetCache().Set("wsconn", conn, 24*time.Hour)
-			wsToTun(config, conn, iface)
-			cache.GetCache().Delete("wsconn")
+		conn := netutil.ConnectServer(config)
+		if conn == nil {
+			time.Sleep(3 * time.Second)
+			continue
 		}
+		cache.GetCache().Set("wsconn", conn, 24*time.Hour)
+		wsToTun(config, conn, iface)
+		cache.GetCache().Delete("wsconn")
 	}
 }
 
