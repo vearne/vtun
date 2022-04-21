@@ -2,7 +2,7 @@
 
 A simple VPN written in golang.
 
-[EN](https://github.com/net-byte/vtun/blob/master/README.md)|[中文](https://github.com/net-byte/vtun/blob/master/README_CN.md)
+[EN](https://github.com/net-byte/vtun/blob/master/README.md) | [中文](https://github.com/net-byte/vtun/blob/master/README_CN.md)
 
 [![Travis](https://travis-ci.com/net-byte/vtun.svg?branch=master)](https://github.com/net-byte/vtun)
 [![Go Report Card](https://goreportcard.com/badge/github.com/net-byte/vtun)](https://goreportcard.com/report/github.com/net-byte/vtun)
