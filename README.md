@@ -84,7 +84,7 @@ sudo ./vtun-linux-amd64 -S -l=:3001 -c=172.16.0.1/24 -k=123456
 ```
 
 ## Docker
-[docker image](https://hub.docker.com/repository/docker/netbyte/vtun)
+[docker image](https://hub.docker.com/r/netbyte/vtun)
 
 ### Run client
 ```
