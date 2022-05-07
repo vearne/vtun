@@ -77,8 +77,8 @@ sudo ./vtun-linux-amd64 -S -l=:3001 -c=172.16.0.1/24 -k=123456
 2. 开启IP流量转发
 
 ```
-  sudo echo 1 > /proc/sys/net/ipv4/ip_forward
-  sudo sysctl -p
+  echo 1 > /proc/sys/net/ipv4/ip_forward
+  sysctl -p
   # 设置NAT转发流量
   iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
   iptables -t nat -A POSTROUTING -o tun0 -j MASQUERADE
