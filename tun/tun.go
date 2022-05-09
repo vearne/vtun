@@ -30,17 +30,17 @@ func configTun(config config.Config, iface *water.Interface) {
 		log.Panicf("error cidr %v", config.CIDR)
 	}
 	if os == "linux" {
-		netutil.ExecCmd("bash", "-c", "ip", "link", "set", "dev", iface.Name(), "mtu", strconv.Itoa(config.MTU))
-		netutil.ExecCmd("bash", "-c", "ip", "addr", "add", config.CIDR, "dev", iface.Name())
-		netutil.ExecCmd("bash", "-c", "ip", "link", "set", "dev", iface.Name(), "up")
+		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "mtu", strconv.Itoa(config.MTU))
+		netutil.ExecCmd("/sbin/ip", "addr", "add", config.CIDR, "dev", iface.Name())
+		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "up")
 		if config.GlobalMode {
 			physicalIface := netutil.GetPhysicalInterface()
 			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
 			if physicalIface != "" && serverIP != "" {
-				netutil.ExecCmd("bash", "-c", "ip", "route", "add", "0.0.0.0/1", "dev", iface.Name())
-				netutil.ExecCmd("bash", "-c", "ip", "route", "add", "128.0.0.0/1", "dev", iface.Name())
-				netutil.ExecCmd("bash", "-c", "ip", "route", "add", strings.Join([]string{serverIP, "32"}, "/"), "via", config.DefaultGateway, "dev", physicalIface)
-				netutil.ExecCmd("bash", "-c", "ip", "route", "add", strings.Join([]string{strings.Split(config.DNS, ":")[0], "32"}, "/"), "via", config.DefaultGateway, "dev", physicalIface)
+				netutil.ExecCmd("/sbin/ip", "route", "add", "0.0.0.0/1", "dev", iface.Name())
+				netutil.ExecCmd("/sbin/ip", "route", "add", "128.0.0.0/1", "dev", iface.Name())
+				netutil.ExecCmd("/sbin/ip", "route", "add", strings.Join([]string{serverIP, "32"}, "/"), "via", config.DefaultGateway, "dev", physicalIface)
+				netutil.ExecCmd("/sbin/ip", "route", "add", strings.Join([]string{strings.Split(config.DNS, ":")[0], "32"}, "/"), "via", config.DefaultGateway, "dev", physicalIface)
 			}
 		}
 
