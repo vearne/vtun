@@ -67,9 +67,9 @@ func configTun(config config.Config, iface *water.Interface) {
 	}
 }
 
-func ResetConfig() {
+func Reset(config config.Config) {
 	os := runtime.GOOS
-	if os == "darwin" {
+	if os == "darwin" && config.GlobalMode {
 		_, localGateway, _ := netutil.GetPhysicalInterface()
 		execCmd("route", "add", "default", localGateway)
 		execCmd("route", "change", "default", localGateway)

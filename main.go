@@ -34,7 +34,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	stopApp()
+	stopApp(config)
 }
 
 func startApp(config config.Config) {
@@ -66,7 +66,7 @@ func startApp(config config.Config) {
 	}
 }
 
-func stopApp() {
-	tun.ResetConfig()
+func stopApp(config config.Config) {
+	tun.Reset(config)
 	log.Printf("stopped!!!")
 }
