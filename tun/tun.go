@@ -68,6 +68,7 @@ func configTun(config config.Config, iface *water.Interface) {
 func Reset(config config.Config) {
 	os := runtime.GOOS
 	if os == "darwin" && config.GlobalMode {
+		netutil.ExecCmd("route", "add", "default", config.DefaultGateway)
 		netutil.ExecCmd("route", "change", "default", config.DefaultGateway)
 	}
 }
