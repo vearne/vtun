@@ -2,9 +2,14 @@ package main
 
 import (
 	"flag"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/tcp"
+	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/vtun/udp"
 	"github.com/net-byte/vtun/ws"
 )
@@ -25,6 +30,14 @@ func main() {
 	flag.IntVar(&config.Timeout, "t", 30, "dial timeout in seconds")
 	flag.Parse()
 	config.Init()
+	go startApp(config)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	stopApp()
+}
+
+func startApp(config config.Config) {
 	switch config.Protocol {
 	case "udp":
 		if config.ServerMode {
@@ -51,4 +64,9 @@ func main() {
 			ws.StartClient(config)
 		}
 	}
+}
+
+func stopApp() {
+	tun.ResetConfig()
+	log.Printf("stopped!!!")
 }

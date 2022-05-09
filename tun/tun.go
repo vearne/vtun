@@ -61,12 +61,18 @@ func configTun(config config.Config, iface *water.Interface) {
 				execCmd("route", "add", "default", gateway.String())
 				execCmd("route", "change", "default", gateway.String())
 			}
-		} else {
-			execCmd("route", "add", "default", localGateway)
-			execCmd("route", "change", "default", localGateway)
 		}
 	} else {
 		log.Printf("not support os:%v", os)
+	}
+}
+
+func ResetConfig() {
+	os := runtime.GOOS
+	if os == "darwin" {
+		_, localGateway, _ := netutil.GetPhysicalInterface()
+		execCmd("route", "add", "default", localGateway)
+		execCmd("route", "change", "default", localGateway)
 	}
 }
 
