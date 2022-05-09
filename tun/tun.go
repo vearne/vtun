@@ -36,12 +36,11 @@ func configTun(config config.Config, iface *water.Interface) {
 		if config.GlobalMode {
 			physicalIface := netutil.GetPhysicalInterface()
 			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
-			defaultGateway := netutil.GetLinuxDefaultGateway()
 			if physicalIface != "" && serverIP != "" {
 				netutil.ExecCmd("bash", "-c", "ip", "route", "add", "0.0.0.0/1", "dev", iface.Name())
 				netutil.ExecCmd("bash", "-c", "ip", "route", "add", "128.0.0.0/1", "dev", iface.Name())
-				netutil.ExecCmd("bash", "-c", "ip", "route", "add", strings.Join([]string{serverIP, "32"}, "/"), "via", defaultGateway, "dev", physicalIface)
-				netutil.ExecCmd("bash", "-c", "ip", "route", "add", strings.Join([]string{strings.Split(config.DNS, ":")[0], "32"}, "/"), "via", defaultGateway, "dev", physicalIface)
+				netutil.ExecCmd("bash", "-c", "ip", "route", "add", strings.Join([]string{serverIP, "32"}, "/"), "via", config.DefaultGateway, "dev", physicalIface)
+				netutil.ExecCmd("bash", "-c", "ip", "route", "add", strings.Join([]string{strings.Split(config.DNS, ":")[0], "32"}, "/"), "via", config.DefaultGateway, "dev", physicalIface)
 			}
 		}
 
@@ -50,12 +49,11 @@ func configTun(config config.Config, iface *water.Interface) {
 		gateway[3]++
 		netutil.ExecCmd("ifconfig", iface.Name(), "inet", ip.String(), gateway.String(), "up")
 		physicalIface := netutil.GetPhysicalInterface()
-		defaultGateway := netutil.GetMacDefaultGateway()
 		if config.GlobalMode {
 			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
 			if physicalIface != "" && serverIP != "" {
-				netutil.ExecCmd("route", "add", serverIP, defaultGateway)
-				netutil.ExecCmd("route", "add", strings.Split(config.DNS, ":")[0], defaultGateway)
+				netutil.ExecCmd("route", "add", serverIP, config.DefaultGateway)
+				netutil.ExecCmd("route", "add", strings.Split(config.DNS, ":")[0], config.DefaultGateway)
 				netutil.ExecCmd("route", "add", "0.0.0.0/1", "-interface", iface.Name())
 				netutil.ExecCmd("route", "add", "128.0.0.0/1", "-interface", iface.Name())
 				netutil.ExecCmd("route", "add", "default", gateway.String())
@@ -70,7 +68,6 @@ func configTun(config config.Config, iface *water.Interface) {
 func Reset(config config.Config) {
 	os := runtime.GOOS
 	if os == "darwin" && config.GlobalMode {
-		defaultGateway := netutil.GetMacDefaultGateway()
-		netutil.ExecCmd("route", "change", "default", defaultGateway)
+		netutil.ExecCmd("route", "change", "default", config.DefaultGateway)
 	}
 }

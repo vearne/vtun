@@ -1,13 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 
+	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
+	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/vtun/tcp"
 	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/vtun/udp"
@@ -29,12 +33,24 @@ func main() {
 	flag.BoolVar(&config.Obfs, "obfs", false, "enable data obfuscation")
 	flag.IntVar(&config.Timeout, "t", 30, "dial timeout in seconds")
 	flag.Parse()
-	config.Init()
+	initConfig(&config)
 	go startApp(config)
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	stopApp(config)
+}
+
+func initConfig(config *config.Config) {
+	cipher.GenerateKey(config.Key)
+	os := runtime.GOOS
+	if os == "linux" {
+		config.DefaultGateway = netutil.GetLinuxDefaultGateway()
+	} else if os == "darwin" {
+		config.DefaultGateway = netutil.GetMacDefaultGateway()
+	}
+	json, _ := json.Marshal(config)
+	log.Printf("init config:%s", string(json))
 }
 
 func startApp(config config.Config) {
