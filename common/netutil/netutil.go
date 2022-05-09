@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -41,25 +42,21 @@ func ConnectServer(config config.Config) net.Conn {
 	return c
 }
 
-func GetPhysicalInterface() (name string, gateway string, network string) {
+func GetPhysicalInterface() (name string) {
 	ifaces := getAllPhysicalInterfaces()
 	if len(ifaces) == 0 {
-		return "", "", ""
+		return ""
 	}
 	netAddrs, _ := ifaces[0].Addrs()
 	for _, addr := range netAddrs {
 		ip, ok := addr.(*net.IPNet)
 		if ok && ip.IP.To4() != nil && !ip.IP.IsLoopback() {
-			ipNet := ip.IP.To4().Mask(ip.IP.DefaultMask()).To4()
-			network = strings.Join([]string{ipNet.String(), strings.Split(ip.String(), "/")[1]}, "/")
-			ipNet[3]++
-			gateway = ipNet.String()
 			name = ifaces[0].Name
-			log.Printf("physical interface %v gateway %v network %v", name, gateway, network)
+			log.Printf("physical interface %v", name)
 			break
 		}
 	}
-	return name, gateway, network
+	return name
 }
 
 func getAllPhysicalInterfaces() []net.Interface {
@@ -145,4 +142,31 @@ func GetDestinationKey(packet []byte) string {
 		key = GetIPv6Destination(packet).To16().String()
 	}
 	return key
+}
+
+func ExecCmd(c string, args ...string) string {
+	log.Printf("exec cmd: %v %v:", c, args)
+	cmd := exec.Command(c, args...)
+	out, err := cmd.Output()
+	if err != nil {
+		log.Println("failed to exec cmd:", err)
+	}
+	if len(out) == 0 {
+		return ""
+	}
+	s := string(out)
+	return strings.ReplaceAll(s, "\n", "")
+}
+
+func GetLinuxDefaultGateway() string {
+	gateway := ExecCmd("bash", "-c", "netstat -r | grep 'default' | awk '{print $2}'")
+	if net.ParseIP(gateway) != nil {
+		return gateway
+	}
+	nslookup := "nslookup " + gateway + " | awk '/^Address: / { print $2 ; exit }'"
+	return ExecCmd("bash", "-c", nslookup)
+}
+
+func GetMacDefaultGateway() string {
+	return ExecCmd("route", "-n", "get default | grep 'gateway' | awk '{print $2}'")
 }
