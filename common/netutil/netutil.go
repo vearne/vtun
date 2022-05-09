@@ -168,5 +168,5 @@ func GetLinuxDefaultGateway() string {
 }
 
 func GetMacDefaultGateway() string {
-	return ExecCmd("route", "-n", "get default | grep 'gateway' | awk '{print $2}'")
+	return ExecCmd("bash", "-c", "route -n get default | grep 'gateway' | awk '{print $2}'")
 }
