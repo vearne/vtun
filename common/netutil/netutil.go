@@ -172,5 +172,5 @@ func GetLinuxDefaultDNS() string {
 }
 
 func GetMacDefaultDNS() string {
-	return ExecCmd("sh", "-c", "grep nameserver <(scutil --dns) | awk '{print $3}'")
+	return ExecCmd("sh", "-c", "grep nameserver <(scutil --dns) | awk 'NR==1{print $3}'")
 }
