@@ -27,7 +27,6 @@ func main() {
 	flag.StringVar(&config.IntranetServerIP, "sip", "172.16.0.1", "intranet server ip")
 	flag.StringVar(&config.Key, "k", "freedom@2022", "key")
 	flag.StringVar(&config.Protocol, "p", "wss", "protocol tcp/udp/ws/wss")
-	flag.StringVar(&config.DNS, "d", "8.8.8.8:53", "dns address")
 	flag.StringVar(&config.WebSocketPath, "path", "/freedom", "websocket path")
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
 	flag.BoolVar(&config.GlobalMode, "g", false, "client global mode")
@@ -47,8 +46,10 @@ func initConfig(config *config.Config) {
 		os := runtime.GOOS
 		if os == "linux" {
 			config.DefaultGateway = netutil.GetLinuxDefaultGateway()
+			config.DefaultDNS = netutil.GetLinuxDefaultDNS()
 		} else if os == "darwin" {
 			config.DefaultGateway = netutil.GetMacDefaultGateway()
+			config.DefaultDNS = netutil.GetMacDefaultDNS()
 		}
 	}
 	cipher.GenerateKey(config.Key)

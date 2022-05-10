@@ -15,13 +15,6 @@ import (
 )
 
 func ConnectServer(config config.Config) net.Conn {
-	net.DefaultResolver = &net.Resolver{
-		PreferGo: true,
-		Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
-			var dialer net.Dialer
-			return dialer.DialContext(ctx, network, config.DNS)
-		},
-	}
 	scheme := "ws"
 	if config.Protocol == "wss" {
 		scheme = "wss"
@@ -170,4 +163,12 @@ func GetLinuxDefaultGateway() string {
 
 func GetMacDefaultGateway() string {
 	return ExecCmd("sh", "-c", "route -n get default | grep 'gateway' | awk '{print $2}'")
+}
+
+func GetLinuxDefaultDNS() string {
+	return ExecCmd("sh", "-c", "dig | grep SERVER: | awk -F# '{ print $1 }' | awk -F: '{ print $2 }'")
+}
+
+func GetMacDefaultDNS() string {
+	return ExecCmd("sh", "-c", "grep nameserver <(scutil --dns) | awk '{print $3}'")
 }

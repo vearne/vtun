@@ -7,7 +7,6 @@ type Config struct {
 	CIDR             string
 	Key              string
 	Protocol         string
-	DNS              string
 	WebSocketPath    string
 	ServerMode       bool
 	GlobalMode       bool
@@ -15,4 +14,5 @@ type Config struct {
 	MTU              int
 	Timeout          int
 	DefaultGateway   string
+	DefaultDNS       string
 }
