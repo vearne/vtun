@@ -52,7 +52,6 @@ func GetPhysicalInterface() (name string) {
 		ip, ok := addr.(*net.IPNet)
 		if ok && ip.IP.To4() != nil && !ip.IP.IsLoopback() {
 			name = ifaces[0].Name
-			log.Printf("physical interface %v", name)
 			break
 		}
 	}
@@ -159,14 +158,14 @@ func ExecCmd(c string, args ...string) string {
 }
 
 func GetLinuxDefaultGateway() string {
-	gateway := ExecCmd("bash", "-c", "netstat -r | grep 'default' | awk '{print $2}'")
+	gateway := ExecCmd("sh", "-c", "netstat -r | grep 'default' | awk '{print $2}'")
 	if net.ParseIP(gateway) != nil {
 		return gateway
 	}
 	nslookup := "nslookup " + gateway + " | awk '/^Address: / { print $2 ; exit }'"
-	return ExecCmd("bash", "-c", nslookup)
+	return ExecCmd("sh", "-c", nslookup)
 }
 
 func GetMacDefaultGateway() string {
-	return ExecCmd("bash", "-c", "route -n get default | grep 'gateway' | awk '{print $2}'")
+	return ExecCmd("sh", "-c", "route -n get default | grep 'gateway' | awk '{print $2}'")
 }
