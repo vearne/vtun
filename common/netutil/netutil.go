@@ -160,12 +160,7 @@ func ExecCmd(c string, args ...string) string {
 }
 
 func GetLinuxDefaultGateway() string {
-	gateway := ExecCmd("sh", "-c", "netstat -r | grep 'default' | awk '{print $2}'")
-	if net.ParseIP(gateway) != nil {
-		return gateway
-	}
-	nslookup := "nslookup " + gateway + " | awk '/^Address: / { print $2 ; exit }'"
-	return ExecCmd("sh", "-c", nslookup)
+	return ExecCmd("sh", "-c", "route -n | grep 'UG[ \t]' | awk '{print $2}'")
 }
 
 func GetMacDefaultGateway() string {
