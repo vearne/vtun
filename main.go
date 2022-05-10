@@ -24,6 +24,7 @@ func main() {
 	flag.IntVar(&config.MTU, "mtu", 1500, "tun mtu")
 	flag.StringVar(&config.LocalAddr, "l", ":3000", "local address")
 	flag.StringVar(&config.ServerAddr, "s", ":3001", "server address")
+	flag.StringVar(&config.IntranetServerIP, "sip", "172.16.0.1", "intranet server ip")
 	flag.StringVar(&config.Key, "k", "freedom@2022", "key")
 	flag.StringVar(&config.Protocol, "p", "wss", "protocol tcp/udp/ws/wss")
 	flag.StringVar(&config.DNS, "d", "8.8.8.8:53", "dns address")

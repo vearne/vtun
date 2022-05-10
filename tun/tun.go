@@ -25,7 +25,7 @@ func CreateTun(config config.Config) (iface *water.Interface) {
 
 func configTun(config config.Config, iface *water.Interface) {
 	os := runtime.GOOS
-	ip, ipNet, err := net.ParseCIDR(config.CIDR)
+	ip, _, err := net.ParseCIDR(config.CIDR)
 	if err != nil {
 		log.Panicf("error cidr %v", config.CIDR)
 	}
@@ -45,9 +45,8 @@ func configTun(config config.Config, iface *water.Interface) {
 		}
 
 	} else if os == "darwin" {
-		gateway := ipNet.IP.To4()
-		gateway[3]++
-		netutil.ExecCmd("ifconfig", iface.Name(), "inet", ip.String(), gateway.String(), "up")
+		gateway := config.IntranetServerIP
+		netutil.ExecCmd("ifconfig", iface.Name(), "inet", ip.String(), gateway, "up")
 		if !config.ServerMode && config.GlobalMode {
 			physicalIface := netutil.GetPhysicalInterface()
 			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
@@ -56,8 +55,8 @@ func configTun(config config.Config, iface *water.Interface) {
 				netutil.ExecCmd("route", "add", strings.Split(config.DNS, ":")[0], config.DefaultGateway)
 				netutil.ExecCmd("route", "add", "0.0.0.0/1", "-interface", iface.Name())
 				netutil.ExecCmd("route", "add", "128.0.0.0/1", "-interface", iface.Name())
-				netutil.ExecCmd("route", "add", "default", gateway.String())
-				netutil.ExecCmd("route", "change", "default", gateway.String())
+				netutil.ExecCmd("route", "add", "default", gateway)
+				netutil.ExecCmd("route", "change", "default", gateway)
 			}
 		}
 	} else {
