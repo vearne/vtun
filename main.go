@@ -42,13 +42,15 @@ func main() {
 }
 
 func initConfig(config *config.Config) {
-	cipher.GenerateKey(config.Key)
-	os := runtime.GOOS
-	if os == "linux" {
-		config.DefaultGateway = netutil.GetLinuxDefaultGateway()
-	} else if os == "darwin" {
-		config.DefaultGateway = netutil.GetMacDefaultGateway()
+	if !config.ServerMode {
+		os := runtime.GOOS
+		if os == "linux" {
+			config.DefaultGateway = netutil.GetLinuxDefaultGateway()
+		} else if os == "darwin" {
+			config.DefaultGateway = netutil.GetMacDefaultGateway()
+		}
 	}
+	cipher.GenerateKey(config.Key)
 	json, _ := json.Marshal(config)
 	log.Printf("init config:%s", string(json))
 }

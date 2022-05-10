@@ -33,7 +33,7 @@ func configTun(config config.Config, iface *water.Interface) {
 		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "mtu", strconv.Itoa(config.MTU))
 		netutil.ExecCmd("/sbin/ip", "addr", "add", config.CIDR, "dev", iface.Name())
 		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "up")
-		if config.GlobalMode {
+		if !config.ServerMode && config.GlobalMode {
 			physicalIface := netutil.GetPhysicalInterface()
 			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
 			if physicalIface != "" && serverIP != "" {
@@ -48,8 +48,8 @@ func configTun(config config.Config, iface *water.Interface) {
 		gateway := ipNet.IP.To4()
 		gateway[3]++
 		netutil.ExecCmd("ifconfig", iface.Name(), "inet", ip.String(), gateway.String(), "up")
-		physicalIface := netutil.GetPhysicalInterface()
-		if config.GlobalMode {
+		if !config.ServerMode && config.GlobalMode {
+			physicalIface := netutil.GetPhysicalInterface()
 			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
 			if physicalIface != "" && serverIP != "" {
 				netutil.ExecCmd("route", "add", serverIP, config.DefaultGateway)
@@ -67,7 +67,7 @@ func configTun(config config.Config, iface *water.Interface) {
 
 func Reset(config config.Config) {
 	os := runtime.GOOS
-	if os == "darwin" && config.GlobalMode {
+	if os == "darwin" && !config.ServerMode && config.GlobalMode {
 		netutil.ExecCmd("route", "add", "default", config.DefaultGateway)
 		netutil.ExecCmd("route", "change", "default", config.DefaultGateway)
 	}
