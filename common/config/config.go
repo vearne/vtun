@@ -13,6 +13,5 @@ type Config struct {
 	Obfs             bool
 	MTU              int
 	Timeout          int
-	DefaultGateway   string
-	DefaultDNS       string
+	LocalGateway     string
 }

@@ -159,18 +159,10 @@ func ExecCmd(c string, args ...string) string {
 	return strings.ReplaceAll(s, "\n", "")
 }
 
-func GetLinuxDefaultGateway() string {
+func GetLinuxLocalGateway() string {
 	return ExecCmd("sh", "-c", "route -n | grep 'UG[ \t]' | awk '{print $2}'")
 }
 
-func GetMacDefaultGateway() string {
+func GetMacLocalGateway() string {
 	return ExecCmd("sh", "-c", "route -n get default | grep 'gateway' | awk '{print $2}'")
-}
-
-func GetLinuxDefaultDNS() string {
-	return ExecCmd("sh", "-c", "dig | grep SERVER: | awk -F# '{ print $1 }' | awk -F: '{ print $2 }'")
-}
-
-func GetMacDefaultDNS() string {
-	return ExecCmd("sh", "-c", "grep nameserver <(scutil --dns) | awk 'NR==1{print $3}'")
 }

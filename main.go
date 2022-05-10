@@ -42,14 +42,12 @@ func main() {
 }
 
 func initConfig(config *config.Config) {
-	if !config.ServerMode {
-		os := runtime.GOOS
-		if os == "linux" {
-			config.DefaultGateway = netutil.GetLinuxDefaultGateway()
-			config.DefaultDNS = netutil.GetLinuxDefaultDNS()
-		} else if os == "darwin" {
-			config.DefaultGateway = netutil.GetMacDefaultGateway()
-			config.DefaultDNS = netutil.GetMacDefaultDNS()
+	if !config.ServerMode && config.GlobalMode {
+		switch runtime.GOOS {
+		case "linux":
+			config.LocalGateway = netutil.GetLinuxLocalGateway()
+		case "darwin":
+			config.LocalGateway = netutil.GetMacLocalGateway()
 		}
 	}
 	cipher.GenerateKey(config.Key)

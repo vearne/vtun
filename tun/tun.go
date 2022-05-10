@@ -39,8 +39,8 @@ func configTun(config config.Config, iface *water.Interface) {
 			if physicalIface != "" && serverIP != "" {
 				netutil.ExecCmd("/sbin/ip", "route", "add", "0.0.0.0/1", "dev", iface.Name())
 				netutil.ExecCmd("/sbin/ip", "route", "add", "128.0.0.0/1", "dev", iface.Name())
-				netutil.ExecCmd("/sbin/ip", "route", "add", "8.8.8.8/32", "via", config.DefaultGateway, "dev", physicalIface)
-				netutil.ExecCmd("/sbin/ip", "route", "add", strings.Join([]string{serverIP, "32"}, "/"), "via", config.DefaultGateway, "dev", physicalIface)
+				netutil.ExecCmd("/sbin/ip", "route", "add", "8.8.8.8/32", "via", config.LocalGateway, "dev", physicalIface)
+				netutil.ExecCmd("/sbin/ip", "route", "add", strings.Join([]string{serverIP, "32"}, "/"), "via", config.LocalGateway, "dev", physicalIface)
 			}
 		}
 
@@ -51,8 +51,8 @@ func configTun(config config.Config, iface *water.Interface) {
 			physicalIface := netutil.GetPhysicalInterface()
 			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
 			if physicalIface != "" && serverIP != "" {
-				netutil.ExecCmd("route", "add", serverIP, config.DefaultGateway)
-				netutil.ExecCmd("route", "add", "8.8.8.8", config.DefaultGateway)
+				netutil.ExecCmd("route", "add", serverIP, config.LocalGateway)
+				netutil.ExecCmd("route", "add", "8.8.8.8", config.LocalGateway)
 				netutil.ExecCmd("route", "add", "0.0.0.0/1", "-interface", iface.Name())
 				netutil.ExecCmd("route", "add", "128.0.0.0/1", "-interface", iface.Name())
 				netutil.ExecCmd("route", "add", "default", gateway)
@@ -67,7 +67,7 @@ func configTun(config config.Config, iface *water.Interface) {
 func Reset(config config.Config) {
 	os := runtime.GOOS
 	if os == "darwin" && !config.ServerMode && config.GlobalMode {
-		netutil.ExecCmd("route", "add", "default", config.DefaultGateway)
-		netutil.ExecCmd("route", "change", "default", config.DefaultGateway)
+		netutil.ExecCmd("route", "add", "default", config.LocalGateway)
+		netutil.ExecCmd("route", "change", "default", config.LocalGateway)
 	}
 }
