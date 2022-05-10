@@ -21,8 +21,6 @@ Usage of ./vtun:
   -S    server mode
   -c string
         tun interface cidr (default "172.16.0.10/24")
-  -d string
-        dns address (default "8.8.8.8:53")
   -g    client global mode
   -k string
         key (default "freedom@2022")
@@ -38,6 +36,8 @@ Usage of ./vtun:
         websocket path (default "/freedom")
   -s string
         server address (default ":3001")
+  -sip string
+        intranet server ip (default "172.16.0.1")
   -t int
         dial timeout in seconds (default 30)
 
