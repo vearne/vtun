@@ -26,49 +26,51 @@ func StartServer(config config.Config) {
 		log.Fatalln("failed to listen on udp socket:", err)
 	}
 	defer conn.Close()
-	// server -> client
-	reply := &Reply{localConn: conn, connCache: cache.New(30*time.Minute, 10*time.Minute)}
-	go reply.toClient(config, iface, conn)
-	// client -> server
-	packet := make([]byte, config.MTU)
-	for {
-		n, cliAddr, err := conn.ReadFromUDP(packet)
-		if err != nil || n == 0 {
-			continue
-		}
-		var b []byte
-		if config.Obfs {
-			b = cipher.XOR(packet[:n])
-		} else {
-			b = packet[:n]
-		}
-		if key := netutil.GetSourceKey(b); key != "" {
-			iface.Write(b)
-			reply.connCache.Set(key, cliAddr, cache.DefaultExpiration)
-		}
-	}
+	s := &Server{config: config, iface: iface, localConn: conn, connCache: cache.New(30*time.Minute, 10*time.Minute)}
+	go s.tunToUdp()
+	s.udpToTun()
 }
 
-type Reply struct {
+type Server struct {
+	config    config.Config
+	iface     *water.Interface
 	localConn *net.UDPConn
 	connCache *cache.Cache
 }
 
-func (r *Reply) toClient(config config.Config, iface *water.Interface, conn *net.UDPConn) {
-	packet := make([]byte, config.MTU)
+func (s *Server) tunToUdp() {
+	packet := make([]byte, s.config.MTU)
 	for {
-		n, err := iface.Read(packet)
+		n, err := s.iface.Read(packet)
 		if err != nil || n == 0 {
 			continue
 		}
 		b := packet[:n]
 		if key := netutil.GetDestinationKey(b); key != "" {
-			if v, ok := r.connCache.Get(key); ok {
-				if config.Obfs {
+			if v, ok := s.connCache.Get(key); ok {
+				if s.config.Obfs {
 					b = cipher.XOR(b)
 				}
-				r.localConn.WriteToUDP(b, v.(*net.UDPAddr))
+				s.localConn.WriteToUDP(b, v.(*net.UDPAddr))
 			}
+		}
+	}
+}
+
+func (s *Server) udpToTun() {
+	packet := make([]byte, s.config.MTU)
+	for {
+		n, cliAddr, err := s.localConn.ReadFromUDP(packet)
+		if err != nil || n == 0 {
+			continue
+		}
+		b := packet[:n]
+		if s.config.Obfs {
+			b = cipher.XOR(b)
+		}
+		if key := netutil.GetSourceKey(b); key != "" {
+			s.iface.Write(b)
+			s.connCache.Set(key, cliAddr, cache.DefaultExpiration)
 		}
 	}
 }

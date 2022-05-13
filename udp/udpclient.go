@@ -27,39 +27,43 @@ func StartClient(config config.Config) {
 		log.Fatalln("failed to listen on udp socket:", err)
 	}
 	defer conn.Close()
-	go udpToTun(config, conn, iface)
-	tunToUdp(config, conn, serverAddr, iface)
+	c := &Client{config: config, iface: iface, localConn: conn, serverAddr: serverAddr}
+	go c.udpToTun()
+	c.tunToUdp()
 }
 
-func udpToTun(config config.Config, conn *net.UDPConn, iface *water.Interface) {
-	packet := make([]byte, config.MTU)
+type Client struct {
+	config     config.Config
+	iface      *water.Interface
+	localConn  *net.UDPConn
+	serverAddr *net.UDPAddr
+}
+
+func (c *Client) udpToTun() {
+	packet := make([]byte, c.config.MTU)
 	for {
-		n, _, err := conn.ReadFromUDP(packet)
+		n, _, err := c.localConn.ReadFromUDP(packet)
 		if err != nil || n == 0 {
 			continue
 		}
-		var b []byte
-		if config.Obfs {
-			b = cipher.XOR(packet[:n])
-		} else {
-			b = packet[:n]
+		b := packet[:n]
+		if c.config.Obfs {
+			b = cipher.XOR(b)
 		}
-		iface.Write(b)
+		c.iface.Write(b)
 	}
 }
-func tunToUdp(config config.Config, conn *net.UDPConn, serverAddr *net.UDPAddr, iface *water.Interface) {
-	packet := make([]byte, config.MTU)
+func (c *Client) tunToUdp() {
+	packet := make([]byte, c.config.MTU)
 	for {
-		n, err := iface.Read(packet)
+		n, err := c.iface.Read(packet)
 		if err != nil || n == 0 {
 			continue
 		}
-		var b []byte
-		if config.Obfs {
-			b = cipher.XOR(packet[:n])
-		} else {
-			b = packet[:n]
+		b := packet[:n]
+		if c.config.Obfs {
+			b = cipher.XOR(b)
 		}
-		conn.WriteToUDP(b, serverAddr)
+		c.localConn.WriteToUDP(b, c.serverAddr)
 	}
 }
