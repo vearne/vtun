@@ -9,7 +9,6 @@ import (
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
-	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/vtun/tun"
 	"github.com/songgao/water"
@@ -50,7 +49,6 @@ func toClient(config config.Config, iface *water.Interface) {
 				if config.Obfs {
 					b = cipher.XOR(b)
 				}
-				counter.IncrWrittenBytes(n)
 				v.(net.Conn).Write(b)
 			}
 		}
@@ -72,7 +70,6 @@ func toServer(config config.Config, tcpconn net.Conn, iface *water.Interface) {
 		}
 		if key := netutil.GetSrcKey(b); key != "" {
 			cache.GetCache().Set(key, tcpconn, 10*time.Minute)
-			counter.IncrReadBytes(len(b))
 			iface.Write(b)
 		}
 	}
