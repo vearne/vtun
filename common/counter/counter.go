@@ -2,14 +2,21 @@ package counter
 
 import "sync/atomic"
 
-var TotalReadByte uint64 = 0
+var _totalReadBytes uint64 = 0
+var _totalWrittenBytes uint64 = 0
 
-var TotalWriteByte uint64 = 0
-
-func IncrReadByte(n int) {
-	atomic.AddUint64(&TotalReadByte, uint64(n))
+func IncrReadBytes(n int) {
+	atomic.AddUint64(&_totalReadBytes, uint64(n))
 }
 
-func IncrWriteByte(n int) {
-	atomic.AddUint64(&TotalWriteByte, uint64(n))
+func IncrWrittenBytes(n int) {
+	atomic.AddUint64(&_totalWrittenBytes, uint64(n))
+}
+
+func GetReadBytes() uint64 {
+	return _totalReadBytes
+}
+
+func GetWrittenBytes() uint64 {
+	return _totalWrittenBytes
 }

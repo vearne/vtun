@@ -6,8 +6,8 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-var c = cache.New(30*time.Minute, 10*time.Minute)
+var _cache = cache.New(30*time.Minute, 10*time.Minute)
 
 func GetCache() *cache.Cache {
-	return c
+	return _cache
 }

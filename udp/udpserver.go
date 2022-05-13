@@ -46,7 +46,7 @@ func (s *Server) tunToUdp() {
 			continue
 		}
 		b := packet[:n]
-		if key := netutil.GetDestinationKey(b); key != "" {
+		if key := netutil.GetDstKey(b); key != "" {
 			if v, ok := s.connCache.Get(key); ok {
 				if s.config.Obfs {
 					b = cipher.XOR(b)
@@ -68,7 +68,7 @@ func (s *Server) udpToTun() {
 		if s.config.Obfs {
 			b = cipher.XOR(b)
 		}
-		if key := netutil.GetSourceKey(b); key != "" {
+		if key := netutil.GetSrcKey(b); key != "" {
 			s.iface.Write(b)
 			s.connCache.Set(key, cliAddr, cache.DefaultExpiration)
 		}

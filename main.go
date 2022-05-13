@@ -45,12 +45,12 @@ func initConfig(config *config.Config) {
 	if !config.ServerMode && config.GlobalMode {
 		switch runtime.GOOS {
 		case "linux":
-			config.LocalGateway = netutil.GetLinuxLocalGateway()
+			config.LocalGateway = netutil.GetLocalGatewayOnLinux()
 		case "darwin":
-			config.LocalGateway = netutil.GetMacLocalGateway()
+			config.LocalGateway = netutil.GetLocalGatewayOnMac()
 		}
 	}
-	cipher.GenerateKey(config.Key)
+	cipher.SetKey(config.Key)
 	json, _ := json.Marshal(config)
 	log.Printf("init config:%s", string(json))
 }

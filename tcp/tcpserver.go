@@ -19,19 +19,19 @@ import (
 func StartServer(config config.Config) {
 	log.Printf("vtun tcp server started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
-	// server -> client
-	go toClient(config, iface)
 	ln, err := net.Listen("tcp", config.LocalAddr)
 	if err != nil {
 		log.Println(err)
 		return
 	}
+	// server -> client
+	go toClient(config, iface)
+	// client -> server
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
 			continue
 		}
-		// client -> server
 		go toServer(config, conn, iface)
 	}
 
@@ -45,12 +45,12 @@ func toClient(config config.Config, iface *water.Interface) {
 			continue
 		}
 		b := packet[:n]
-		if key := netutil.GetDestinationKey(b); key != "" {
+		if key := netutil.GetDstKey(b); key != "" {
 			if v, ok := cache.GetCache().Get(key); ok {
 				if config.Obfs {
 					b = cipher.XOR(b)
 				}
-				counter.IncrWriteByte(n)
+				counter.IncrWrittenBytes(n)
 				v.(net.Conn).Write(b)
 			}
 		}
@@ -70,9 +70,9 @@ func toServer(config config.Config, tcpconn net.Conn, iface *water.Interface) {
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		if key := netutil.GetSourceKey(b); key != "" {
+		if key := netutil.GetSrcKey(b); key != "" {
 			cache.GetCache().Set(key, tcpconn, 10*time.Minute)
-			counter.IncrReadByte(len(b))
+			counter.IncrReadBytes(len(b))
 			iface.Write(b)
 		}
 	}

@@ -34,7 +34,7 @@ func configTun(config config.Config, iface *water.Interface) {
 		netutil.ExecCmd("/sbin/ip", "addr", "add", config.CIDR, "dev", iface.Name())
 		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "up")
 		if !config.ServerMode && config.GlobalMode {
-			physicalIface := netutil.GetPhysicalInterface()
+			physicalIface := netutil.GetInterface()
 			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
 			if physicalIface != "" && serverIP != "" {
 				netutil.ExecCmd("/sbin/ip", "route", "add", "0.0.0.0/1", "dev", iface.Name())
@@ -48,7 +48,7 @@ func configTun(config config.Config, iface *water.Interface) {
 		gateway := config.IntranetServerIP
 		netutil.ExecCmd("ifconfig", iface.Name(), "inet", ip.String(), gateway, "up")
 		if !config.ServerMode && config.GlobalMode {
-			physicalIface := netutil.GetPhysicalInterface()
+			physicalIface := netutil.GetInterface()
 			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
 			if physicalIface != "" && serverIP != "" {
 				netutil.ExecCmd("route", "add", serverIP, config.LocalGateway)

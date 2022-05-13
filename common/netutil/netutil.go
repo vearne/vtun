@@ -42,8 +42,8 @@ func ConnectServer(config config.Config) net.Conn {
 	return c
 }
 
-func GetPhysicalInterface() (name string) {
-	ifaces := getAllPhysicalInterfaces()
+func GetInterface() (name string) {
+	ifaces := getAllInterfaces()
 	if len(ifaces) == 0 {
 		return ""
 	}
@@ -58,7 +58,7 @@ func GetPhysicalInterface() (name string) {
 	return name
 }
 
-func getAllPhysicalInterfaces() []net.Interface {
+func getAllInterfaces() []net.Interface {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		log.Println(err)
@@ -109,38 +109,38 @@ func IsIPv6(packet []byte) bool {
 	return flag == 6
 }
 
-func GetIPv4Source(packet []byte) net.IP {
+func GetIPv4Src(packet []byte) net.IP {
 	return net.IPv4(packet[12], packet[13], packet[14], packet[15])
 }
 
-func GetIPv4Destination(packet []byte) net.IP {
+func GetIPv4Dst(packet []byte) net.IP {
 	return net.IPv4(packet[16], packet[17], packet[18], packet[19])
 }
 
-func GetIPv6Source(packet []byte) net.IP {
+func GetIPv6Src(packet []byte) net.IP {
 	return net.IP(packet[8:24])
 }
 
-func GetIPv6Destination(packet []byte) net.IP {
+func GetIPv6Dst(packet []byte) net.IP {
 	return net.IP(packet[24:40])
 }
 
-func GetSourceKey(packet []byte) string {
+func GetSrcKey(packet []byte) string {
 	key := ""
 	if IsIPv4(packet) && len(packet) >= 20 {
-		key = GetIPv4Source(packet).To4().String()
+		key = GetIPv4Src(packet).To4().String()
 	} else if IsIPv6(packet) && len(packet) >= 40 {
-		key = GetIPv6Source(packet).To16().String()
+		key = GetIPv6Src(packet).To16().String()
 	}
 	return key
 }
 
-func GetDestinationKey(packet []byte) string {
+func GetDstKey(packet []byte) string {
 	key := ""
 	if IsIPv4(packet) && len(packet) >= 20 {
-		key = GetIPv4Destination(packet).To4().String()
+		key = GetIPv4Dst(packet).To4().String()
 	} else if IsIPv6(packet) && len(packet) >= 40 {
-		key = GetIPv6Destination(packet).To16().String()
+		key = GetIPv6Dst(packet).To16().String()
 	}
 	return key
 }
@@ -159,10 +159,10 @@ func ExecCmd(c string, args ...string) string {
 	return strings.ReplaceAll(s, "\n", "")
 }
 
-func GetLinuxLocalGateway() string {
+func GetLocalGatewayOnLinux() string {
 	return ExecCmd("sh", "-c", "route -n | grep 'UG[ \t]' | awk '{print $2}'")
 }
 
-func GetMacLocalGateway() string {
+func GetLocalGatewayOnMac() string {
 	return ExecCmd("sh", "-c", "route -n get default | grep 'gateway' | awk '{print $2}'")
 }

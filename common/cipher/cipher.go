@@ -1,8 +1,8 @@
 package cipher
 
-var _key = []byte("8pUsXuZw4z6B9EhGdKgNjQnjmVsYv2x5")
+var _key = []byte("vtun@2022")
 
-func GenerateKey(key string) {
+func SetKey(key string) {
 	_key = []byte(key)
 }
 

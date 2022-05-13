@@ -92,7 +92,7 @@ func StartServer(config config.Config) {
 	})
 
 	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
-		resp := fmt.Sprintf("download %v upload %v", bytesize.New(float64(counter.TotalWriteByte)).String(), bytesize.New(float64(counter.TotalReadByte)).String())
+		resp := fmt.Sprintf("download %v upload %v", bytesize.New(float64(counter.GetWrittenBytes())).String(), bytesize.New(float64(counter.GetReadBytes())).String())
 		io.WriteString(w, resp)
 	})
 
@@ -117,12 +117,12 @@ func toClient(config config.Config, iface *water.Interface) {
 			continue
 		}
 		b := packet[:n]
-		if key := netutil.GetDestinationKey(b); key != "" {
+		if key := netutil.GetDstKey(b); key != "" {
 			if v, ok := cache.GetCache().Get(key); ok {
 				if config.Obfs {
 					b = cipher.XOR(b)
 				}
-				counter.IncrWriteByte(n)
+				counter.IncrWrittenBytes(n)
 				wsutil.WriteServerBinary(v.(net.Conn), b)
 			}
 		}
@@ -140,9 +140,9 @@ func toServer(config config.Config, wsconn net.Conn, iface *water.Interface) {
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		if key := netutil.GetSourceKey(b); key != "" {
+		if key := netutil.GetSrcKey(b); key != "" {
 			cache.GetCache().Set(key, wsconn, 10*time.Minute)
-			counter.IncrReadByte(len(b))
+			counter.IncrReadBytes(len(b))
 			iface.Write(b)
 		}
 	}
