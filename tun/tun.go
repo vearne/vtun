@@ -13,7 +13,7 @@ import (
 )
 
 func CreateTun(config config.Config) (iface *water.Interface) {
-	c := water.Config{DeviceType: water.TUN}
+	c := water.Config{DeviceType: water.TUN, PlatformSpecificParams: water.PlatformSpecificParams {Name: config.DeviceName, }}
 	iface, err := water.New(c)
 	if err != nil {
 		log.Fatalln("failed to create tun interface:", err)
@@ -29,15 +29,21 @@ func configTun(config config.Config, iface *water.Interface) {
 	if err != nil {
 		log.Panicf("error cidr %v", config.CIDR)
 	}
+	ipv6, ipv6Net, err := net.ParseCIDR(config.CIDRv6)
+	if err != nil {
+		log.Panicf("error ipv6 cidr %v", config.CIDRv6)
+	}
 	if os == "linux" {
 		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "mtu", strconv.Itoa(config.MTU))
 		netutil.ExecCmd("/sbin/ip", "addr", "add", config.CIDR, "dev", iface.Name())
+		netutil.ExecCmd("/sbin/ip", "-6", "addr", "add", config.CIDRv6, "dev", iface.Name())
 		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "up")
 		if !config.ServerMode && config.GlobalMode {
 			physicalIface := netutil.GetInterface()
 			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
 			if physicalIface != "" && serverIP != "" {
 				netutil.ExecCmd("/sbin/ip", "route", "add", "0.0.0.0/1", "dev", iface.Name())
+				netutil.ExecCmd("/sbin/ip", "-6", "route", "add", "::/1", "dev", iface.Name())
 				netutil.ExecCmd("/sbin/ip", "route", "add", "128.0.0.0/1", "dev", iface.Name())
 				netutil.ExecCmd("/sbin/ip", "route", "add", "8.8.8.8/32", "via", config.LocalGateway, "dev", physicalIface)
 				netutil.ExecCmd("/sbin/ip", "route", "add", strings.Join([]string{serverIP, "32"}, "/"), "via", config.LocalGateway, "dev", physicalIface)
@@ -46,13 +52,16 @@ func configTun(config config.Config, iface *water.Interface) {
 
 	} else if os == "darwin" {
 		gateway := config.IntranetServerIP
+		gateway6 := config.IntranetServerIPv6
 		netutil.ExecCmd("ifconfig", iface.Name(), "inet", ip.String(), gateway, "up")
+		netutil.ExecCmd("ifconfig", iface.Name(), "inet6", ipv6.String(), gateway6, "up")
 		if !config.ServerMode && config.GlobalMode {
 			physicalIface := netutil.GetInterface()
 			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
 			if physicalIface != "" && serverIP != "" {
 				netutil.ExecCmd("route", "add", serverIP, config.LocalGateway)
 				netutil.ExecCmd("route", "add", "8.8.8.8", config.LocalGateway)
+				netutil.ExecCmd("route", "add", "-inet6", "::/1", "-interface", iface.Name())
 				netutil.ExecCmd("route", "add", "0.0.0.0/1", "-interface", iface.Name())
 				netutil.ExecCmd("route", "add", "128.0.0.0/1", "-interface", iface.Name())
 				netutil.ExecCmd("route", "add", "default", gateway)

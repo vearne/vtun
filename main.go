@@ -20,11 +20,14 @@ import (
 
 func main() {
 	config := config.Config{}
+	flag.StringVar(&config.DeviceName, "dn", "tun0", "device name")
 	flag.StringVar(&config.CIDR, "c", "172.16.0.10/24", "tun interface cidr")
+	flag.StringVar(&config.CIDRv6, "c6", "fced:9999::9999/64", "tun interface ipv6 cidr")
 	flag.IntVar(&config.MTU, "mtu", 1500, "tun mtu")
 	flag.StringVar(&config.LocalAddr, "l", ":3000", "local address")
 	flag.StringVar(&config.ServerAddr, "s", ":3001", "server address")
 	flag.StringVar(&config.IntranetServerIP, "sip", "172.16.0.1", "intranet server ip")
+	flag.StringVar(&config.IntranetServerIPv6, "sip6", "fced:9999::1", "intranet server ipv6")
 	flag.StringVar(&config.Key, "k", "freedom@2022", "key")
 	flag.StringVar(&config.Protocol, "p", "wss", "protocol tcp/udp/ws/wss")
 	flag.StringVar(&config.WebSocketPath, "path", "/freedom", "websocket path")
