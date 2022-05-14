@@ -20,7 +20,7 @@ import (
 
 func main() {
 	config := config.Config{}
-	flag.StringVar(&config.DeviceName, "dn", "tun0", "device name")
+	flag.StringVar(&config.DeviceName, "dn", "", "device name")
 	flag.StringVar(&config.CIDR, "c", "172.16.0.10/24", "tun interface cidr")
 	flag.StringVar(&config.CIDRv6, "c6", "fced:9999::9999/64", "tun interface ipv6 cidr")
 	flag.IntVar(&config.MTU, "mtu", 1500, "tun mtu")

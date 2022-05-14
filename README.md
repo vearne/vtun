@@ -21,6 +21,10 @@ Usage of ./vtun:
   -S    server mode
   -c string
         tun interface cidr (default "172.16.0.10/24")
+  -c6 string
+        tun interface ipv6 cidr (default "fced:9999::9999/64")
+  -dn string
+        device name
   -g    client global mode
   -k string
         key (default "freedom@2022")
@@ -38,9 +42,10 @@ Usage of ./vtun:
         server address (default ":3001")
   -sip string
         intranet server ip (default "172.16.0.1")
+  -sip6 string
+        intranet server ipv6 (default "fced:9999::1")
   -t int
         dial timeout in seconds (default 30)
-
 ```
 
 ## Build

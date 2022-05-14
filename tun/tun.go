@@ -13,7 +13,10 @@ import (
 )
 
 func CreateTun(config config.Config) (iface *water.Interface) {
-	c := water.Config{DeviceType: water.TUN, PlatformSpecificParams: water.PlatformSpecificParams {Name: config.DeviceName, }}
+	c := water.Config{DeviceType: water.TUN}
+	if config.DeviceName != "" {
+		c = water.Config{DeviceType: water.TUN, PlatformSpecificParams: water.PlatformSpecificParams{Name: config.DeviceName}}
+	}
 	iface, err := water.New(c)
 	if err != nil {
 		log.Fatalln("failed to create tun interface:", err)
@@ -29,7 +32,7 @@ func configTun(config config.Config, iface *water.Interface) {
 	if err != nil {
 		log.Panicf("error cidr %v", config.CIDR)
 	}
-	ipv6, ipv6Net, err := net.ParseCIDR(config.CIDRv6)
+	ipv6, _, err := net.ParseCIDR(config.CIDRv6)
 	if err != nil {
 		log.Panicf("error ipv6 cidr %v", config.CIDRv6)
 	}
