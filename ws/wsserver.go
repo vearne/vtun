@@ -91,6 +91,34 @@ func StartServer(config config.Config) {
 		io.WriteString(w, strings.Join(register.ListClientIP(), "\r\n"))
 	})
 
+	http.HandleFunc("/register/prefix/ipv4", func(w http.ResponseWriter, r *http.Request) {
+		if !checkPermission(w, r, config) {
+			return
+		}
+		_, ipv4Net, err := net.ParseCIDR(config.CIDR)
+		var resp string
+		if(err != nil) {
+			resp = "error"
+		} else {
+			resp = ipv4Net.String()
+		}
+		io.WriteString(w, resp)
+	})
+
+	http.HandleFunc("/register/prefix/ipv6", func(w http.ResponseWriter, r *http.Request) {
+		if !checkPermission(w, r, config) {
+			return
+		}
+		_, ipv6Net, err := net.ParseCIDR(config.CIDRv6)
+		var resp string
+		if(err != nil) {
+			resp = "error"
+		} else {
+			resp = ipv6Net.String()
+		}
+		io.WriteString(w, resp)
+	})
+
 	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
 		resp := fmt.Sprintf("download %v upload %v", bytesize.New(float64(counter.GetWrittenBytes())).String(), bytesize.New(float64(counter.GetReadBytes())).String())
 		io.WriteString(w, resp)
