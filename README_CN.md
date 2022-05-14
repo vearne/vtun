@@ -49,24 +49,30 @@ Usage of ./vtun:
 sh scripts/build.sh
 ```
 
-## 客户端
+## Linux客户端
 
 ```
-sudo ./vtun-linux-amd64 -l=:3000 -s=server-addr:3001 -c=172.16.0.10/24 -k=123456
-
-```
-
-## 全局模式客户端（转发所有流量）
-
-```
-sudo ./vtun-linux-amd64 -l=:3000 -s=server-addr:3001 -c=172.16.0.10/24 -k=123456 -g
+sudo ./vtun-linux-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456
 
 ```
 
-## 服务端
+## Linux全局模式客户端（转发所有流量）
 
 ```
-sudo ./vtun-linux-amd64 -S -l=:3001 -c=172.16.0.1/24 -k=123456
+sudo ./vtun-linux-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g
+
+```
+## MacOS客户端
+
+```
+sudo ./vtun-darwin-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g -sip 172.16.0.1
+
+```
+
+## Linux服务端
+
+```
+sudo ./vtun-linux-amd64 -S -l :3001 -c 172.16.0.1/24 -k 123456
 
 ```
 
@@ -92,17 +98,20 @@ sudo ./vtun-linux-amd64 -S -l=:3001 -c=172.16.0.1/24 -k=123456
 
 ### 运行客户端
 ```
-docker run  -d --privileged --restart=always --net=host --name vtun-client netbyte/vtun -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456
+docker run  -d --privileged --restart=always --net=host --name vtun-client \
+netbyte/vtun -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456
 ```
 
 ### 运行全局模式客户端
 ```
-docker run  -d --privileged --restart=always --net=host --name vtun-client netbyte/vtun -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g
+docker run  -d --privileged --restart=always --net=host --name vtun-client \
+netbyte/vtun -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g
 ```
 
 ### 运行服务端
 ```
-docker run  -d --privileged --restart=always --net=host --name vtun-server netbyte/vtun -S -l :3001 -c 172.16.0.1/24 -k 123456
+docker run  -d --privileged --restart=always --net=host --name vtun-server \
+netbyte/vtun -S -l :3001 -c 172.16.0.1/24 -k 123456
 ```
 
 ## 移动端
