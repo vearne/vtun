@@ -13,6 +13,7 @@ A simple VPN written in golang.
 * VPN over tcp
 * VPN over udp
 * VPN over websocket
+* VPN over tls
 
 # Usage
 
@@ -23,6 +24,12 @@ Usage of ./vtun:
         tun interface cidr (default "172.16.0.10/24")
   -c6 string
         tun interface ipv6 cidr (default "fced:9999::9999/64")
+  -certificate string
+        tls certificate file path
+  -privatekey string
+        tls certificate key file path
+  -sni string
+        tls handshake sni
   -dn string
         device name
   -g    client global mode
