@@ -30,6 +30,8 @@ Usage of ./vtun:
         tls certificate key file path
   -sni string
         tls handshake sni
+  -isv
+        tls insecure skip verify
   -dn string
         device name
   -g    client global mode
@@ -42,7 +44,7 @@ Usage of ./vtun:
   -obfs
         enable data obfuscation
   -p string
-        protocol tcp/udp/ws/tls/wss (default "wss")
+        protocol tcp/udp/tls/ws/wss (default "wss")
   -path string
         websocket path (default "/freedom")
   -s string

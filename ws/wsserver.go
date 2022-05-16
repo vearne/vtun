@@ -97,7 +97,7 @@ func StartServer(config config.Config) {
 		}
 		_, ipv4Net, err := net.ParseCIDR(config.CIDR)
 		var resp string
-		if(err != nil) {
+		if err != nil {
 			resp = "error"
 		} else {
 			resp = ipv4Net.String()
@@ -111,7 +111,7 @@ func StartServer(config config.Config) {
 		}
 		_, ipv6Net, err := net.ParseCIDR(config.CIDRv6)
 		var resp string
-		if(err != nil) {
+		if err != nil {
 			resp = "error"
 		} else {
 			resp = ipv6Net.String()
@@ -125,7 +125,12 @@ func StartServer(config config.Config) {
 	})
 
 	log.Printf("vtun websocket server started on %v", config.LocalAddr)
-	http.ListenAndServe(config.LocalAddr, nil)
+	if config.Protocol == "wss" && config.TLSCertificateFilePath != "" && config.TLSCertificateKeyFilePath != "" {
+		http.ListenAndServeTLS(config.LocalAddr, config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath, nil)
+	} else {
+		http.ListenAndServe(config.LocalAddr, nil)
+	}
+
 }
 func checkPermission(w http.ResponseWriter, req *http.Request, config config.Config) bool {
 	key := req.Header.Get("key")

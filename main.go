@@ -13,9 +13,9 @@ import (
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/vtun/tcp"
+	"github.com/net-byte/vtun/tls"
 	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/vtun/udp"
-	"github.com/net-byte/vtun/tls"
 	"github.com/net-byte/vtun/ws"
 )
 
@@ -30,7 +30,7 @@ func main() {
 	flag.StringVar(&config.IntranetServerIP, "sip", "172.16.0.1", "intranet server ip")
 	flag.StringVar(&config.IntranetServerIPv6, "sip6", "fced:9999::1", "intranet server ipv6")
 	flag.StringVar(&config.Key, "k", "freedom@2022", "key")
-	flag.StringVar(&config.Protocol, "p", "wss", "protocol tcp/udp/ws/tls/wss")
+	flag.StringVar(&config.Protocol, "p", "wss", "protocol tcp/udp/tls/ws/wss")
 	flag.StringVar(&config.WebSocketPath, "path", "/freedom", "websocket path")
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
 	flag.BoolVar(&config.GlobalMode, "g", false, "client global mode")
@@ -39,6 +39,7 @@ func main() {
 	flag.StringVar(&config.TLSCertificateFilePath, "certificate", "", "tls certificate file path")
 	flag.StringVar(&config.TLSCertificateKeyFilePath, "privatekey", "", "tls certificate key file path")
 	flag.StringVar(&config.TLSSni, "sni", "", "tls handshake sni")
+	flag.BoolVar(&config.InsecureSkipVerify, "isv", false, "tls insecure skip verify")
 	flag.Parse()
 	initConfig(&config)
 	go startApp(config)
