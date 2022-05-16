@@ -21,17 +21,17 @@ func StartClient(config config.Config) {
 	go tunToTLS(config, iface)
 	for {
 		tlsconfig := &tls.Config{
-            //InsecureSkipVerify: true,
-        }
+			//InsecureSkipVerify: true,
+		}
 		if config.TLSSni != "" {
 			tlsconfig.ServerName = config.TLSSni
 		}
-        conn, err := tls.Dial("tcp", config.ServerAddr, tlsconfig)
+		conn, err := tls.Dial("tcp", config.ServerAddr, tlsconfig)
 		if err != nil {
 			time.Sleep(3 * time.Second)
 			continue
 		}
-		cache.GetCache().Set("tlsconn", conn, 24 * time.Hour)
+		cache.GetCache().Set("tlsconn", conn, 24*time.Hour)
 		tlsToTun(config, conn, iface)
 		cache.GetCache().Delete("tlsconn")
 	}

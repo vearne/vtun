@@ -42,7 +42,7 @@ Usage of ./vtun:
   -obfs
         enable data obfuscation
   -p string
-        protocol tcp/udp/ws/wss (default "wss")
+        protocol tcp/udp/ws/tls/wss (default "wss")
   -path string
         websocket path (default "/freedom")
   -s string

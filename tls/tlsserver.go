@@ -2,11 +2,11 @@ package tls
 
 import (
 	"crypto/tls"
+	"io"
 	"log"
 	"net"
-	"io"
 	"time"
-	
+
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
@@ -20,23 +20,23 @@ func StartServer(config config.Config) {
 	log.Printf("vtun tls server started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
 	cert, err := tls.LoadX509KeyPair(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
-    if err != nil {
-        log.Println(err)
+	if err != nil {
+		log.Println(err)
 		return
-    }
-    tlsconfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		MinVersion: tls.VersionTLS12,
-        CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-        PreferServerCipherSuites: true,
-        CipherSuites: []uint16{
-            tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-            tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-            tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-            tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-        },
 	}
-    ln, err := tls.Listen("tcp", config.LocalAddr, tlsconfig)
+	tlsconfig := &tls.Config{
+		Certificates:             []tls.Certificate{cert},
+		MinVersion:               tls.VersionTLS12,
+		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+		PreferServerCipherSuites: true,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		},
+	}
+	ln, err := tls.Listen("tcp", config.LocalAddr, tlsconfig)
 	if err != nil {
 		log.Println(err)
 		return
