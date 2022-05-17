@@ -40,7 +40,7 @@ func main() {
 	flag.StringVar(&config.TLSCertificateFilePath, "certificate", "", "tls certificate file path")
 	flag.StringVar(&config.TLSCertificateKeyFilePath, "privatekey", "", "tls certificate key file path")
 	flag.StringVar(&config.TLSSni, "sni", "", "tls handshake sni")
-	flag.BoolVar(&config.InsecureSkipVerify, "isv", false, "tls insecure skip verify")
+	flag.BoolVar(&config.TLSInsecureSkipVerify, "isv", false, "tls insecure skip verify")
 	flag.Parse()
 	initConfig(&config)
 	go startApp(config)

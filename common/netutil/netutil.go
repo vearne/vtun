@@ -32,7 +32,7 @@ func ConnectServer(config config.Config) net.Conn {
 	header.Set("user-agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36")
 	header.Set("key", config.Key)
 	tlsconfig := &tls.Config{
-		InsecureSkipVerify: config.InsecureSkipVerify,
+		InsecureSkipVerify: config.TLSInsecureSkipVerify,
 	}
 	dialer := ws.Dialer{
 		Header:    ws.HandshakeHeaderHTTP(header),

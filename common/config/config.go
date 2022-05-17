@@ -21,5 +21,5 @@ type Config struct {
 	TLSCertificateFilePath    string
 	TLSCertificateKeyFilePath string
 	TLSSni                    string
-	InsecureSkipVerify        bool
+	TLSInsecureSkipVerify     bool
 }

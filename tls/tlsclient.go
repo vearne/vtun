@@ -21,7 +21,7 @@ func StartClient(config config.Config) {
 	go tunToTLS(config, iface)
 	for {
 		tlsconfig := &tls.Config{
-			InsecureSkipVerify: config.InsecureSkipVerify,
+			InsecureSkipVerify: config.TLSInsecureSkipVerify,
 		}
 		if config.TLSSni != "" {
 			tlsconfig.ServerName = config.TLSSni
