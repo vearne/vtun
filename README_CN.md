@@ -14,6 +14,7 @@
 * 支持udp
 * 支持websocket
 * 支持tls
+* 支持quic
 
 # 用法
 
@@ -44,7 +45,7 @@ Usage of ./vtun:
   -obfs
         enable data obfuscation
   -p string
-        protocol tcp/udp/tls/ws/wss (default "wss")
+        protocol tcp/udp/tls/quic/ws/wss (default "wss")
   -path string
         websocket path (default "/freedom")
   -s string
@@ -99,6 +100,7 @@ sudo ./vtun-linux-amd64 -S -l :3001 -c 172.16.0.1/24 -k 123456
 2. 开启IP流量转发
 
 ```
+  sysctl -w net.core.rmem_max=2500000
   echo 1 > /proc/sys/net/ipv4/ip_forward
   sysctl -p
   # 设置NAT转发流量

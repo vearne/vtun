@@ -12,6 +12,7 @@ import (
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/netutil"
+	"github.com/net-byte/vtun/quic"
 	"github.com/net-byte/vtun/tcp"
 	"github.com/net-byte/vtun/tls"
 	"github.com/net-byte/vtun/tun"
@@ -31,7 +32,7 @@ func main() {
 	flag.StringVar(&config.IntranetServerIPv6, "sip6", "fced:9999::1", "intranet server ipv6")
 	flag.StringVar(&config.DNSServerIP, "dip", "8.8.8.8", "dns server ip")
 	flag.StringVar(&config.Key, "k", "freedom@2022", "key")
-	flag.StringVar(&config.Protocol, "p", "wss", "protocol tcp/udp/tls/ws/wss")
+	flag.StringVar(&config.Protocol, "p", "wss", "protocol tcp/udp/tls/quic/ws/wss")
 	flag.StringVar(&config.WebSocketPath, "path", "/freedom", "websocket path")
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
 	flag.BoolVar(&config.GlobalMode, "g", false, "client global mode")
@@ -89,6 +90,12 @@ func startApp(config config.Config) {
 			tls.StartServer(config)
 		} else {
 			tls.StartClient(config)
+		}
+	case "quic":
+		if config.ServerMode {
+			quic.StartServer(config)
+		} else {
+			quic.StartClient(config)
 		}
 	default:
 		if config.ServerMode {
