@@ -20,7 +20,7 @@ func ConnectServer(config config.Config) net.Conn {
 		PreferGo: true,
 		Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
 			var dialer net.Dialer
-			return dialer.DialContext(ctx, network, "8.8.8.8:53")
+			return dialer.DialContext(ctx, network, net.JoinHostPort(config.DNSServerIP, "53"))
 		},
 	}
 	scheme := "ws"

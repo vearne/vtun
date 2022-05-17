@@ -6,6 +6,7 @@ type Config struct {
 	ServerAddr                string
 	IntranetServerIP          string
 	IntranetServerIPv6        string
+	DNSServerIP               string
 	CIDR                      string
 	CIDRv6                    string
 	Key                       string

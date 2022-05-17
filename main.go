@@ -29,6 +29,7 @@ func main() {
 	flag.StringVar(&config.ServerAddr, "s", ":3001", "server address")
 	flag.StringVar(&config.IntranetServerIP, "sip", "172.16.0.1", "intranet server ip")
 	flag.StringVar(&config.IntranetServerIPv6, "sip6", "fced:9999::1", "intranet server ipv6")
+	flag.StringVar(&config.DNSServerIP, "dip", "8.8.8.8", "dns server ip")
 	flag.StringVar(&config.Key, "k", "freedom@2022", "key")
 	flag.StringVar(&config.Protocol, "p", "wss", "protocol tcp/udp/tls/ws/wss")
 	flag.StringVar(&config.WebSocketPath, "path", "/freedom", "websocket path")
