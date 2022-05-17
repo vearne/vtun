@@ -38,10 +38,12 @@ func StartServer(config config.Config) {
 	for {
 		session, err := l.Accept(context.Background())
 		if err != nil {
+			log.Println(err)
 			continue
 		}
 		stream, err := session.AcceptStream(context.Background())
 		if err != nil {
+			log.Println(err)
 			continue
 		}
 		go toServer(config, stream, iface)
@@ -49,7 +51,7 @@ func StartServer(config config.Config) {
 }
 
 func toClient(config config.Config, iface *water.Interface) {
-	packet := make([]byte, 64*1024)
+	packet := make([]byte, config.MTU)
 	for {
 		n, err := iface.Read(packet)
 		if err != nil || err == io.EOF || n == 0 {
@@ -69,7 +71,7 @@ func toClient(config config.Config, iface *water.Interface) {
 
 func toServer(config config.Config, stream quic.Stream, iface *water.Interface) {
 	defer stream.Close()
-	packet := make([]byte, 64*1024)
+	packet := make([]byte, config.MTU)
 	for {
 		stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := stream.Read(packet)

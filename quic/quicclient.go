@@ -36,11 +36,13 @@ func StartClient(config config.Config) {
 	for {
 		session, err := quic.DialAddr(config.ServerAddr, tlsconfig, quicConfig)
 		if err != nil {
+			log.Println(err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
 		stream, err := session.OpenStreamSync(context.Background())
 		if err != nil {
+			log.Println(err)
 			continue
 		}
 		cache.GetCache().Set("quicconn", stream, 24*time.Hour)
@@ -50,7 +52,7 @@ func StartClient(config config.Config) {
 }
 
 func tunToQuic(config config.Config, iface *water.Interface) {
-	packet := make([]byte, 64*1024)
+	packet := make([]byte, config.MTU)
 	for {
 		n, err := iface.Read(packet)
 		if err != nil || n == 0 {
@@ -73,7 +75,7 @@ func tunToQuic(config config.Config, iface *water.Interface) {
 
 func quicToTun(config config.Config, stream quic.Stream, iface *water.Interface) {
 	defer stream.Close()
-	packet := make([]byte, 64*1024)
+	packet := make([]byte, config.MTU)
 	for {
 		stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := stream.Read(packet)
