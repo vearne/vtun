@@ -11,7 +11,6 @@ else
 TAG=$ARCH
 fi
 echo "build $NAME:$TAG"
-git pull
 docker build . -t netbyte/$NAME:$TAG
 docker image push netbyte/$NAME:$TAG
 
