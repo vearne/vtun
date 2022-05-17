@@ -28,7 +28,7 @@ func StartServer(config config.Config) {
 		Certificates: []tls.Certificate{cert},
 		NextProtos:   []string{"vtun/1.0"},
 	}
-	l, err := quic.ListenAddr(config.ServerAddr, tlsconfig, nil)
+	l, err := quic.ListenAddr(config.LocalAddr, tlsconfig, nil)
 	if err != nil {
 		log.Panic(err)
 	}

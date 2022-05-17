@@ -21,8 +21,7 @@ func StartServer(config config.Config) {
 	iface := tun.CreateTun(config)
 	cert, err := tls.LoadX509KeyPair(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
 	if err != nil {
-		log.Println(err)
-		return
+		log.Panic(err)
 	}
 	tlsconfig := &tls.Config{
 		Certificates:             []tls.Certificate{cert},
@@ -38,8 +37,7 @@ func StartServer(config config.Config) {
 	}
 	ln, err := tls.Listen("tcp", config.LocalAddr, tlsconfig)
 	if err != nil {
-		log.Println(err)
-		return
+		log.Panic(err)
 	}
 	// server -> client
 	go toClient(config, iface)
