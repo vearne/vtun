@@ -19,21 +19,21 @@ import (
 func StartClient(config config.Config) {
 	log.Printf("vtun quic client started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
+	tlsconfig := &tls.Config{
+		InsecureSkipVerify: config.TLSInsecureSkipVerify,
+		NextProtos:         []string{"vtun/1.0"},
+	}
+	if config.TLSSni != "" {
+		tlsconfig.ServerName = config.TLSSni
+	}
+	quicConfig := &quic.Config{
+		ConnectionIDLength:   12,
+		HandshakeIdleTimeout: time.Second * 10,
+		MaxIdleTimeout:       time.Second * 30,
+		KeepAlive:            true,
+	}
 	go tunToQuic(config, iface)
 	for {
-		tlsconfig := &tls.Config{
-			InsecureSkipVerify: config.TLSInsecureSkipVerify,
-			NextProtos:         []string{"vtun/1.0"},
-		}
-		if config.TLSSni != "" {
-			tlsconfig.ServerName = config.TLSSni
-		}
-		quicConfig := &quic.Config{
-			ConnectionIDLength:   12,
-			HandshakeIdleTimeout: time.Second * 10,
-			MaxIdleTimeout:       time.Second * 30,
-			KeepAlive:            true,
-		}
 		session, err := quic.DialAddr(config.ServerAddr, tlsconfig, quicConfig)
 		if err != nil {
 			time.Sleep(3 * time.Second)
@@ -50,7 +50,7 @@ func StartClient(config config.Config) {
 }
 
 func tunToQuic(config config.Config, iface *water.Interface) {
-	packet := make([]byte, config.MTU)
+	packet := make([]byte, 64*1024)
 	for {
 		n, err := iface.Read(packet)
 		if err != nil || n == 0 {
@@ -73,7 +73,7 @@ func tunToQuic(config config.Config, iface *water.Interface) {
 
 func quicToTun(config config.Config, stream quic.Stream, iface *water.Interface) {
 	defer stream.Close()
-	packet := make([]byte, config.MTU)
+	packet := make([]byte, 64*1024)
 	for {
 		stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := stream.Read(packet)
