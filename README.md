@@ -26,9 +26,9 @@ Usage of ./vtun:
   -c6 string
         tun interface ipv6 cidr (default "fced:9999::9999/64")
   -certificate string
-        tls certificate file path
+        tls certificate file path (default "./certs/server.pem")
   -privatekey string
-        tls certificate key file path
+        tls certificate key file path (default "./certs/server.key")
   -sni string
         tls handshake sni
   -isv
