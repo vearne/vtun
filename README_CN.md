@@ -101,8 +101,11 @@ sudo ./vtun-linux-amd64 -S -l :3001 -c 172.16.0.1/24 -k 123456
 
 ```
   sysctl -w net.core.rmem_max=2500000
-  echo 1 > /proc/sys/net/ipv4/ip_forward
-  sysctl -p
+  vi /etc/sysctl.conf
+  #enable ipv4 and ipv6 forward
+  net.ipv4.ip_forward = 1
+  net.ipv6.conf.all.forwarding=1
+  sysctl -p /etc/sysctl.conf
   # 设置NAT转发流量
   iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
   iptables -t nat -A POSTROUTING -o tun0 -j MASQUERADE
