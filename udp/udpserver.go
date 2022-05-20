@@ -12,6 +12,7 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/songgao/water"
 	"golang.org/x/net/ipv4"
+	"golang.org/x/net/ipv6"
 )
 
 // Start udp server
@@ -26,9 +27,16 @@ func StartServer(config config.Config) {
 	if err != nil {
 		log.Fatalln("failed to listen on udp socket:", err)
 	}
-	p := ipv4.NewPacketConn(conn)
-	if err := p.SetTOS(0xb8); err != nil { // DSCP EF
-		log.Fatalln("failed to set conn tos:", err)
+	if localAddr.IP.To4() != nil {
+		p := ipv4.NewPacketConn(conn)
+		if err := p.SetTOS(0xb8); err != nil { // DSCP EF
+			log.Fatalln("failed to set conn tos:", err)
+		}
+	} else {
+		p := ipv6.NewPacketConn(conn)
+		if err := p.SetTrafficClass(0xb8); err != nil { // DSCP EF
+			log.Fatalln("failed to set conn tos:", err)
+		}
 	}
 	defer conn.Close()
 	s := &Server{config: config, iface: iface, localConn: conn, connCache: cache.New(30*time.Minute, 10*time.Minute)}

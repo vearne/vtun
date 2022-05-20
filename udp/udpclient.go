@@ -9,6 +9,7 @@ import (
 	"github.com/net-byte/vtun/tun"
 	"github.com/songgao/water"
 	"golang.org/x/net/ipv4"
+	"golang.org/x/net/ipv6"
 )
 
 // Start udp client
@@ -27,9 +28,16 @@ func StartClient(config config.Config) {
 	if err != nil {
 		log.Fatalln("failed to listen on udp socket:", err)
 	}
-	p := ipv4.NewPacketConn(conn)
-	if err := p.SetTOS(0xb8); err != nil { // DSCP EF
-		log.Fatalln("failed to set conn tos:", err)
+	if localAddr.IP.To4() != nil {
+		p := ipv4.NewPacketConn(conn)
+		if err := p.SetTOS(0xb8); err != nil { // DSCP EF
+			log.Fatalln("failed to set conn tos:", err)
+		}
+	} else {
+		p := ipv6.NewPacketConn(conn)
+		if err := p.SetTrafficClass(0xb8); err != nil { // DSCP EF
+			log.Fatalln("failed to set conn tos:", err)
+		}
 	}
 	defer conn.Close()
 	c := &Client{config: config, iface: iface, localConn: conn, serverAddr: serverAddr}
