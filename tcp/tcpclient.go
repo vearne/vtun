@@ -1,7 +1,6 @@
 package tcp
 
 import (
-	"io"
 	"log"
 	"net"
 	"time"
@@ -59,7 +58,7 @@ func tcpToTun(config config.Config, tcpconn net.Conn, iface *water.Interface) {
 	for {
 		tcpconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := tcpconn.Read(packet)
-		if err != nil || err == io.EOF {
+		if err != nil {
 			break
 		}
 		b := packet[:n]

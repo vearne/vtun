@@ -1,7 +1,6 @@
 package tcp
 
 import (
-	"io"
 	"log"
 	"net"
 	"time"
@@ -40,7 +39,7 @@ func toClient(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.MTU)
 	for {
 		n, err := iface.Read(packet)
-		if err != nil || err == io.EOF || n == 0 {
+		if err != nil || n == 0 {
 			continue
 		}
 		b := packet[:n]
@@ -61,7 +60,7 @@ func toServer(config config.Config, tcpconn net.Conn, iface *water.Interface) {
 	for {
 		tcpconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := tcpconn.Read(packet)
-		if err != nil || err == io.EOF {
+		if err != nil {
 			break
 		}
 		b := packet[:n]

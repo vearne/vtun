@@ -3,7 +3,6 @@ package quic
 import (
 	"context"
 	"crypto/tls"
-	"io"
 	"log"
 	"time"
 
@@ -50,7 +49,7 @@ func toClient(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.MTU)
 	for {
 		n, err := iface.Read(packet)
-		if err != nil || err == io.EOF || n == 0 {
+		if err != nil || n == 0 {
 			continue
 		}
 		b := packet[:n]
@@ -59,10 +58,7 @@ func toClient(config config.Config, iface *water.Interface) {
 				if config.Obfs {
 					b = cipher.XOR(b)
 				}
-				_, err := v.(quic.Stream).Write(b)
-				if err != nil {
-					cache.GetCache().Delete(key)
-				}
+				v.(quic.Stream).Write(b)
 			}
 		}
 	}
@@ -79,7 +75,7 @@ func toServer(config config.Config, session quic.Session, iface *water.Interface
 	for {
 		stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := stream.Read(packet)
-		if err != nil || err == io.EOF {
+		if err != nil {
 			break
 		}
 		b := packet[:n]
