@@ -1,13 +1,13 @@
 package grpc
 
 import (
-	"github.com/net-byte/vtun/grpc/proto"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"io"
 	"log"
 	"net"
 	"time"
+
+	"github.com/net-byte/vtun/grpc/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
@@ -53,7 +53,7 @@ func toClient(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.MTU)
 	for {
 		n, err := iface.Read(packet)
-		if err != nil || err == io.EOF || n == 0 {
+		if err != nil || n == 0 {
 			continue
 		}
 		b := packet[:n]
@@ -71,7 +71,7 @@ func toClient(config config.Config, iface *water.Interface) {
 func toServer(srv proto.GrpcServe_TunnelServer, config config.Config, iface *water.Interface) {
 	for {
 		packet, err := srv.Recv()
-		if err != nil || err == io.EOF {
+		if err != nil {
 			break
 		}
 		b := packet.Data[:]

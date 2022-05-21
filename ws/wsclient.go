@@ -59,7 +59,7 @@ func tunToWs(config config.Config, iface *water.Interface) {
 		if v, ok := cache.GetCache().Get("wsconn"); ok {
 			b := packet[:n]
 			if config.Obfs {
-				packet = cipher.XOR(packet)
+				b = cipher.XOR(b)
 			}
 			wsconn := v.(net.Conn)
 			wsconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))

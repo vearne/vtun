@@ -19,13 +19,13 @@ func StartClient(config config.Config) {
 	log.Printf("vtun tls client started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
 	go tunToTLS(config, iface)
+	tlsconfig := &tls.Config{
+		InsecureSkipVerify: config.TLSInsecureSkipVerify,
+	}
+	if config.TLSSni != "" {
+		tlsconfig.ServerName = config.TLSSni
+	}
 	for {
-		tlsconfig := &tls.Config{
-			InsecureSkipVerify: config.TLSInsecureSkipVerify,
-		}
-		if config.TLSSni != "" {
-			tlsconfig.ServerName = config.TLSSni
-		}
 		conn, err := tls.Dial("tcp", config.ServerAddr, tlsconfig)
 		if err != nil {
 			time.Sleep(3 * time.Second)
@@ -47,7 +47,7 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 		if v, ok := cache.GetCache().Get("tlsconn"); ok {
 			b := packet[:n]
 			if config.Obfs {
-				packet = cipher.XOR(packet)
+				b = cipher.XOR(b)
 			}
 			tlsconn := v.(net.Conn)
 			tlsconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))

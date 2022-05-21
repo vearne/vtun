@@ -41,12 +41,8 @@ func StartServer(config config.Config) {
 			log.Println(err)
 			continue
 		}
-		stream, err := session.AcceptStream(context.Background())
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		go toServer(config, stream, iface)
+		go toServer(config, session, iface)
+
 	}
 }
 
@@ -63,14 +59,22 @@ func toClient(config config.Config, iface *water.Interface) {
 				if config.Obfs {
 					b = cipher.XOR(b)
 				}
-				v.(quic.Stream).Write(b)
+				_, err := v.(quic.Stream).Write(b)
+				if err != nil {
+					cache.GetCache().Delete(key)
+				}
 			}
 		}
 	}
 }
 
-func toServer(config config.Config, stream quic.Stream, iface *water.Interface) {
-	defer stream.Close()
+func toServer(config config.Config, session quic.Session, iface *water.Interface) {
+	stream, err := session.AcceptStream(context.Background())
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer session.CloseWithError(0, "bye")
 	packet := make([]byte, config.MTU)
 	for {
 		stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
@@ -87,4 +91,5 @@ func toServer(config config.Config, stream quic.Stream, iface *water.Interface) 
 			iface.Write(b)
 		}
 	}
+	stream.Close()
 }

@@ -41,7 +41,7 @@ func tunToTcp(config config.Config, iface *water.Interface) {
 		if v, ok := cache.GetCache().Get("tcpconn"); ok {
 			b := packet[:n]
 			if config.Obfs {
-				packet = cipher.XOR(packet)
+				b = cipher.XOR(b)
 			}
 			tcpconn := v.(net.Conn)
 			tcpconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))

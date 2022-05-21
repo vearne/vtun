@@ -3,7 +3,6 @@ package quic
 import (
 	"context"
 	"crypto/tls"
-	"io"
 	"log"
 	"time"
 
@@ -43,11 +42,13 @@ func StartClient(config config.Config) {
 		stream, err := session.OpenStreamSync(context.Background())
 		if err != nil {
 			log.Println(err)
+			session.CloseWithError(0, "bye")
 			continue
 		}
 		cache.GetCache().Set("quicconn", stream, 24*time.Hour)
 		quicToTun(config, stream, iface)
 		cache.GetCache().Delete("quicconn")
+		session.CloseWithError(0, "bye")
 	}
 }
 
@@ -61,7 +62,7 @@ func tunToQuic(config config.Config, iface *water.Interface) {
 		if v, ok := cache.GetCache().Get("quicconn"); ok {
 			b := packet[:n]
 			if config.Obfs {
-				packet = cipher.XOR(packet)
+				b = cipher.XOR(b)
 			}
 			stream := v.(quic.Stream)
 			stream.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
@@ -79,7 +80,7 @@ func quicToTun(config config.Config, stream quic.Stream, iface *water.Interface)
 	for {
 		stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := stream.Read(packet)
-		if err != nil || err == io.EOF {
+		if err != nil {
 			break
 		}
 		b := packet[:n]
