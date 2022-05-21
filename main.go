@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"github.com/net-byte/vtun/grpc"
 	"log"
 	"os"
 	"os/signal"
@@ -32,7 +33,7 @@ func main() {
 	flag.StringVar(&config.IntranetServerIPv6, "sip6", "fced:9999::1", "intranet server ipv6")
 	flag.StringVar(&config.DNSServerIP, "dip", "8.8.8.8", "dns server ip")
 	flag.StringVar(&config.Key, "k", "freedom@2022", "key")
-	flag.StringVar(&config.Protocol, "p", "wss", "protocol tcp/udp/tls/quic/ws/wss")
+	flag.StringVar(&config.Protocol, "p", "wss", "protocol tcp/udp/tls/quic/grpc/ws/wss")
 	flag.StringVar(&config.WebSocketPath, "path", "/freedom", "websocket path")
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
 	flag.BoolVar(&config.GlobalMode, "g", false, "client global mode")
@@ -96,6 +97,12 @@ func startApp(config config.Config) {
 			quic.StartServer(config)
 		} else {
 			quic.StartClient(config)
+		}
+	case "grpc":
+		if config.ServerMode {
+			grpc.StartServer(config)
+		} else {
+			grpc.StartClient(config)
 		}
 	default:
 		if config.ServerMode {

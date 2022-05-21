@@ -15,6 +15,7 @@ A simple VPN written in golang.
 * VPN over websocket
 * VPN over tls
 * VPN over quic
+* VPN over grpc
 
 # Usage
 
@@ -45,7 +46,7 @@ Usage of ./vtun:
   -obfs
         enable data obfuscation
   -p string
-        protocol tcp/udp/tls/quic/ws/wss (default "wss")
+        protocol tcp/udp/tls/quic/grpc/ws/wss (default "wss")
   -path string
         websocket path (default "/freedom")
   -s string

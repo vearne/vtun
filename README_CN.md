@@ -15,6 +15,7 @@
 * 支持websocket
 * 支持tls
 * 支持quic
+* 支持grpc
 
 # 用法
 
@@ -45,7 +46,7 @@ Usage of ./vtun:
   -obfs
         enable data obfuscation
   -p string
-        protocol tcp/udp/tls/quic/ws/wss (default "wss")
+        protocol tcp/udp/tls/quic/grpc/ws/wss (default "wss")
   -path string
         websocket path (default "/freedom")
   -s string
