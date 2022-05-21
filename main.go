@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"github.com/net-byte/vtun/grpc"
 	"log"
 	"os"
 	"os/signal"
@@ -96,6 +97,12 @@ func startApp(config config.Config) {
 			quic.StartServer(config)
 		} else {
 			quic.StartClient(config)
+		}
+	case "grpc":
+		if config.ServerMode {
+			grpc.StartServer(config)
+		} else {
+			grpc.StartClient(config)
 		}
 	default:
 		if config.ServerMode {
