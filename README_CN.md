@@ -94,13 +94,9 @@ sudo ./vtun-linux-amd64 -S -l :3001 -c 172.16.0.1/24 -k 123456
 
 ## 在Linux上设置服务端
 
-1. 如果采用websocket协议，建议添加TLS层，用nginx或caddy2作反向代理（443->3001）
-
-2. 开启IP流量转发
-
 ```
+  # 设置ipv4和ipv6流量转发
   vi /etc/sysctl.conf
-  #enable ipv4 and ipv6 forward
   net.ipv4.ip_forward = 1
   net.ipv6.conf.all.forwarding=1
   sysctl -p /etc/sysctl.conf

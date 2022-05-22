@@ -95,13 +95,9 @@ sudo ./vtun-linux-amd64 -S -l :3001 -c 172.16.0.1/24 -k 123456
 
 ## Server setup on Linux
 
-1. Add TLS for websocket,reverse proxy server(3001) via nginx/caddy(443)
-
-2. Enable IP forwarding on server
-
 ```
+  # Enable ipv4 and ipv6 forward
   vi /etc/sysctl.conf
-  #enable ipv4 and ipv6 forward
   net.ipv4.ip_forward = 1
   net.ipv6.conf.all.forwarding=1
   sysctl -p /etc/sysctl.conf
