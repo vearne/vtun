@@ -100,7 +100,6 @@ sudo ./vtun-linux-amd64 -S -l :3001 -c 172.16.0.1/24 -k 123456
 2. Enable IP forwarding on server
 
 ```
-  sysctl -w net.core.rmem_max=2500000
   vi /etc/sysctl.conf
   #enable ipv4 and ipv6 forward
   net.ipv4.ip_forward = 1
