@@ -93,7 +93,7 @@ sudo ./vtun-linux-amd64 -S -l :3001 -c 172.16.0.1/24 -k 123456
 
 ```
 
-## Server setup on Linux
+## Iptables setup on Linux
 
 ```
   # Enable ipv4 and ipv6 forward
