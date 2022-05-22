@@ -3,18 +3,17 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"github.com/net-byte/vtun/grpc"
 	"log"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
 
+	"github.com/net-byte/vtun/grpc"
+
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/netutil"
-	"github.com/net-byte/vtun/quic"
-	"github.com/net-byte/vtun/tcp"
 	"github.com/net-byte/vtun/tls"
 	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/vtun/udp"
@@ -33,7 +32,7 @@ func main() {
 	flag.StringVar(&config.IntranetServerIPv6, "sip6", "fced:9999::1", "intranet server ipv6")
 	flag.StringVar(&config.DNSServerIP, "dip", "8.8.8.8", "dns server ip")
 	flag.StringVar(&config.Key, "k", "freedom@2022", "key")
-	flag.StringVar(&config.Protocol, "p", "wss", "protocol tcp/udp/tls/quic/grpc/ws/wss")
+	flag.StringVar(&config.Protocol, "p", "udp", "protocol udp/tls/grpc/ws/wss")
 	flag.StringVar(&config.WebSocketPath, "path", "/freedom", "websocket path")
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
 	flag.BoolVar(&config.GlobalMode, "g", false, "client global mode")
@@ -74,13 +73,7 @@ func startApp(config config.Config) {
 		} else {
 			udp.StartClient(config)
 		}
-	case "tcp":
-		if config.ServerMode {
-			tcp.StartServer(config)
-		} else {
-			tcp.StartClient(config)
-		}
-	case "ws":
+	case "ws", "wss":
 		if config.ServerMode {
 			ws.StartServer(config)
 		} else {
@@ -92,12 +85,6 @@ func startApp(config config.Config) {
 		} else {
 			tls.StartClient(config)
 		}
-	case "quic":
-		if config.ServerMode {
-			quic.StartServer(config)
-		} else {
-			quic.StartClient(config)
-		}
 	case "grpc":
 		if config.ServerMode {
 			grpc.StartServer(config)
@@ -106,9 +93,9 @@ func startApp(config config.Config) {
 		}
 	default:
 		if config.ServerMode {
-			ws.StartServer(config)
+			udp.StartServer(config)
 		} else {
-			ws.StartClient(config)
+			udp.StartClient(config)
 		}
 	}
 }

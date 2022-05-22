@@ -10,11 +10,9 @@
 ![image](https://img.shields.io/badge/License-Anti--996-red)
 
 # 特性
-* 支持tcp
 * 支持udp
 * 支持websocket
 * 支持tls
-* 支持quic
 * 支持grpc
 
 # 用法
@@ -46,7 +44,7 @@ Usage of ./vtun:
   -obfs
         enable data obfuscation
   -p string
-        protocol tcp/udp/tls/quic/grpc/ws/wss (default "wss")
+        protocol udp/tls/grpc/ws/wss (default "udp")
   -path string
         websocket path (default "/freedom")
   -s string
