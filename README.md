@@ -8,6 +8,7 @@ A simple VPN written in golang.
 [![Go Report Card](https://goreportcard.com/badge/github.com/net-byte/vtun)](https://goreportcard.com/report/github.com/net-byte/vtun)
 ![image](https://img.shields.io/badge/License-MIT-orange)
 ![image](https://img.shields.io/badge/License-Anti--996-red)
+![image](https://img.shields.io/github/downloads/net-byte/vtun/total.svg)
 
 # Features
 * VPN over udp
