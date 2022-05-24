@@ -161,10 +161,16 @@ func ExecCmd(c string, args ...string) string {
 	return strings.ReplaceAll(s, "\n", "")
 }
 
-func GetLocalGatewayOnLinux() string {
-	return ExecCmd("sh", "-c", "route -n | grep 'UG[ \t]' | awk '{print $2}'")
+func GetLocalGatewayOnLinux(ipv4 bool) string {
+	if ipv4 {
+		return ExecCmd("sh", "-c", "route -n | grep 'UG[ \t]' | awk 'NR==1{print $2}'")
+	}
+	return ExecCmd("sh", "-c", "route -6 -n | grep 'UG[ \t]' | awk 'NR==1{print $2}'")
 }
 
-func GetLocalGatewayOnMac() string {
-	return ExecCmd("sh", "-c", "route -n get default | grep 'gateway' | awk '{print $2}'")
+func GetLocalGatewayOnMac(ipv4 bool) string {
+	if ipv4 {
+		return ExecCmd("sh", "-c", "route -n get default | grep 'gateway' | awk 'NR==1{print $2}'")
+	}
+	return ExecCmd("sh", "-c", "route -6 -n get default | grep 'gateway' | awk 'NR==1{print $2}'")
 }

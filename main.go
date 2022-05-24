@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"runtime"
@@ -53,11 +54,16 @@ func main() {
 
 func initConfig(config *config.Config) {
 	if !config.ServerMode && config.GlobalMode {
+		host, _, err := net.SplitHostPort(config.ServerAddr)
+		if err != nil {
+			log.Panic("error server address")
+		}
+		serverIP := netutil.LookupIP(host)
 		switch runtime.GOOS {
 		case "linux":
-			config.LocalGateway = netutil.GetLocalGatewayOnLinux()
+			config.LocalGateway = netutil.GetLocalGatewayOnLinux(serverIP.To4() != nil)
 		case "darwin":
-			config.LocalGateway = netutil.GetLocalGatewayOnMac()
+			config.LocalGateway = netutil.GetLocalGatewayOnMac(serverIP.To4() != nil)
 		}
 	}
 	cipher.SetKey(config.Key)
