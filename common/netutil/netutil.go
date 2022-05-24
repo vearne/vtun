@@ -92,16 +92,13 @@ func isPhysicalInterface(addr string) bool {
 	return false
 }
 
-func LookupIP(domain string) string {
+func LookupIP(domain string) net.IP {
 	ips, err := net.LookupIP(domain)
-	if err != nil {
+	if err != nil || len(ips) == 0 {
 		log.Println(err)
-		return ""
+		return nil
 	}
-	for _, ip := range ips {
-		return ip.To4().String()
-	}
-	return ""
+	return ips[0]
 }
 
 func IsIPv4(packet []byte) bool {

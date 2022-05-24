@@ -5,7 +5,6 @@ import (
 	"net"
 	"runtime"
 	"strconv"
-	"strings"
 
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/netutil"
@@ -43,13 +42,21 @@ func configTun(config config.Config, iface *water.Interface) {
 		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "up")
 		if !config.ServerMode && config.GlobalMode {
 			physicalIface := netutil.GetInterface()
-			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
-			if physicalIface != "" && serverIP != "" {
+			host, _, err := net.SplitHostPort(config.ServerAddr)
+			if err != nil {
+				log.Panic("error server address")
+			}
+			serverIP := netutil.LookupIP(host)
+			if physicalIface != "" && serverIP != nil {
 				netutil.ExecCmd("/sbin/ip", "route", "add", "0.0.0.0/1", "dev", iface.Name())
 				netutil.ExecCmd("/sbin/ip", "-6", "route", "add", "::/1", "dev", iface.Name())
 				netutil.ExecCmd("/sbin/ip", "route", "add", "128.0.0.0/1", "dev", iface.Name())
-				netutil.ExecCmd("/sbin/ip", "route", "add", strings.Join([]string{config.DNSServerIP, "32"}, "/"), "via", config.LocalGateway, "dev", physicalIface)
-				netutil.ExecCmd("/sbin/ip", "route", "add", strings.Join([]string{serverIP, "32"}, "/"), "via", config.LocalGateway, "dev", physicalIface)
+				netutil.ExecCmd("/sbin/ip", "route", "add", config.DNSServerIP+"/32", "via", config.LocalGateway, "dev", physicalIface)
+				if serverIP.To4() != nil {
+					netutil.ExecCmd("/sbin/ip", "route", "add", serverIP.To4().String()+"/32", "via", config.LocalGateway, "dev", physicalIface)
+				} else {
+					netutil.ExecCmd("/sbin/ip", "-6", "route", "add", serverIP.To16().String()+"/64", "via", config.LocalGateway, "dev", physicalIface)
+				}
 			}
 		}
 
@@ -60,9 +67,17 @@ func configTun(config config.Config, iface *water.Interface) {
 		netutil.ExecCmd("ifconfig", iface.Name(), "inet6", ipv6.String(), gateway6, "up")
 		if !config.ServerMode && config.GlobalMode {
 			physicalIface := netutil.GetInterface()
-			serverIP := netutil.LookupIP(strings.Split(config.ServerAddr, ":")[0])
-			if physicalIface != "" && serverIP != "" {
-				netutil.ExecCmd("route", "add", serverIP, config.LocalGateway)
+			host, _, err := net.SplitHostPort(config.ServerAddr)
+			if err != nil {
+				log.Panic("error server address")
+			}
+			serverIP := netutil.LookupIP(host)
+			if physicalIface != "" && serverIP != nil {
+				if serverIP.To4() != nil {
+					netutil.ExecCmd("route", "add", serverIP.To4().String(), config.LocalGateway)
+				} else {
+					netutil.ExecCmd("route", "add", "-inet6", serverIP.To16().String(), config.LocalGateway)
+				}
 				netutil.ExecCmd("route", "add", config.DNSServerIP, config.LocalGateway)
 				netutil.ExecCmd("route", "add", "-inet6", "::/1", "-interface", iface.Name())
 				netutil.ExecCmd("route", "add", "0.0.0.0/1", "-interface", iface.Name())
