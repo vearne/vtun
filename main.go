@@ -52,6 +52,7 @@ func main() {
 	stopApp(config)
 }
 
+// initConfig initializes the config
 func initConfig(config *config.Config) {
 	if !config.ServerMode && config.GlobalMode {
 		host, _, err := net.SplitHostPort(config.ServerAddr)
@@ -71,6 +72,7 @@ func initConfig(config *config.Config) {
 	log.Printf("init config:%s", string(json))
 }
 
+// startApp starts the app
 func startApp(config config.Config) {
 	switch config.Protocol {
 	case "udp":
@@ -106,7 +108,8 @@ func startApp(config config.Config) {
 	}
 }
 
+// stopApp stops the app
 func stopApp(config config.Config) {
-	tun.Reset(config)
-	log.Printf("stopped!!!")
+	tun.ResetTun(config)
+	log.Printf("vtun stopped")
 }

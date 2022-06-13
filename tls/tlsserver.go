@@ -15,7 +15,7 @@ import (
 	"github.com/songgao/water"
 )
 
-//Start tls server
+// StartServer starts the tls server
 func StartServer(config config.Config) {
 	log.Printf("vtun tls server started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
@@ -51,6 +51,7 @@ func StartServer(config config.Config) {
 	}
 }
 
+// toClient sends packets from iface to tlsconn
 func toClient(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.MTU)
 	for {
@@ -70,7 +71,7 @@ func toClient(config config.Config, iface *water.Interface) {
 	}
 }
 
-// todo fallback to http
+// toServer sends packets from tlsconn to iface
 func toServer(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 	defer tlsconn.Close()
 	packet := make([]byte, config.MTU)

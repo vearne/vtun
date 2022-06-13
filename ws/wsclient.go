@@ -14,7 +14,7 @@ import (
 	"github.com/songgao/water"
 )
 
-// Start websocket client
+// StartClient starts the ws client
 func StartClient(config config.Config) {
 	log.Printf("vtun websocket client started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
@@ -31,6 +31,7 @@ func StartClient(config config.Config) {
 	}
 }
 
+// wsToTun sends packets from ws to tun
 func wsToTun(config config.Config, wsconn net.Conn, iface *water.Interface) {
 	defer wsconn.Close()
 	for {
@@ -49,6 +50,7 @@ func wsToTun(config config.Config, wsconn net.Conn, iface *water.Interface) {
 	}
 }
 
+// tunToWs sends packets from tun to ws
 func tunToWs(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.MTU)
 	for {

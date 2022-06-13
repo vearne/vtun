@@ -15,7 +15,7 @@ import (
 	"golang.org/x/net/ipv6"
 )
 
-// Start udp server
+// StartServer starts the udp server
 func StartServer(config config.Config) {
 	log.Printf("vtun udp server started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
@@ -44,6 +44,7 @@ func StartServer(config config.Config) {
 	s.udpToTun()
 }
 
+// the server struct
 type Server struct {
 	config    config.Config
 	iface     *water.Interface
@@ -51,6 +52,7 @@ type Server struct {
 	connCache *cache.Cache
 }
 
+// tunToUdp sends packets from tun to udp
 func (s *Server) tunToUdp() {
 	packet := make([]byte, s.config.MTU)
 	for {
@@ -70,6 +72,7 @@ func (s *Server) tunToUdp() {
 	}
 }
 
+// udpToTun sends packets from udp to tun
 func (s *Server) udpToTun() {
 	packet := make([]byte, s.config.MTU)
 	for {

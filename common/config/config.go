@@ -1,5 +1,6 @@
 package config
 
+// The config struct
 type Config struct {
 	DeviceName                string
 	LocalAddr                 string

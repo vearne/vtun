@@ -17,17 +17,20 @@ import (
 	"github.com/songgao/water"
 )
 
+// The StreamService is the implementation of the StreamServer interface
 type StreamService struct {
 	proto.UnimplementedGrpcServeServer
 	config config.Config
 	iface  *water.Interface
 }
 
+// Tunnel implements the StreamServer interface
 func (s *StreamService) Tunnel(srv proto.GrpcServe_TunnelServer) error {
 	toServer(srv, s.config, s.iface)
 	return nil
 }
 
+// StartServer starts the grpc server
 func StartServer(config config.Config) {
 	log.Printf("vtun grpc server started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
@@ -49,6 +52,7 @@ func StartServer(config config.Config) {
 	}
 }
 
+// toClient sends packets from tun to grpc
 func toClient(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.MTU)
 	for {
@@ -68,6 +72,7 @@ func toClient(config config.Config, iface *water.Interface) {
 	}
 }
 
+// toServer sends packets from grpc to tun
 func toServer(srv proto.GrpcServe_TunnelServer, config config.Config, iface *water.Interface) {
 	for {
 		packet, err := srv.Recv()

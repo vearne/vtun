@@ -9,25 +9,30 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
+// The global cache for register
 var _register *cache.Cache
 
 func init() {
 	_register = cache.New(30*time.Minute, 3*time.Minute)
 }
 
+// AddClientIP adds a client ip to the register
 func AddClientIP(ip string) {
 	_register.Add(ip, 0, cache.DefaultExpiration)
 }
 
+// DeleteClientIP deletes a client ip from the register
 func DeleteClientIP(ip string) {
 	_register.Delete(ip)
 }
 
+// ExistClientIP checks if the client ip is in the register
 func ExistClientIP(ip string) bool {
 	_, ok := _register.Get(ip)
 	return ok
 }
 
+// keepAlive keeps the client ip alive
 func KeepAliveClientIP(ip string) {
 	if ExistClientIP(ip) {
 		_register.Increment(ip, 1)
@@ -36,6 +41,7 @@ func KeepAliveClientIP(ip string) {
 	}
 }
 
+// PickClientIP picks a client ip from the register
 func PickClientIP(cidr string) (clientIP string, prefixLength string) {
 	ip, ipNet, err := net.ParseCIDR(cidr)
 	if err != nil {
@@ -59,7 +65,8 @@ func PickClientIP(cidr string) (clientIP string, prefixLength string) {
 	return "", ""
 }
 
-func ListClientIP() []string {
+// ListClientIPs returns the client ips in the register
+func ListClientIPs() []string {
 	result := []string{}
 	for k := range _register.Items() {
 		result = append(result, k)
@@ -67,11 +74,13 @@ func ListClientIP() []string {
 	return result
 }
 
+// addressCount returns the number of addresses in a CIDR network.
 func addressCount(network *net.IPNet) uint64 {
 	prefixLen, bits := network.Mask.Size()
 	return 1 << (uint64(bits) - uint64(prefixLen))
 }
 
+// incr increments the ip by 1
 func incr(IP net.IP) net.IP {
 	IP = checkIPv4(IP)
 	incIP := make([]byte, len(IP))
@@ -85,6 +94,7 @@ func incr(IP net.IP) net.IP {
 	return incIP
 }
 
+// checkIPv4 checks if the ip is IPv4
 func checkIPv4(ip net.IP) net.IP {
 	if v4 := ip.To4(); v4 != nil {
 		return v4

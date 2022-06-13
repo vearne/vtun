@@ -11,6 +11,7 @@ import (
 	"github.com/songgao/water"
 )
 
+// CreateTun creates a tun interface
 func CreateTun(config config.Config) (iface *water.Interface) {
 	c := water.Config{DeviceType: water.TUN}
 	if config.DeviceName != "" {
@@ -25,6 +26,7 @@ func CreateTun(config config.Config) (iface *water.Interface) {
 	return iface
 }
 
+// ConfigTun configures the tun interface
 func configTun(config config.Config, iface *water.Interface) {
 	os := runtime.GOOS
 	ip, _, err := net.ParseCIDR(config.CIDR)
@@ -91,7 +93,8 @@ func configTun(config config.Config, iface *water.Interface) {
 	}
 }
 
-func Reset(config config.Config) {
+// ResetTun resets the tun interface
+func ResetTun(config config.Config) {
 	os := runtime.GOOS
 	if os == "darwin" && !config.ServerMode && config.GlobalMode {
 		netutil.ExecCmd("route", "add", "default", config.LocalGateway)

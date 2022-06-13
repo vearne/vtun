@@ -22,7 +22,7 @@ import (
 	"github.com/songgao/water"
 )
 
-// Start websocket server
+// StartServer starts the ws server
 func StartServer(config config.Config) {
 	iface := tun.CreateTun(config)
 	// server -> client
@@ -88,7 +88,7 @@ func StartServer(config config.Config) {
 		if !checkPermission(w, r, config) {
 			return
 		}
-		io.WriteString(w, strings.Join(register.ListClientIP(), "\r\n"))
+		io.WriteString(w, strings.Join(register.ListClientIPs(), "\r\n"))
 	})
 
 	http.HandleFunc("/register/prefix/ipv4", func(w http.ResponseWriter, r *http.Request) {
@@ -132,6 +132,8 @@ func StartServer(config config.Config) {
 	}
 
 }
+
+// checkPermission checks the permission of the request
 func checkPermission(w http.ResponseWriter, req *http.Request, config config.Config) bool {
 	key := req.Header.Get("key")
 	if key != config.Key {
@@ -142,6 +144,7 @@ func checkPermission(w http.ResponseWriter, req *http.Request, config config.Con
 	return true
 }
 
+// toClient sends data to client
 func toClient(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.MTU)
 	for {
@@ -162,6 +165,7 @@ func toClient(config config.Config, iface *water.Interface) {
 	}
 }
 
+// toServer sends data to server
 func toServer(config config.Config, wsconn net.Conn, iface *water.Interface) {
 	defer wsconn.Close()
 	for {

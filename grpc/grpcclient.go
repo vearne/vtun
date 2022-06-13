@@ -17,6 +17,7 @@ import (
 	"github.com/songgao/water"
 )
 
+// StartClient starts the grpc client
 func StartClient(config config.Config) {
 	log.Printf("vtun grpc client started on %v", config.LocalAddr)
 	iface := tun.CreateTun(config)
@@ -47,6 +48,7 @@ func StartClient(config config.Config) {
 	}
 }
 
+// tunToGrpc sends packets from tun to grpc
 func tunToGrpc(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.MTU)
 	for {
@@ -68,6 +70,7 @@ func tunToGrpc(config config.Config, iface *water.Interface) {
 	}
 }
 
+// grpcToTun sends packets from grpc to tun
 func grpcToTun(config config.Config, stream proto.GrpcServe_TunnelClient, iface *water.Interface) {
 	for {
 		packet, err := stream.Recv()
