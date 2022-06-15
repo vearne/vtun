@@ -1,4 +1,4 @@
-#!bin/bash
+#!/bin/bash
 NAME="vtun"
 ARCH=`uname -m`
 if [ $ARCH == 'x86_64' ]

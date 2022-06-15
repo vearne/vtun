@@ -1,4 +1,4 @@
-#!bin/bash
+#!/bin/bash
 
 domain="vtun.org"
 email="admin@vtun.org"
