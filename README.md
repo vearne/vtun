@@ -63,7 +63,7 @@ Usage of ./vtun:
 ## Build
 
 ```
-sh scripts/build.sh
+scripts/build.sh
 ```
 
 ## Client on Linux
@@ -110,7 +110,7 @@ sudo ./vtun-linux-amd64 -S -l :3001 -c 172.16.0.1/24 -k 123456
   iptables -A INPUT -i tun0 -m state --state RELATED,ESTABLISHED -j ACCEPT
   # Forward everything
   iptables -A FORWARD -j ACCEPT
-  
+
 ```
 
 ## Docker
