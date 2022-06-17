@@ -40,7 +40,7 @@ func StartClient(config config.Config) {
 
 // tunToTLS sends packets from tun to tls
 func tunToTLS(config config.Config, iface *water.Interface) {
-	packet := make([]byte, config.MTU)
+	packet := make([]byte, 4096)
 	for {
 		n, err := iface.Read(packet)
 		if err != nil || n == 0 {
@@ -67,7 +67,7 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 // tlsToTun sends packets from tls to tun
 func tlsToTun(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 	defer tlsconn.Close()
-	packet := make([]byte, config.MTU)
+	packet := make([]byte, 4096)
 	for {
 		tlsconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := tlsconn.Read(packet)

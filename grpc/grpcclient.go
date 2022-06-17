@@ -51,7 +51,7 @@ func StartClient(config config.Config) {
 
 // tunToGrpc sends packets from tun to grpc
 func tunToGrpc(config config.Config, iface *water.Interface) {
-	packet := make([]byte, config.MTU)
+	packet := make([]byte, 4096)
 	for {
 		n, err := iface.Read(packet)
 		if err != nil || n == 0 {

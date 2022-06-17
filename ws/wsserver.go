@@ -147,7 +147,7 @@ func checkPermission(w http.ResponseWriter, req *http.Request, config config.Con
 
 // toClient sends data to client
 func toClient(config config.Config, iface *water.Interface) {
-	packet := make([]byte, config.MTU)
+	packet := make([]byte, 4096)
 	for {
 		n, err := iface.Read(packet)
 		if err != nil || err == io.EOF || n == 0 {

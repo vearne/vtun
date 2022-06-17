@@ -56,7 +56,7 @@ type Client struct {
 
 // udpToTun sends packets from udp to tun
 func (c *Client) udpToTun() {
-	packet := make([]byte, c.config.MTU)
+	packet := make([]byte, 4096)
 	for {
 		n, _, err := c.localConn.ReadFromUDP(packet)
 		if err != nil || n == 0 {
@@ -78,7 +78,7 @@ func (c *Client) udpToTun() {
 
 // tunToUdp sends packets from tun to udp
 func (c *Client) tunToUdp() {
-	packet := make([]byte, c.config.MTU)
+	packet := make([]byte, 4096)
 	for {
 		n, err := c.iface.Read(packet)
 		if err != nil || n == 0 {

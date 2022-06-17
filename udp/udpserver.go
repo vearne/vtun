@@ -55,7 +55,7 @@ type Server struct {
 
 // tunToUdp sends packets from tun to udp
 func (s *Server) tunToUdp() {
-	packet := make([]byte, s.config.MTU)
+	packet := make([]byte, 4096)
 	for {
 		n, err := s.iface.Read(packet)
 		if err != nil || n == 0 {
@@ -78,7 +78,7 @@ func (s *Server) tunToUdp() {
 
 // udpToTun sends packets from udp to tun
 func (s *Server) udpToTun() {
-	packet := make([]byte, s.config.MTU)
+	packet := make([]byte, 4096)
 	for {
 		n, cliAddr, err := s.localConn.ReadFromUDP(packet)
 		if err != nil || n == 0 {

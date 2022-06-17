@@ -54,7 +54,7 @@ func StartServer(config config.Config) {
 
 // toClient sends packets from iface to tlsconn
 func toClient(config config.Config, iface *water.Interface) {
-	packet := make([]byte, config.MTU)
+	packet := make([]byte, 4096)
 	for {
 		n, err := iface.Read(packet)
 		if err != nil || err == io.EOF || n == 0 {
@@ -78,7 +78,7 @@ func toClient(config config.Config, iface *water.Interface) {
 // toServer sends packets from tlsconn to iface
 func toServer(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 	defer tlsconn.Close()
-	packet := make([]byte, config.MTU)
+	packet := make([]byte, 4096)
 	for {
 		tlsconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := tlsconn.Read(packet)
