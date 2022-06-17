@@ -16,6 +16,7 @@ type Config struct {
 	ServerMode                bool
 	GlobalMode                bool
 	Obfs                      bool
+	Compress                  bool
 	MTU                       int
 	Timeout                   int
 	LocalGateway              string

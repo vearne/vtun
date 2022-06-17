@@ -44,6 +44,8 @@ Usage of ./vtun:
         tun mtu (default 1500)
   -obfs
         enable data obfuscation
+  -compress
+        enable data compression
   -p string
         protocol udp/tls/grpc/ws/wss (default "udp")
   -path string

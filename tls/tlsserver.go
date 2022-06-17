@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
@@ -65,6 +66,9 @@ func toClient(config config.Config, iface *water.Interface) {
 				if config.Obfs {
 					b = cipher.XOR(b)
 				}
+				if config.Compress {
+					b = snappy.Encode(nil, b)
+				}
 				v.(net.Conn).Write(b)
 			}
 		}
@@ -82,6 +86,12 @@ func toServer(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 			break
 		}
 		b := packet[:n]
+		if config.Compress {
+			b, err = snappy.Decode(nil, b)
+			if err != nil {
+				break
+			}
+		}
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}

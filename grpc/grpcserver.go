@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/grpc/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -66,6 +67,9 @@ func toClient(config config.Config, iface *water.Interface) {
 				if config.Obfs {
 					b = cipher.XOR(b)
 				}
+				if config.Compress {
+					b = snappy.Encode(nil, b)
+				}
 				v.(proto.GrpcServe_TunnelServer).Send(&proto.PacketData{Data: b})
 			}
 		}
@@ -80,6 +84,12 @@ func toServer(srv proto.GrpcServe_TunnelServer, config config.Config, iface *wat
 			break
 		}
 		b := packet.Data[:]
+		if config.Compress {
+			b, err = snappy.Decode(nil, b)
+			if err != nil {
+				break
+			}
+		}
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}

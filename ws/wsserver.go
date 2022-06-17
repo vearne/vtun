@@ -11,6 +11,7 @@ import (
 
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
+	"github.com/golang/snappy"
 	"github.com/inhies/go-bytesize"
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
@@ -158,6 +159,9 @@ func toClient(config config.Config, iface *water.Interface) {
 				if config.Obfs {
 					b = cipher.XOR(b)
 				}
+				if config.Compress {
+					b = snappy.Encode(nil, b)
+				}
 				counter.IncrWrittenBytes(n)
 				wsutil.WriteServerBinary(v.(net.Conn), b)
 			}
@@ -173,6 +177,9 @@ func toServer(config config.Config, wsconn net.Conn, iface *water.Interface) {
 		b, err := wsutil.ReadClientBinary(wsconn)
 		if err != nil || err == io.EOF {
 			break
+		}
+		if config.Compress {
+			b, _ = snappy.Decode(nil, b)
 		}
 		if config.Obfs {
 			b = cipher.XOR(b)

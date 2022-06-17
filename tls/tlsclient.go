@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
@@ -50,6 +51,9 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 			if config.Obfs {
 				b = cipher.XOR(b)
 			}
+			if config.Compress {
+				b = snappy.Encode(nil, b)
+			}
 			tlsconn := v.(net.Conn)
 			tlsconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 			_, err = tlsconn.Write(b)
@@ -71,6 +75,12 @@ func tlsToTun(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 			break
 		}
 		b := packet[:n]
+		if config.Compress {
+			b, err = snappy.Decode(nil, b)
+			if err != nil {
+				break
+			}
+		}
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}

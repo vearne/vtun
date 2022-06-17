@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gobwas/ws/wsutil"
+	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
@@ -40,6 +41,9 @@ func wsToTun(config config.Config, wsconn net.Conn, iface *water.Interface) {
 		if err != nil {
 			break
 		}
+		if config.Compress {
+			packet, _ = snappy.Decode(nil, packet)
+		}
 		if config.Obfs {
 			packet = cipher.XOR(packet)
 		}
@@ -62,6 +66,9 @@ func tunToWs(config config.Config, iface *water.Interface) {
 			b := packet[:n]
 			if config.Obfs {
 				b = cipher.XOR(b)
+			}
+			if config.Compress {
+				b = snappy.Encode(nil, b)
 			}
 			wsconn := v.(net.Conn)
 			wsconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))

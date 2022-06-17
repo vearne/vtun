@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/netutil"
@@ -66,6 +67,9 @@ func (s *Server) tunToUdp() {
 				if s.config.Obfs {
 					b = cipher.XOR(b)
 				}
+				if s.config.Compress {
+					b = snappy.Encode(nil, b)
+				}
 				s.localConn.WriteToUDP(b, v.(*net.UDPAddr))
 			}
 		}
@@ -81,6 +85,12 @@ func (s *Server) udpToTun() {
 			continue
 		}
 		b := packet[:n]
+		if s.config.Compress {
+			b, err = snappy.Decode(nil, b)
+			if err != nil {
+				continue
+			}
+		}
 		if s.config.Obfs {
 			b = cipher.XOR(b)
 		}

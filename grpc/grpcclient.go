@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/grpc/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -61,6 +62,9 @@ func tunToGrpc(config config.Config, iface *water.Interface) {
 			if config.Obfs {
 				b = cipher.XOR(b)
 			}
+			if config.Compress {
+				b = snappy.Encode(nil, b)
+			}
 			grpcconn := v.(proto.GrpcServe_TunnelClient)
 			err = grpcconn.Send(&proto.PacketData{Data: b})
 			if err != nil {
@@ -78,6 +82,12 @@ func grpcToTun(config config.Config, stream proto.GrpcServe_TunnelClient, iface 
 			break
 		}
 		b := packet.Data[:]
+		if config.Compress {
+			b, err = snappy.Decode(nil, b)
+			if err != nil {
+				break
+			}
+		}
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}

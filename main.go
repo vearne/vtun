@@ -38,6 +38,7 @@ func main() {
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
 	flag.BoolVar(&config.GlobalMode, "g", false, "client global mode")
 	flag.BoolVar(&config.Obfs, "obfs", false, "enable data obfuscation")
+	flag.BoolVar(&config.Compress, "compress", false, "enable data compression")
 	flag.IntVar(&config.Timeout, "t", 30, "dial timeout in seconds")
 	flag.StringVar(&config.TLSCertificateFilePath, "certificate", "./certs/server.pem", "tls certificate file path")
 	flag.StringVar(&config.TLSCertificateKeyFilePath, "privatekey", "./certs/server.key", "tls certificate key file path")
