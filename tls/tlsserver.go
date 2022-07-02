@@ -48,7 +48,18 @@ func StartServer(config config.Config) {
 		if err != nil {
 			continue
 		}
-		go toServer(config, conn, iface)
+		sniffConn := NewPeekPreDataConn(conn)
+		switch sniffConn.Type {
+		case TypeHttp:
+			if sniffConn.Handle() {
+				continue
+			}
+		case TypeHttp2:
+			if sniffConn.Handle() {
+				continue
+			}
+		}
+		go toServer(config, sniffConn, iface)
 	}
 }
 
