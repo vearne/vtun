@@ -13,7 +13,7 @@ import (
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/vtun/tun"
-	"github.com/songgao/water"
+	"github.com/net-byte/water"
 )
 
 // StartServer starts the tls server

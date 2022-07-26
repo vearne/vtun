@@ -89,6 +89,13 @@ sudo ./vtun-darwin-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 12345
 
 ```
 
+## Client on Windows
+To use it with windows, you will need to download a [wintun.dll](https://www.wintun.net/) file in the current directory.
+```
+./vtun-win-amd64.exe  -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456
+
+```
+
 ## Server on Linux
 
 ```
@@ -139,10 +146,6 @@ netbyte/vtun -S -l :3001 -c 172.16.0.1/24 -k 123456
 ## Mobile client
 
 ### [Android](https://github.com/net-byte/vTunnel)
-
-## TODO (help wanted)
-1. Support windows
-2. Develop iOS app
 
 # License
 [The MIT License (MIT)](https://raw.githubusercontent.com/net-byte/vtun/master/LICENSE)

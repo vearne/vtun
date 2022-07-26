@@ -8,14 +8,16 @@ import (
 
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/netutil"
-	"github.com/songgao/water"
+	"github.com/net-byte/water"
 )
 
 // CreateTun creates a tun interface
 func CreateTun(config config.Config) (iface *water.Interface) {
 	c := water.Config{DeviceType: water.TUN}
 	if config.DeviceName != "" {
-		c = water.Config{DeviceType: water.TUN, PlatformSpecificParams: water.PlatformSpecificParams{Name: config.DeviceName}}
+		c.PlatformSpecificParams = water.PlatformSpecificParams{Name: config.DeviceName, Network: config.CIDR}
+	} else {
+		c.PlatformSpecificParams = water.PlatformSpecificParams{Network: config.CIDR}
 	}
 	iface, err := water.New(c)
 	if err != nil {
@@ -88,6 +90,8 @@ func configTun(config config.Config, iface *water.Interface) {
 				netutil.ExecCmd("route", "change", "default", gateway)
 			}
 		}
+	} else if os == "windows" {
+		// TODO
 	} else {
 		log.Printf("not support os:%v", os)
 	}

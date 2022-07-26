@@ -88,6 +88,13 @@ sudo ./vtun-darwin-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 12345
 
 ```
 
+## Windows客户端
+在windows上使用，你必须下载[wintun.dll](https://www.wintun.net/)文件并且把它放到当前目录下。
+```
+./vtun-win-amd64.exe  -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456
+
+```
+
 ## Linux服务端
 
 ```
@@ -136,10 +143,6 @@ netbyte/vtun -S -l :3001 -c 172.16.0.1/24 -k 123456
 ## 移动端
 
 ### [Android](https://github.com/net-byte/vTunnel)
-
-## TODO
-1. 支持Windows
-2. 开发iOS应用
 
 # License
 [The MIT License (MIT)](https://raw.githubusercontent.com/net-byte/vtun/master/LICENSE)

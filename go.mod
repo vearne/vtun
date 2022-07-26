@@ -4,10 +4,10 @@ go 1.18
 
 require (
 	github.com/gobwas/ws v1.1.0
+	github.com/golang/snappy v0.0.4
 	github.com/inhies/go-bytesize v0.0.0-20210819104631-275770b98743
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
-	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
+	golang.org/x/net v0.0.0-20220725212005-46097bf591d3
 	google.golang.org/grpc v1.46.2
 	google.golang.org/protobuf v1.28.0
 )
@@ -16,8 +16,10 @@ require (
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/golang/snappy v0.0.4 // indirect
-	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
-	golang.org/x/text v0.3.6 // indirect
+	github.com/net-byte/water v0.0.4 // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
+	golang.org/x/text v0.3.7 // indirect
+	golang.zx2c4.com/wintun v0.0.0-20211104114900-415007cec224 // indirect
+	golang.zx2c4.com/wireguard v0.0.0-20220703234212-c31a7b1ab478 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 )

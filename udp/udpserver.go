@@ -10,8 +10,8 @@ import (
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/vtun/tun"
+	"github.com/net-byte/water"
 	"github.com/patrickmn/go-cache"
-	"github.com/songgao/water"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
 )

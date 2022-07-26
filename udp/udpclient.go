@@ -8,7 +8,7 @@ import (
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/tun"
-	"github.com/songgao/water"
+	"github.com/net-byte/water"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
 )
