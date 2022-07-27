@@ -17,7 +17,12 @@ func CreateTun(config config.Config) (iface *water.Interface) {
 	if config.DeviceName != "" {
 		c.PlatformSpecificParams = water.PlatformSpecificParams{Name: config.DeviceName, Network: config.CIDR}
 	} else {
-		c.PlatformSpecificParams = water.PlatformSpecificParams{Network: config.CIDR}
+		os := runtime.GOOS
+		if os == "windows" {
+			c.PlatformSpecificParams = water.PlatformSpecificParams{Name: "vtun", Network: config.CIDR}
+		} else {
+			c.PlatformSpecificParams = water.PlatformSpecificParams{Network: config.CIDR}
+		}
 	}
 	iface, err := water.New(c)
 	if err != nil {

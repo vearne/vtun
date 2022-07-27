@@ -12,8 +12,6 @@ import (
 	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/water"
 	"github.com/patrickmn/go-cache"
-	"golang.org/x/net/ipv4"
-	"golang.org/x/net/ipv6"
 )
 
 // StartServer starts the udp server
@@ -27,17 +25,6 @@ func StartServer(config config.Config) {
 	conn, err := net.ListenUDP("udp", localAddr)
 	if err != nil {
 		log.Fatalln("failed to listen on udp socket:", err)
-	}
-	if localAddr.IP.To4() != nil {
-		p := ipv4.NewPacketConn(conn)
-		if err := p.SetTOS(0xb8); err != nil { // DSCP EF
-			log.Fatalln("failed to set conn tos:", err)
-		}
-	} else {
-		p := ipv6.NewPacketConn(conn)
-		if err := p.SetTrafficClass(0xb8); err != nil { // DSCP EF
-			log.Fatalln("failed to set conn tos:", err)
-		}
 	}
 	defer conn.Close()
 	s := &Server{config: config, iface: iface, localConn: conn, connCache: cache.New(30*time.Minute, 10*time.Minute)}
