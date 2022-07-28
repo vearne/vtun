@@ -90,7 +90,7 @@ sudo ./vtun-darwin-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 12345
 ```
 
 ## Client on Windows
-To use it with windows, you will need to download a [wintun.dll](https://www.wintun.net/) file in the current vtun-win-amd64.exe directory.
+To use it with windows, you will need to download a [wintun.dll](https://www.wintun.net/) file in the app directory.  
 Open powershell as administrator and run cmd:
 ```
 .\vtun-win-amd64.exe  -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456
