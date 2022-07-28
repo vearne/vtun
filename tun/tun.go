@@ -107,6 +107,7 @@ func configTun(config config.Config, iface *water.Interface) {
 				netutil.ExecCmd("cmd", "/C", "route", "delete", "0.0.0.0", "mask", "0.0.0.0")
 				netutil.ExecCmd("cmd", "/C", "route", "add", "0.0.0.0", "mask", "0.0.0.0", gateway, "metric", "6")
 				netutil.ExecCmd("cmd", "/C", "route", "add", serverIP.To4().String(), config.LocalGateway, "metric", "5")
+				netutil.ExecCmd("cmd", "/C", "route", "add", config.DNSServerIP, config.LocalGateway, "metric", "5")
 			}
 		}
 	} else {
