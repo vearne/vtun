@@ -55,14 +55,8 @@ github.com/google/uuid v1.1.2/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
 github.com/inhies/go-bytesize v0.0.0-20210819104631-275770b98743 h1:X3Xxno5Ji8idrNiUoFc7QyXpqhSYlDRYQmc7mlpMBzU=
 github.com/inhies/go-bytesize v0.0.0-20210819104631-275770b98743/go.mod h1:KrtyD5PFj++GKkFS/7/RRrfnRhAMGQwy75GLCHWrCNs=
-github.com/net-byte/water v0.0.0-20220726143041-bc63af166a30 h1:3M3K7YrWRIz9udYlpp5lnB3QupN0SmaqI/iY0r8Ymms=
-github.com/net-byte/water v0.0.0-20220726143041-bc63af166a30/go.mod h1:IkuW46tDc7N3orm3zJW1FdblttIv5QE2Z8TokOK4cBM=
-github.com/net-byte/water v0.0.0-20220726150018-994f40f95c5f h1:oooaJ+8LLM4yt6sXzKo6i/J4QfAwmzJafZCbMrDsb0c=
-github.com/net-byte/water v0.0.0-20220726150018-994f40f95c5f/go.mod h1:IkuW46tDc7N3orm3zJW1FdblttIv5QE2Z8TokOK4cBM=
-github.com/net-byte/water v0.0.1 h1:GWjyZUE6Ql8q07usoY6EqFU2rN53k1Q9dlRBcltMOhg=
-github.com/net-byte/water v0.0.1/go.mod h1:IkuW46tDc7N3orm3zJW1FdblttIv5QE2Z8TokOK4cBM=
-github.com/net-byte/water v0.0.2 h1:BjF0+svAjb4eaKdgz3aYCVa5H8dZZGlIdt465cb33RM=
-github.com/net-byte/water v0.0.2/go.mod h1:IkuW46tDc7N3orm3zJW1FdblttIv5QE2Z8TokOK4cBM=
+github.com/jackpal/gateway v1.0.7 h1:7tIFeCGmpyrMx9qvT0EgYUi7cxVW48a0mMvnIL17bPM=
+github.com/jackpal/gateway v1.0.7/go.mod h1:aRcO0UFKt+MgIZmRmvOmnejdDT4Y1DNiNOsSd1AcIbA=
 github.com/net-byte/water v0.0.4 h1:ESFLAcTSKqT4InB+CC5q6MzBkC4HX+KyaygvD40WWNs=
 github.com/net-byte/water v0.0.4/go.mod h1:IkuW46tDc7N3orm3zJW1FdblttIv5QE2Z8TokOK4cBM=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=

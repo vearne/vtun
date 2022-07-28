@@ -96,7 +96,19 @@ func configTun(config config.Config, iface *water.Interface) {
 			}
 		}
 	} else if os == "windows" {
-		// TODO
+		if !config.ServerMode && config.GlobalMode {
+			gateway := config.IntranetServerIP
+			host, _, err := net.SplitHostPort(config.ServerAddr)
+			if err != nil {
+				log.Panic("error server address")
+			}
+			serverIP := netutil.LookupIP(host)
+			if serverIP != nil {
+				netutil.ExecCmd("cmd", "/C", "route", "delete", "0.0.0.0", "mask", "0.0.0.0")
+				netutil.ExecCmd("cmd", "/C", "route", "add", "0.0.0.0", "mask", "0.0.0.0", gateway, "metric", "6")
+				netutil.ExecCmd("cmd", "/C", "route", "add", serverIP.To4().String(), config.LocalGateway, "metric", "5")
+			}
+		}
 	} else {
 		log.Printf("not support os:%v", os)
 	}
@@ -104,9 +116,15 @@ func configTun(config config.Config, iface *water.Interface) {
 
 // ResetTun resets the tun interface
 func ResetTun(config config.Config) {
-	os := runtime.GOOS
-	if os == "darwin" && !config.ServerMode && config.GlobalMode {
-		netutil.ExecCmd("route", "add", "default", config.LocalGateway)
-		netutil.ExecCmd("route", "change", "default", config.LocalGateway)
+	// reset gateway
+	if !config.ServerMode && config.GlobalMode {
+		os := runtime.GOOS
+		if os == "darwin" {
+			netutil.ExecCmd("route", "add", "default", config.LocalGateway)
+			netutil.ExecCmd("route", "change", "default", config.LocalGateway)
+		} else if os == "windows" {
+			netutil.ExecCmd("cmd", "/C", "route", "delete", "0.0.0.0", "mask", "0.0.0.0")
+			netutil.ExecCmd("cmd", "/C", "route", "add", "0.0.0.0", "mask", "0.0.0.0", config.LocalGateway, "metric", "6")
+		}
 	}
 }

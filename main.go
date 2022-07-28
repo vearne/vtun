@@ -79,6 +79,8 @@ func initConfig(config *config.Config) {
 			config.LocalGateway = netutil.GetLocalGatewayOnLinux(serverIP.To4() != nil)
 		case "darwin":
 			config.LocalGateway = netutil.GetLocalGatewayOnMac(serverIP.To4() != nil)
+		case "windows":
+			config.LocalGateway = netutil.GetLocalGateway()
 		}
 	}
 	cipher.SetKey(config.Key)

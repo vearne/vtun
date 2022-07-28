@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gobwas/ws"
+	"github.com/jackpal/gateway"
 	"github.com/net-byte/vtun/common/config"
 )
 
@@ -189,4 +190,14 @@ func GetLocalGatewayOnMac(ipv4 bool) string {
 		return ExecCmd("sh", "-c", "route -n get default | grep 'gateway' | awk 'NR==1{print $2}'")
 	}
 	return ExecCmd("sh", "-c", "route -6 -n get default | grep 'gateway' | awk 'NR==1{print $2}'")
+}
+
+// GetLocalGateway returns the local gateway IP address
+func GetLocalGateway() string {
+	ip, err := gateway.DiscoverGateway()
+	if err != nil {
+		log.Println(err)
+		return ""
+	}
+	return ip.String()
 }
