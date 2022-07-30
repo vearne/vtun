@@ -15,6 +15,16 @@ import (
 	"github.com/net-byte/vtun/ws"
 )
 
+var SrcUrl = "https://github.com/net-byte/vtun"
+var Banner = `
+_                 
+__ __ | |_   _  _   _ _  
+\ V / |  _| | || | | ' \ 
+ \_/   \__|  \_,_| |_||_|
+						 
+A simple VPN written in Go. %s
+`
+
 // vtun app struct
 type Vtun struct {
 	Config  *config.Config
@@ -23,6 +33,7 @@ type Vtun struct {
 
 // InitConfig initializes the config
 func (app *Vtun) InitConfig() {
+	log.Printf(Banner, SrcUrl)
 	log.Printf("vtun version:%s", app.Version)
 	log.Printf("vtun starting...")
 	if !app.Config.ServerMode && app.Config.GlobalMode {

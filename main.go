@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,15 +11,6 @@ import (
 )
 
 var Version = "v1.6.3"
-var SrcUrl = "https://github.com/net-byte/vtun"
-var Banner = `
-_                 
-__ __ | |_   _  _   _ _  
-\ V / |  _| | || | | ' \ 
- \_/   \__|  \_,_| |_||_|
-						 
-A simple VPN written in Go. %s
-`
 
 func main() {
 	config := config.Config{}
@@ -46,7 +36,6 @@ func main() {
 	flag.StringVar(&config.TLSSni, "sni", "", "tls handshake sni")
 	flag.BoolVar(&config.TLSInsecureSkipVerify, "isv", false, "tls insecure skip verify")
 	flag.Parse()
-	log.Printf(Banner, SrcUrl)
 	app := &app.Vtun{Config: &config, Version: Version}
 	app.InitConfig()
 	go app.StartApp()
