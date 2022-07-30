@@ -1,28 +1,18 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"log"
-	"net"
 	"os"
 	"os/signal"
-	"runtime"
 	"syscall"
 
-	"github.com/net-byte/vtun/grpc"
-
-	"github.com/net-byte/vtun/common/cipher"
+	"github.com/net-byte/vtun/app"
 	"github.com/net-byte/vtun/common/config"
-	"github.com/net-byte/vtun/common/netutil"
-	"github.com/net-byte/vtun/tls"
-	"github.com/net-byte/vtun/tun"
-	"github.com/net-byte/vtun/udp"
-	"github.com/net-byte/vtun/ws"
 )
 
 var Version = "v1.6.3"
-var Code = "https://github.com/net-byte/vtun"
+var SrcUrl = "https://github.com/net-byte/vtun"
 var Banner = `
 _                 
 __ __ | |_   _  _   _ _  
@@ -30,7 +20,6 @@ __ __ | |_   _  _   _ _
  \_/   \__|  \_,_| |_||_|
 						 
 A simple VPN written in Go. %s
-Version:%s
 `
 
 func main() {
@@ -57,75 +46,12 @@ func main() {
 	flag.StringVar(&config.TLSSni, "sni", "", "tls handshake sni")
 	flag.BoolVar(&config.TLSInsecureSkipVerify, "isv", false, "tls insecure skip verify")
 	flag.Parse()
-	log.Printf(Banner, Code, Version)
-	initConfig(&config)
-	go startApp(config)
+	log.Printf(Banner, SrcUrl)
+	app := &app.Vtun{Config: &config, Version: Version}
+	app.InitConfig()
+	go app.StartApp()
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	stopApp(config)
-}
-
-// initConfig initializes the config
-func initConfig(config *config.Config) {
-	if !config.ServerMode && config.GlobalMode {
-		host, _, err := net.SplitHostPort(config.ServerAddr)
-		if err != nil {
-			log.Panic("error server address")
-		}
-		serverIP := netutil.LookupIP(host)
-		switch runtime.GOOS {
-		case "linux":
-			config.LocalGateway = netutil.GetLocalGatewayOnLinux(serverIP.To4() != nil)
-		case "darwin":
-			config.LocalGateway = netutil.GetLocalGatewayOnMac(serverIP.To4() != nil)
-		case "windows":
-			config.LocalGateway = netutil.GetLocalGateway()
-		}
-	}
-	cipher.SetKey(config.Key)
-	json, _ := json.Marshal(config)
-	log.Printf("init config:%s", string(json))
-}
-
-// startApp starts the app
-func startApp(config config.Config) {
-	switch config.Protocol {
-	case "udp":
-		if config.ServerMode {
-			udp.StartServer(config)
-		} else {
-			udp.StartClient(config)
-		}
-	case "ws", "wss":
-		if config.ServerMode {
-			ws.StartServer(config)
-		} else {
-			ws.StartClient(config)
-		}
-	case "tls":
-		if config.ServerMode {
-			tls.StartServer(config)
-		} else {
-			tls.StartClient(config)
-		}
-	case "grpc":
-		if config.ServerMode {
-			grpc.StartServer(config)
-		} else {
-			grpc.StartClient(config)
-		}
-	default:
-		if config.ServerMode {
-			udp.StartServer(config)
-		} else {
-			udp.StartClient(config)
-		}
-	}
-}
-
-// stopApp stops the app
-func stopApp(config config.Config) {
-	tun.ResetTun(config)
-	log.Printf("vtun stopped")
+	app.StopApp()
 }

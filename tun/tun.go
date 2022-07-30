@@ -113,6 +113,7 @@ func configTun(config config.Config, iface *water.Interface) {
 	} else {
 		log.Printf("not support os:%v", os)
 	}
+	log.Printf("interface configured:%v", iface.Name())
 }
 
 // ResetTun resets the tun interface

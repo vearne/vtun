@@ -1,6 +1,6 @@
 # vtun
 
-A simple VPN written in golang.
+A simple VPN written in Go.
 
 [EN](https://github.com/net-byte/vtun/blob/master/README.md) | [中文](https://github.com/net-byte/vtun/blob/master/README_CN.md)
 
@@ -93,7 +93,7 @@ sudo ./vtun-darwin-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 12345
 To use it with windows, you will need to download a [wintun.dll](https://www.wintun.net/) file in the app directory.  
 Open powershell as administrator and run cmd:
 ```
-.\vtun-win-amd64.exe  -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456
+.\vtun-win-amd64.exe  -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g -sip 172.16.0.1
 
 ```
 
