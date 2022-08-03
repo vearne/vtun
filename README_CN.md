@@ -53,9 +53,9 @@ Usage of ./vtun:
   -s string
         server address (default ":3001")
   -sip string
-        intranet server ip (default "172.16.0.1")
+        server ip (default "172.16.0.1")
   -sip6 string
-        intranet server ipv6 (default "fced:9999::1")
+        server ipv6 (default "fced:9999::1")
   -dip string
         dns server ip (default "8.8.8.8")
   -t int

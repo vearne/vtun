@@ -10,7 +10,7 @@ import (
 	"github.com/net-byte/vtun/common/config"
 )
 
-var Version = "v1.6.3"
+var _version = "v1.6.4"
 
 func main() {
 	config := config.Config{}
@@ -20,9 +20,9 @@ func main() {
 	flag.IntVar(&config.MTU, "mtu", 1500, "tun mtu")
 	flag.StringVar(&config.LocalAddr, "l", ":3000", "local address")
 	flag.StringVar(&config.ServerAddr, "s", ":3001", "server address")
-	flag.StringVar(&config.IntranetServerIP, "sip", "172.16.0.1", "intranet server ip")
-	flag.StringVar(&config.IntranetServerIPv6, "sip6", "fced:9999::1", "intranet server ipv6")
-	flag.StringVar(&config.DNSServerIP, "dip", "8.8.8.8", "dns server ip")
+	flag.StringVar(&config.ServerIP, "sip", "172.16.0.1", "server ip")
+	flag.StringVar(&config.ServerIPv6, "sip6", "fced:9999::1", "server ipv6")
+	flag.StringVar(&config.DNSIP, "dip", "8.8.8.8", "dns server ip")
 	flag.StringVar(&config.Key, "k", "freedom@2022", "key")
 	flag.StringVar(&config.Protocol, "p", "udp", "protocol udp/tls/grpc/ws/wss")
 	flag.StringVar(&config.WebSocketPath, "path", "/freedom", "websocket path")
@@ -36,7 +36,7 @@ func main() {
 	flag.StringVar(&config.TLSSni, "sni", "", "tls handshake sni")
 	flag.BoolVar(&config.TLSInsecureSkipVerify, "isv", false, "tls insecure skip verify")
 	flag.Parse()
-	app := &app.Vtun{Config: &config, Version: Version}
+	app := &app.Vtun{Config: &config, Version: _version}
 	app.InitConfig()
 	go app.StartApp()
 	quit := make(chan os.Signal, 1)

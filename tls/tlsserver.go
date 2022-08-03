@@ -11,6 +11,7 @@ import (
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
+	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/water"
@@ -70,6 +71,7 @@ func toClient(config config.Config, iface *water.Interface) {
 					b = snappy.Encode(nil, b)
 				}
 				v.(net.Conn).Write(b)
+				counter.IncrWrittenBytes(n)
 			}
 		}
 	}
@@ -98,6 +100,7 @@ func toServer(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 		if key := netutil.GetSrcKey(b); key != "" {
 			cache.GetCache().Set(key, tlsconn, 10*time.Minute)
 			iface.Write(b)
+			counter.IncrReadBytes(n)
 		}
 	}
 }

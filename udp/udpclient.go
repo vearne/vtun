@@ -7,6 +7,7 @@ import (
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
+	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/water"
 )
@@ -60,6 +61,7 @@ func (c *Client) udpToTun() {
 			b = cipher.XOR(b)
 		}
 		c.iface.Write(b)
+		counter.IncrReadBytes(n)
 	}
 }
 
@@ -79,5 +81,6 @@ func (c *Client) tunToUdp() {
 			b = snappy.Encode(nil, b)
 		}
 		c.localConn.WriteToUDP(b, c.serverAddr)
+		counter.IncrWrittenBytes(n)
 	}
 }

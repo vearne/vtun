@@ -2,8 +2,6 @@ package app
 
 import (
 	"log"
-	"net"
-	"runtime"
 
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
@@ -15,15 +13,16 @@ import (
 	"github.com/net-byte/vtun/ws"
 )
 
-var SrcUrl = "https://github.com/net-byte/vtun"
-var Banner = `
+var _banner = `
 _                 
 __ __ | |_   _  _   _ _  
 \ V / |  _| | || | | ' \ 
  \_/   \__|  \_,_| |_||_|
 						 
-A simple VPN written in Go. %s
+A simple VPN written in Go.
+%s
 `
+var _srcUrl = "https://github.com/net-byte/vtun"
 
 // vtun app struct
 type Vtun struct {
@@ -33,26 +32,13 @@ type Vtun struct {
 
 // InitConfig initializes the config
 func (app *Vtun) InitConfig() {
-	log.Printf(Banner, SrcUrl)
-	log.Printf("vtun version:%s", app.Version)
-	log.Printf("vtun starting...")
-	if !app.Config.ServerMode && app.Config.GlobalMode {
-		host, _, err := net.SplitHostPort(app.Config.ServerAddr)
-		if err != nil {
-			log.Panic("error server address")
-		}
-		serverIP := netutil.LookupIP(host)
-		switch runtime.GOOS {
-		case "linux":
-			app.Config.LocalGateway = netutil.GetLocalGatewayOnLinux(serverIP.To4() != nil)
-		case "darwin":
-			app.Config.LocalGateway = netutil.GetLocalGatewayOnMac(serverIP.To4() != nil)
-		case "windows":
-			app.Config.LocalGateway = netutil.GetLocalGateway()
-		}
+	log.Printf(_banner, _srcUrl)
+	log.Printf("vtun version %s", app.Version)
+	if !app.Config.ServerMode {
+		app.Config.LocalGateway = netutil.GetLocalGateway()
 	}
 	cipher.SetKey(app.Config.Key)
-	log.Printf("initialized config:%+v\n", app.Config)
+	log.Printf("initialized config: %+v", app.Config)
 }
 
 // StartApp starts the app
@@ -94,5 +80,5 @@ func (app *Vtun) StartApp() {
 // StopApp stops the app
 func (app *Vtun) StopApp() {
 	tun.ResetTun(*app.Config)
-	log.Printf("vtun stopped")
+	log.Println("vtun stopped")
 }

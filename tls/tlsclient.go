@@ -11,6 +11,7 @@ import (
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
+	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/water"
 )
@@ -60,6 +61,7 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 			if err != nil {
 				continue
 			}
+			counter.IncrWrittenBytes(n)
 		}
 	}
 }
@@ -88,5 +90,6 @@ func tlsToTun(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 		if err != nil {
 			break
 		}
+		counter.IncrReadBytes(n)
 	}
 }

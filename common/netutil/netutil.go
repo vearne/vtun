@@ -22,7 +22,7 @@ func ConnectServer(config config.Config) net.Conn {
 		PreferGo: true,
 		Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
 			var dialer net.Dialer
-			return dialer.DialContext(ctx, network, net.JoinHostPort(config.DNSServerIP, "53"))
+			return dialer.DialContext(ctx, network, net.JoinHostPort(config.DNSIP, "53"))
 		},
 	}
 	scheme := "ws"
@@ -163,7 +163,7 @@ func GetDstKey(packet []byte) string {
 
 // ExecuteCommand executes the given command
 func ExecCmd(c string, args ...string) string {
-	log.Printf("exec cmd: %v %v:", c, args)
+	log.Printf("exec %v %v", c, args)
 	cmd := exec.Command(c, args...)
 	out, err := cmd.Output()
 	if err != nil {
@@ -174,22 +174,6 @@ func ExecCmd(c string, args ...string) string {
 	}
 	s := string(out)
 	return strings.ReplaceAll(s, "\n", "")
-}
-
-// GetLocalGatewayOnLinux returns the local gateway IP address on Linux
-func GetLocalGatewayOnLinux(ipv4 bool) string {
-	if ipv4 {
-		return ExecCmd("sh", "-c", "route -n | grep 'UG[ \t]' | awk 'NR==1{print $2}'")
-	}
-	return ExecCmd("sh", "-c", "route -6 -n | grep 'UG[ \t]' | awk 'NR==1{print $2}'")
-}
-
-// GetLocalGatewayOnMac returns the local gateway IP address on MacOS
-func GetLocalGatewayOnMac(ipv4 bool) string {
-	if ipv4 {
-		return ExecCmd("sh", "-c", "route -n get default | grep 'gateway' | awk 'NR==1{print $2}'")
-	}
-	return ExecCmd("sh", "-c", "route -6 -n get default | grep 'gateway' | awk 'NR==1{print $2}'")
 }
 
 // GetLocalGateway returns the local gateway IP address

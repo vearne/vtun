@@ -8,6 +8,7 @@ import (
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
+	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/water"
@@ -58,6 +59,7 @@ func (s *Server) tunToUdp() {
 					b = snappy.Encode(nil, b)
 				}
 				s.localConn.WriteToUDP(b, v.(*net.UDPAddr))
+				counter.IncrWrittenBytes(n)
 			}
 		}
 	}
@@ -84,6 +86,7 @@ func (s *Server) udpToTun() {
 		if key := netutil.GetSrcKey(b); key != "" {
 			s.iface.Write(b)
 			s.connCache.Set(key, cliAddr, cache.DefaultExpiration)
+			counter.IncrReadBytes(n)
 		}
 	}
 }

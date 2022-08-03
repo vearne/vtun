@@ -5,9 +5,9 @@ type Config struct {
 	DeviceName                string
 	LocalAddr                 string
 	ServerAddr                string
-	IntranetServerIP          string
-	IntranetServerIPv6        string
-	DNSServerIP               string
+	ServerIP                  string
+	ServerIPv6                string
+	DNSIP                     string
 	CIDR                      string
 	CIDRv6                    string
 	Key                       string

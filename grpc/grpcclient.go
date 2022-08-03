@@ -14,6 +14,7 @@ import (
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
+	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/water"
 )
@@ -70,6 +71,7 @@ func tunToGrpc(config config.Config, iface *water.Interface) {
 			if err != nil {
 				continue
 			}
+			counter.IncrWrittenBytes(n)
 		}
 	}
 }
@@ -95,5 +97,6 @@ func grpcToTun(config config.Config, stream proto.GrpcServe_TunnelClient, iface 
 		if err != nil {
 			break
 		}
+		counter.IncrReadBytes(len(b))
 	}
 }
