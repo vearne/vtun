@@ -19,13 +19,11 @@ import (
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/vtun/register"
-	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/water"
 )
 
 // StartServer starts the ws server
-func StartServer(config config.Config) {
-	iface := tun.CreateTun(config)
+func StartServer(iface *water.Interface, config config.Config) {
 	// server -> client
 	go toClient(config, iface)
 	// client -> server

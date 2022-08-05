@@ -15,7 +15,6 @@ import (
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
-	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/water"
 )
 
@@ -33,9 +32,8 @@ func (s *StreamService) Tunnel(srv proto.GrpcServe_TunnelServer) error {
 }
 
 // StartServer starts the grpc server
-func StartServer(config config.Config) {
+func StartServer(iface *water.Interface, config config.Config) {
 	log.Printf("vtun grpc server started on %v", config.LocalAddr)
-	iface := tun.CreateTun(config)
 	ln, err := net.Listen("tcp", config.LocalAddr)
 	if err != nil {
 		log.Panic(err)

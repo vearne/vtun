@@ -10,15 +10,13 @@ import (
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
-	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/water"
 	"github.com/patrickmn/go-cache"
 )
 
 // StartServer starts the udp server
-func StartServer(config config.Config) {
+func StartServer(iface *water.Interface, config config.Config) {
 	log.Printf("vtun udp server started on %v", config.LocalAddr)
-	iface := tun.CreateTun(config)
 	localAddr, err := net.ResolveUDPAddr("udp", config.LocalAddr)
 	if err != nil {
 		log.Fatalln("failed to get udp socket:", err)

@@ -15,14 +15,12 @@ import (
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
-	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/water"
 )
 
 // StartClient starts the grpc client
-func StartClient(config config.Config) {
+func StartClient(iface *water.Interface, config config.Config) {
 	log.Printf("vtun grpc client started on %v", config.LocalAddr)
-	iface := tun.CreateTun(config)
 	go tunToGrpc(config, iface)
 	tlsconfig := &tls.Config{
 		InsecureSkipVerify: config.TLSInsecureSkipVerify,

@@ -8,14 +8,12 @@ import (
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
-	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/water"
 )
 
 // StartClient starts the udp client
-func StartClient(config config.Config) {
+func StartClient(iface *water.Interface, config config.Config) {
 	log.Printf("vtun udp client started on %v", config.LocalAddr)
-	iface := tun.CreateTun(config)
 	serverAddr, err := net.ResolveUDPAddr("udp", config.ServerAddr)
 	if err != nil {
 		log.Fatalln("failed to resolve server addr:", err)

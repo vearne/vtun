@@ -13,14 +13,12 @@ import (
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
-	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/water"
 )
 
 // StartServer starts the tls server
-func StartServer(config config.Config) {
+func StartServer(iface *water.Interface, config config.Config) {
 	log.Printf("vtun tls server started on %v", config.LocalAddr)
-	iface := tun.CreateTun(config)
 	cert, err := tls.LoadX509KeyPair(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
 	if err != nil {
 		log.Panic(err)

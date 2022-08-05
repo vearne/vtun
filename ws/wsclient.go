@@ -12,14 +12,12 @@ import (
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
-	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/water"
 )
 
 // StartClient starts the ws client
-func StartClient(config config.Config) {
+func StartClient(iface *water.Interface, config config.Config) {
 	log.Printf("vtun websocket client started on %v", config.LocalAddr)
-	iface := tun.CreateTun(config)
 	go tunToWs(config, iface)
 	for {
 		conn := netutil.ConnectServer(config)
