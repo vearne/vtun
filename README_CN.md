@@ -147,3 +147,8 @@ netbyte/vtun -S -l :3001 -c 172.16.0.1/24 -k 123456
 
 # License
 [The MIT License (MIT)](https://raw.githubusercontent.com/net-byte/vtun/master/LICENSE)
+
+# 致谢
+感谢 [JetBrains](https://www.jetbrains.com/community/opensource/#support) 提供免费的License.
+
+<img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo (Main) logo." width="100px">
