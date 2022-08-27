@@ -36,7 +36,7 @@ func main() {
 	flag.StringVar(&config.TLSSni, "sni", "", "tls handshake sni")
 	flag.BoolVar(&config.TLSInsecureSkipVerify, "isv", false, "tls insecure skip verify")
 	flag.Parse()
-	app := &app.Vtun{Config: &config, Version: _version}
+	app := app.NewApp(&config, _version)
 	app.InitConfig()
 	go app.StartApp()
 	quit := make(chan os.Signal, 1)

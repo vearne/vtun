@@ -26,26 +26,35 @@ A simple VPN written in Go.
 var _srcUrl = "https://github.com/net-byte/vtun"
 
 // vtun app struct
-type Vtun struct {
+type App struct {
 	Config  *config.Config
 	Version string
 	Iface   *water.Interface
 }
 
+func NewApp(config *config.Config, version string) *App {
+
+	return &App{
+		Config:  config,
+		Version: version,
+	}
+}
+
 // InitConfig initializes the config
-func (app *Vtun) InitConfig() {
+func (app *App) InitConfig() {
 	log.Printf(_banner, _srcUrl)
 	log.Printf("vtun version %s", app.Version)
 	if !app.Config.ServerMode {
 		app.Config.LocalGateway = netutil.GetLocalGateway()
 	}
 	cipher.SetKey(app.Config.Key)
+	app.Iface = tun.CreateTun(*app.Config)
 	log.Printf("initialized config: %+v", app.Config)
 }
 
 // StartApp starts the app
-func (app *Vtun) StartApp() {
-	app.Iface = tun.CreateTun(*app.Config)
+func (app *App) StartApp() {
+
 	switch app.Config.Protocol {
 	case "udp":
 		if app.Config.ServerMode {
@@ -81,7 +90,7 @@ func (app *Vtun) StartApp() {
 }
 
 // StopApp stops the app
-func (app *Vtun) StopApp() {
+func (app *App) StopApp() {
 	tun.ResetTun(*app.Config)
 	app.Iface.Close()
 	log.Println("vtun stopped")
