@@ -56,7 +56,7 @@ func wsToTun(config config.Config, wsconn net.Conn, iface *water.Interface) {
 
 // tunToWs sends packets from tun to ws
 func tunToWs(config config.Config, iface *water.Interface) {
-	packet := make([]byte, 4096)
+	packet := make([]byte, config.BufferSize)
 	for {
 		n, err := iface.Read(packet)
 		if err != nil || n == 0 {

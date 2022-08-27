@@ -14,15 +14,19 @@ import (
 // CreateTun creates a tun interface
 func CreateTun(config config.Config) (iface *water.Interface) {
 	c := water.Config{DeviceType: water.TUN}
+	network := config.CIDR
+	serverAddrIP := netutil.LookupServerAddrIP(config.ServerAddr)
+	if serverAddrIP.To4() == nil {
+		network = config.CIDRv6
+	}
+	c.PlatformSpecificParams = water.PlatformSpecificParams{}
+	os := runtime.GOOS
+	if os == "windows" {
+		c.PlatformSpecificParams.Name = "vtun"
+		c.PlatformSpecificParams.Network = network
+	}
 	if config.DeviceName != "" {
-		c.PlatformSpecificParams = water.PlatformSpecificParams{Name: config.DeviceName, Network: config.CIDR}
-	} else {
-		os := runtime.GOOS
-		if os == "windows" {
-			c.PlatformSpecificParams = water.PlatformSpecificParams{Name: "vtun", Network: config.CIDR}
-		} else {
-			c.PlatformSpecificParams = water.PlatformSpecificParams{Network: config.CIDR}
-		}
+		c.PlatformSpecificParams.Name = config.DeviceName
 	}
 	iface, err := water.New(c)
 	if err != nil {
@@ -56,7 +60,7 @@ func configTun(config config.Config, iface *water.Interface) {
 				if serverAddrIP.To4() != nil {
 					netutil.ExecCmd("/sbin/ip", "route", "add", serverAddrIP.To4().String()+"/32", "via", config.LocalGateway, "dev", physicalIface)
 				} else {
-					netutil.ExecCmd("/sbin/ip", "-6", "route", "add", serverAddrIP.To16().String()+"/64", "via", config.LocalGateway, "dev", physicalIface)
+					netutil.ExecCmd("/sbin/ip", "-6", "route", "add", serverAddrIP.To16().String()+"/128", "via", config.LocalGateway, "dev", physicalIface)
 				}
 				netutil.ExecCmd("/sbin/ip", "route", "add", "0.0.0.0/1", "dev", iface.Name())
 				netutil.ExecCmd("/sbin/ip", "-6", "route", "add", "::/1", "dev", iface.Name())
@@ -94,11 +98,11 @@ func configTun(config config.Config, iface *water.Interface) {
 				if serverAddrIP.To4() != nil {
 					netutil.ExecCmd("cmd", "/C", "route", "delete", "0.0.0.0", "mask", "0.0.0.0")
 					netutil.ExecCmd("cmd", "/C", "route", "add", "0.0.0.0", "mask", "0.0.0.0", config.ServerIP, "metric", "6")
-					netutil.ExecCmd("cmd", "/C", "route", "add", serverAddrIP.To4().String(), config.LocalGateway, "metric", "5")
+					netutil.ExecCmd("cmd", "/C", "route", "add", serverAddrIP.To4().String()+"/32", config.LocalGateway, "metric", "5")
 				} else {
 					netutil.ExecCmd("cmd", "/C", "route", "-6", "delete", "::/0", "mask", "::/0")
 					netutil.ExecCmd("cmd", "/C", "route", "-6", "add", "::/0", "mask", "::/0", config.ServerIPv6, "metric", "6")
-					netutil.ExecCmd("cmd", "/C", "route", "-6", "add", serverAddrIP.To16().String(), config.LocalGateway, "metric", "5")
+					netutil.ExecCmd("cmd", "/C", "route", "-6", "add", serverAddrIP.To16().String()+"/128", config.LocalGateway, "metric", "5")
 				}
 				netutil.ExecCmd("cmd", "/C", "route", "add", config.DNSIP, config.LocalGateway, "metric", "5")
 			}

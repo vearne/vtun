@@ -24,4 +24,5 @@ type Config struct {
 	TLSCertificateKeyFilePath string
 	TLSSni                    string
 	TLSInsecureSkipVerify     bool
+	BufferSize                int
 }

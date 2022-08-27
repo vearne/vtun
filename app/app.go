@@ -52,6 +52,7 @@ func (app *App) InitConfig() {
 			app.Config.LocalGateway = netutil.DiscoverGateway(false)
 		}
 	}
+	app.Config.BufferSize = 64 * 1024
 	cipher.SetKey(app.Config.Key)
 	app.Iface = tun.CreateTun(*app.Config)
 	log.Printf("initialized config: %+v", app.Config)
