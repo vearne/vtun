@@ -45,7 +45,12 @@ func (app *App) InitConfig() {
 	log.Printf(_banner, _srcUrl)
 	log.Printf("vtun version %s", app.Version)
 	if !app.Config.ServerMode {
-		app.Config.LocalGateway = netutil.GetLocalGateway()
+		ip := netutil.LookupServerAddrIP(app.Config.ServerAddr)
+		if ip.To4() != nil {
+			app.Config.LocalGateway = netutil.DiscoverGateway(true)
+		} else {
+			app.Config.LocalGateway = netutil.DiscoverGateway(false)
+		}
 	}
 	cipher.SetKey(app.Config.Key)
 	app.Iface = tun.CreateTun(*app.Config)

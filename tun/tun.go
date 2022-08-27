@@ -51,62 +51,55 @@ func configTun(config config.Config, iface *water.Interface) {
 		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "up")
 		if !config.ServerMode && config.GlobalMode {
 			physicalIface := netutil.GetInterface()
-			host, _, err := net.SplitHostPort(config.ServerAddr)
-			if err != nil {
-				log.Panic("error server address")
-			}
-			serverIP := netutil.LookupIP(host)
-			if physicalIface != "" && serverIP != nil {
+			serverAddrIP := netutil.LookupServerAddrIP(config.ServerAddr)
+			if physicalIface != "" && serverAddrIP != nil {
+				if serverAddrIP.To4() != nil {
+					netutil.ExecCmd("/sbin/ip", "route", "add", serverAddrIP.To4().String()+"/32", "via", config.LocalGateway, "dev", physicalIface)
+				} else {
+					netutil.ExecCmd("/sbin/ip", "-6", "route", "add", serverAddrIP.To16().String()+"/64", "via", config.LocalGateway, "dev", physicalIface)
+				}
 				netutil.ExecCmd("/sbin/ip", "route", "add", "0.0.0.0/1", "dev", iface.Name())
 				netutil.ExecCmd("/sbin/ip", "-6", "route", "add", "::/1", "dev", iface.Name())
 				netutil.ExecCmd("/sbin/ip", "route", "add", "128.0.0.0/1", "dev", iface.Name())
 				netutil.ExecCmd("/sbin/ip", "route", "add", config.DNSIP+"/32", "via", config.LocalGateway, "dev", physicalIface)
-				if serverIP.To4() != nil {
-					netutil.ExecCmd("/sbin/ip", "route", "add", serverIP.To4().String()+"/32", "via", config.LocalGateway, "dev", physicalIface)
-				} else {
-					netutil.ExecCmd("/sbin/ip", "-6", "route", "add", serverIP.To16().String()+"/64", "via", config.LocalGateway, "dev", physicalIface)
-				}
 			}
 		}
 
 	} else if os == "darwin" {
-		gateway := config.ServerIP
-		gateway6 := config.ServerIPv6
-		netutil.ExecCmd("ifconfig", iface.Name(), "inet", ip.String(), gateway, "up")
-		netutil.ExecCmd("ifconfig", iface.Name(), "inet6", ipv6.String(), gateway6, "up")
+		netutil.ExecCmd("ifconfig", iface.Name(), "inet", ip.String(), config.ServerIP, "up")
+		netutil.ExecCmd("ifconfig", iface.Name(), "inet6", ipv6.String(), config.ServerIPv6, "up")
 		if !config.ServerMode && config.GlobalMode {
 			physicalIface := netutil.GetInterface()
-			host, _, err := net.SplitHostPort(config.ServerAddr)
-			if err != nil {
-				log.Panic("error server address")
-			}
-			serverIP := netutil.LookupIP(host)
-			if physicalIface != "" && serverIP != nil {
-				if serverIP.To4() != nil {
-					netutil.ExecCmd("route", "add", serverIP.To4().String(), config.LocalGateway)
+			serverAddrIP := netutil.LookupServerAddrIP(config.ServerAddr)
+			if physicalIface != "" && serverAddrIP != nil {
+				if serverAddrIP.To4() != nil {
+					netutil.ExecCmd("route", "add", serverAddrIP.To4().String(), config.LocalGateway)
+					netutil.ExecCmd("route", "add", "default", config.ServerIP)
+					netutil.ExecCmd("route", "change", "default", config.ServerIP)
 				} else {
-					netutil.ExecCmd("route", "add", "-inet6", serverIP.To16().String(), config.LocalGateway)
+					netutil.ExecCmd("route", "add", "-inet6", serverAddrIP.To16().String(), config.LocalGateway)
+					netutil.ExecCmd("route", "add", "-inet6", "default", config.ServerIPv6)
+					netutil.ExecCmd("route", "change", "-inet6", "default", config.ServerIPv6)
 				}
-				netutil.ExecCmd("route", "add", config.DNSIP, config.LocalGateway)
-				netutil.ExecCmd("route", "add", "-inet6", "::/1", "-interface", iface.Name())
 				netutil.ExecCmd("route", "add", "0.0.0.0/1", "-interface", iface.Name())
 				netutil.ExecCmd("route", "add", "128.0.0.0/1", "-interface", iface.Name())
-				netutil.ExecCmd("route", "add", "default", gateway)
-				netutil.ExecCmd("route", "change", "default", gateway)
+				netutil.ExecCmd("route", "add", "-inet6", "::/1", "-interface", iface.Name())
+				netutil.ExecCmd("route", "add", config.DNSIP, config.LocalGateway)
 			}
 		}
 	} else if os == "windows" {
 		if !config.ServerMode && config.GlobalMode {
-			gateway := config.ServerIP
-			host, _, err := net.SplitHostPort(config.ServerAddr)
-			if err != nil {
-				log.Panic("error server address")
-			}
-			serverIP := netutil.LookupIP(host)
-			if serverIP != nil {
-				netutil.ExecCmd("cmd", "/C", "route", "delete", "0.0.0.0", "mask", "0.0.0.0")
-				netutil.ExecCmd("cmd", "/C", "route", "add", "0.0.0.0", "mask", "0.0.0.0", gateway, "metric", "6")
-				netutil.ExecCmd("cmd", "/C", "route", "add", serverIP.To4().String(), config.LocalGateway, "metric", "5")
+			serverAddrIP := netutil.LookupServerAddrIP(config.ServerAddr)
+			if serverAddrIP != nil {
+				if serverAddrIP.To4() != nil {
+					netutil.ExecCmd("cmd", "/C", "route", "delete", "0.0.0.0", "mask", "0.0.0.0")
+					netutil.ExecCmd("cmd", "/C", "route", "add", "0.0.0.0", "mask", "0.0.0.0", config.ServerIP, "metric", "6")
+					netutil.ExecCmd("cmd", "/C", "route", "add", serverAddrIP.To4().String(), config.LocalGateway, "metric", "5")
+				} else {
+					netutil.ExecCmd("cmd", "/C", "route", "-6", "delete", "::/0", "mask", "::/0")
+					netutil.ExecCmd("cmd", "/C", "route", "-6", "add", "::/0", "mask", "::/0", config.ServerIPv6, "metric", "6")
+					netutil.ExecCmd("cmd", "/C", "route", "-6", "add", serverAddrIP.To16().String(), config.LocalGateway, "metric", "5")
+				}
 				netutil.ExecCmd("cmd", "/C", "route", "add", config.DNSIP, config.LocalGateway, "metric", "5")
 			}
 		}
@@ -125,8 +118,16 @@ func ResetTun(config config.Config) {
 			netutil.ExecCmd("route", "add", "default", config.LocalGateway)
 			netutil.ExecCmd("route", "change", "default", config.LocalGateway)
 		} else if os == "windows" {
-			netutil.ExecCmd("cmd", "/C", "route", "delete", "0.0.0.0", "mask", "0.0.0.0")
-			netutil.ExecCmd("cmd", "/C", "route", "add", "0.0.0.0", "mask", "0.0.0.0", config.LocalGateway, "metric", "6")
+			serverAddrIP := netutil.LookupServerAddrIP(config.ServerAddr)
+			if serverAddrIP != nil {
+				if serverAddrIP.To4() != nil {
+					netutil.ExecCmd("cmd", "/C", "route", "delete", "0.0.0.0", "mask", "0.0.0.0")
+					netutil.ExecCmd("cmd", "/C", "route", "add", "0.0.0.0", "mask", "0.0.0.0", config.LocalGateway, "metric", "6")
+				} else {
+					netutil.ExecCmd("cmd", "/C", "route", "-6", "delete", "::/0", "mask", "::/0")
+					netutil.ExecCmd("cmd", "/C", "route", "-6", "add", "::/0", "mask", "::/0", config.LocalGateway, "metric", "6")
+				}
+			}
 		}
 	}
 }

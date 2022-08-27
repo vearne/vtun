@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/gobwas/ws"
-	"github.com/jackpal/gateway"
+	"github.com/net-byte/go-gateway"
 	"github.com/net-byte/vtun/common/config"
 )
 
@@ -176,12 +176,28 @@ func ExecCmd(c string, args ...string) string {
 	return strings.ReplaceAll(s, "\n", "")
 }
 
-// GetLocalGateway returns the local gateway IP address
-func GetLocalGateway() string {
-	ip, err := gateway.DiscoverGateway()
+// DiscoverGateway returns the local gateway IP address
+func DiscoverGateway(ipv4 bool) string {
+	var ip net.IP
+	var err error
+	if ipv4 {
+		ip, err = gateway.DiscoverGatewayIPv4()
+	} else {
+		ip, err = gateway.DiscoverGatewayIPv6()
+	}
 	if err != nil {
 		log.Println(err)
 		return ""
 	}
 	return ip.String()
+}
+
+func LookupServerAddrIP(serverAddr string) net.IP {
+	host, _, err := net.SplitHostPort(serverAddr)
+	if err != nil {
+		log.Panic("error server address")
+		return nil
+	}
+	ip := LookupIP(host)
+	return ip
 }
