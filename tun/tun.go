@@ -14,16 +14,11 @@ import (
 // CreateTun creates a tun interface
 func CreateTun(config config.Config) (iface *water.Interface) {
 	c := water.Config{DeviceType: water.TUN}
-	network := config.CIDR
-	serverAddrIP := netutil.LookupServerAddrIP(config.ServerAddr)
-	if serverAddrIP.To4() == nil {
-		network = config.CIDRv6
-	}
 	c.PlatformSpecificParams = water.PlatformSpecificParams{}
 	os := runtime.GOOS
 	if os == "windows" {
 		c.PlatformSpecificParams.Name = "vtun"
-		c.PlatformSpecificParams.Network = network
+		c.PlatformSpecificParams.Network = []string{config.CIDR, config.CIDRv6}
 	}
 	if config.DeviceName != "" {
 		c.PlatformSpecificParams.Name = config.DeviceName
