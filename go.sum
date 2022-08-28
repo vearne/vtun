@@ -57,8 +57,8 @@ github.com/inhies/go-bytesize v0.0.0-20210819104631-275770b98743 h1:X3Xxno5Ji8id
 github.com/inhies/go-bytesize v0.0.0-20210819104631-275770b98743/go.mod h1:KrtyD5PFj++GKkFS/7/RRrfnRhAMGQwy75GLCHWrCNs=
 github.com/net-byte/go-gateway v0.0.1 h1:ETRxQV8E/+icQUhgrYTfk5dNgA+/gBD/gpEeAngVGdQ=
 github.com/net-byte/go-gateway v0.0.1/go.mod h1:+NvPbRjN64RUYvm6xtRBUswoAXKAe44Y/PfWtWMgwwY=
-github.com/net-byte/water v0.0.6 h1:APPEsAaiEz5ro11ZAS331j3ijCPC6RJGQt0uUN/tGsg=
-github.com/net-byte/water v0.0.6/go.mod h1:tRTm034ul8JBKkYFGN/WrnUM4cctr9laq5IpwvaVqUE=
+github.com/net-byte/water v0.0.7 h1:wJUVq8x1AdfzZ5G8Qv61YRX+d22wx0ZgWNG0ihLqglo=
+github.com/net-byte/water v0.0.7/go.mod h1:tRTm034ul8JBKkYFGN/WrnUM4cctr9laq5IpwvaVqUE=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
