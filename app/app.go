@@ -45,12 +45,8 @@ func (app *App) InitConfig() {
 	log.Printf(_banner, _srcUrl)
 	log.Printf("vtun version %s", app.Version)
 	if !app.Config.ServerMode {
-		ip := netutil.LookupServerAddrIP(app.Config.ServerAddr)
-		if ip.To4() != nil {
-			app.Config.LocalGateway = netutil.DiscoverGateway(true)
-		} else {
-			app.Config.LocalGateway = netutil.DiscoverGateway(false)
-		}
+		app.Config.LocalGateway = netutil.DiscoverGateway(true)
+		app.Config.LocalGatewayV6 = netutil.DiscoverGateway(false)
 	}
 	app.Config.BufferSize = 64 * 1024
 	cipher.SetKey(app.Config.Key)

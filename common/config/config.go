@@ -20,6 +20,7 @@ type Config struct {
 	MTU                       int
 	Timeout                   int
 	LocalGateway              string
+	LocalGatewayV6            string
 	TLSCertificateFilePath    string
 	TLSCertificateKeyFilePath string
 	TLSSni                    string
