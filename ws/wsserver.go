@@ -40,7 +40,7 @@ func StartServer(iface *water.Interface, config config.Config) {
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		io.WriteString(w, "Hello,世界!")
+		w.Write(netutil.GetDefaultHttpResponse())
 	})
 
 	http.HandleFunc("/ip", func(w http.ResponseWriter, req *http.Request) {
