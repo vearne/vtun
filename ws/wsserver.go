@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +22,33 @@ import (
 	"github.com/net-byte/vtun/register"
 	"github.com/net-byte/water"
 )
+
+var _defaultPage = []byte(`
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+	body {
+		width: 35em;
+		margin: 0 auto;
+		font-family: Tahoma, Verdana, Arial, sans-serif;
+	}
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>`)
 
 // StartServer starts the ws server
 func StartServer(iface *water.Interface, config config.Config) {
@@ -40,7 +68,13 @@ func StartServer(iface *water.Interface, config config.Config) {
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		w.Write(netutil.GetDefaultHttpResponse())
+		w.WriteHeader(200)
+		w.Header().Set("Server", "nginx/1.18.0 (Ubuntu)")
+		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set("Content-Length", strconv.Itoa(len(_defaultPage)))
+		w.Header().Set("Connection", " keep-alive")
+		w.Header().Set("Accept-Ranges", "bytes")
+		w.Write(_defaultPage)
 	})
 
 	http.HandleFunc("/ip", func(w http.ResponseWriter, req *http.Request) {
