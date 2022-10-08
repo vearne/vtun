@@ -44,8 +44,9 @@ func (s *Server) tunToUdp() {
 	packet := make([]byte, s.config.BufferSize)
 	for {
 		n, err := s.iface.Read(packet)
-		if err != nil || n == 0 {
-			continue
+		if err != nil {
+			netutil.PrintErr(err, s.config.Verbose)
+			break
 		}
 		b := packet[:n]
 		if key := netutil.GetDstKey(b); key != "" {
@@ -69,12 +70,14 @@ func (s *Server) udpToTun() {
 	for {
 		n, cliAddr, err := s.localConn.ReadFromUDP(packet)
 		if err != nil || n == 0 {
+			netutil.PrintErr(err, s.config.Verbose)
 			continue
 		}
 		b := packet[:n]
 		if s.config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
+				netutil.PrintErr(err, s.config.Verbose)
 				continue
 			}
 		}

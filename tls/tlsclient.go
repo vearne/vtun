@@ -2,7 +2,6 @@ package tls
 
 import (
 	"crypto/tls"
-	"io"
 	"log"
 	"net"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
+	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/water"
 )
 
@@ -29,6 +29,7 @@ func StartClient(iface *water.Interface, config config.Config) {
 		conn, err := tls.Dial("tcp", config.ServerAddr, tlsconfig)
 		if err != nil {
 			time.Sleep(3 * time.Second)
+			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
 		cache.GetCache().Set("tlsconn", conn, 24*time.Hour)
@@ -42,8 +43,9 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	for {
 		n, err := iface.Read(packet)
-		if err != nil || n == 0 {
-			continue
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
 		}
 		if v, ok := cache.GetCache().Get("tlsconn"); ok {
 			b := packet[:n]
@@ -57,6 +59,7 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 			tlsconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 			_, err = tlsconn.Write(b)
 			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
 				continue
 			}
 			counter.IncrWrittenBytes(n)
@@ -71,13 +74,15 @@ func tlsToTun(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 	for {
 		tlsconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := tlsconn.Read(packet)
-		if err != nil || err == io.EOF {
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
 			break
 		}
 		b := packet[:n]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
 				break
 			}
 		}
@@ -86,6 +91,7 @@ func tlsToTun(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 		}
 		_, err = iface.Write(b)
 		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
 			break
 		}
 		counter.IncrReadBytes(n)

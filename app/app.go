@@ -52,6 +52,7 @@ func (app *App) InitConfig() {
 	cipher.SetKey(app.Config.Key)
 	app.Iface = tun.CreateTun(*app.Config)
 	log.Printf("initialized config: %+v", app.Config)
+	netutil.PrintStats(app.Config.Verbose)
 }
 
 // StartApp starts the app

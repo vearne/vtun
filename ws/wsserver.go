@@ -13,7 +13,6 @@ import (
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/golang/snappy"
-	"github.com/inhies/go-bytesize"
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
@@ -153,8 +152,7 @@ func StartServer(iface *water.Interface, config config.Config) {
 	})
 
 	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
-		resp := fmt.Sprintf("download %v upload %v", bytesize.New(float64(counter.GetWrittenBytes())).String(), bytesize.New(float64(counter.GetReadBytes())).String())
-		io.WriteString(w, resp)
+		io.WriteString(w, counter.PrintBytes())
 	})
 
 	log.Printf("vtun websocket server started on %v", config.LocalAddr)
@@ -182,8 +180,9 @@ func toClient(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	for {
 		n, err := iface.Read(packet)
-		if err != nil || err == io.EOF || n == 0 {
-			continue
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
 		}
 		b := packet[:n]
 		if key := netutil.GetDstKey(b); key != "" {
@@ -207,7 +206,8 @@ func toServer(config config.Config, wsconn net.Conn, iface *water.Interface) {
 	for {
 		wsconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		b, err := wsutil.ReadClientBinary(wsconn)
-		if err != nil || err == io.EOF {
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
 			break
 		}
 		if config.Compress {

@@ -15,6 +15,7 @@ import (
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
+	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/water"
 )
 
@@ -33,12 +34,14 @@ func StartClient(iface *water.Interface, config config.Config) {
 		conn, err := grpc.Dial(config.ServerAddr, grpc.WithBlock(), grpc.WithTransportCredentials(creds))
 		if err != nil {
 			time.Sleep(3 * time.Second)
+			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
 		streamClient := proto.NewGrpcServeClient(conn)
 		stream, err := streamClient.Tunnel(context.Background())
 		if err != nil {
 			conn.Close()
+			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
 		cache.GetCache().Set("grpcconn", stream, 24*time.Hour)
@@ -53,8 +56,9 @@ func tunToGrpc(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	for {
 		n, err := iface.Read(packet)
-		if err != nil || n == 0 {
-			continue
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
 		}
 		if v, ok := cache.GetCache().Get("grpcconn"); ok {
 			b := packet[:n]
@@ -67,6 +71,7 @@ func tunToGrpc(config config.Config, iface *water.Interface) {
 			grpcconn := v.(proto.GrpcServe_TunnelClient)
 			err = grpcconn.Send(&proto.PacketData{Data: b})
 			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
 				continue
 			}
 			counter.IncrWrittenBytes(n)
@@ -79,12 +84,14 @@ func grpcToTun(config config.Config, stream proto.GrpcServe_TunnelClient, iface 
 	for {
 		packet, err := stream.Recv()
 		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
 			break
 		}
 		b := packet.Data[:]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
 				break
 			}
 		}
@@ -93,6 +100,7 @@ func grpcToTun(config config.Config, stream proto.GrpcServe_TunnelClient, iface 
 		}
 		_, err = iface.Write(b)
 		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
 			break
 		}
 		counter.IncrReadBytes(len(b))

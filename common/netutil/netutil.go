@@ -14,6 +14,7 @@ import (
 	"github.com/gobwas/ws"
 	"github.com/net-byte/go-gateway"
 	"github.com/net-byte/vtun/common/config"
+	"github.com/net-byte/vtun/common/counter"
 )
 
 // ConnectServer connects to the server with the given address.
@@ -237,4 +238,25 @@ func GetDefaultHttpResponse() []byte {
 	<p><em>Thank you for using nginx.</em></p>
 	</body>
 	</html>`)
+}
+
+// PrintErr returns the error log
+func PrintErr(err error, enableVerbose bool) {
+	if !enableVerbose {
+		return
+	}
+	log.Printf("error:%v", err)
+}
+
+// PrintStats returns the stats info
+func PrintStats(enableVerbose bool) {
+	if !enableVerbose {
+		return
+	}
+	go func() {
+		for {
+			time.Sleep(30 * time.Second)
+			log.Printf("stats:%v", counter.PrintBytes())
+		}
+	}()
 }

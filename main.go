@@ -10,7 +10,7 @@ import (
 	"github.com/net-byte/vtun/common/config"
 )
 
-var _version = "v1.6.6"
+var _version = "v1.6.7"
 
 func main() {
 	config := config.Config{}
@@ -35,6 +35,7 @@ func main() {
 	flag.StringVar(&config.TLSCertificateKeyFilePath, "privatekey", "./certs/server.key", "tls certificate key file path")
 	flag.StringVar(&config.TLSSni, "sni", "", "tls handshake sni")
 	flag.BoolVar(&config.TLSInsecureSkipVerify, "isv", false, "tls insecure skip verify")
+	flag.BoolVar(&config.Verbose, "v", false, "enable verbose output")
 	flag.Parse()
 	app := app.NewApp(&config, _version)
 	app.InitConfig()

@@ -38,6 +38,7 @@ func wsToTun(config config.Config, wsconn net.Conn, iface *water.Interface) {
 		wsconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		packet, err := wsutil.ReadServerBinary(wsconn)
 		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
 			break
 		}
 		if config.Compress {
@@ -48,6 +49,7 @@ func wsToTun(config config.Config, wsconn net.Conn, iface *water.Interface) {
 		}
 		_, err = iface.Write(packet)
 		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
 			break
 		}
 		counter.IncrReadBytes(len(packet))
@@ -59,8 +61,9 @@ func tunToWs(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	for {
 		n, err := iface.Read(packet)
-		if err != nil || n == 0 {
-			continue
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
 		}
 		if v, ok := cache.GetCache().Get("wsconn"); ok {
 			b := packet[:n]
@@ -73,6 +76,7 @@ func tunToWs(config config.Config, iface *water.Interface) {
 			wsconn := v.(net.Conn)
 			wsconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 			if err = wsutil.WriteClientBinary(wsconn, b); err != nil {
+				netutil.PrintErr(err, config.Verbose)
 				continue
 			}
 			counter.IncrWrittenBytes(n)

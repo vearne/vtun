@@ -57,8 +57,9 @@ func toClient(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	for {
 		n, err := iface.Read(packet)
-		if err != nil || n == 0 {
-			continue
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
 		}
 		b := packet[:n]
 		if key := netutil.GetDstKey(b); key != "" {
@@ -81,12 +82,14 @@ func toServer(srv proto.GrpcServe_TunnelServer, config config.Config, iface *wat
 	for {
 		packet, err := srv.Recv()
 		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
 			break
 		}
 		b := packet.Data[:]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
 				break
 			}
 		}

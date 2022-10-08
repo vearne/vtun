@@ -60,6 +60,7 @@ Usage of ./vtun:
         dns server ip (default "8.8.8.8")
   -t int
         dial timeout in seconds (default 30)
+  -v    enable verbose output
 ```
 
 ## 编译

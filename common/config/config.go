@@ -26,4 +26,5 @@ type Config struct {
 	TLSSni                    string
 	TLSInsecureSkipVerify     bool
 	BufferSize                int
+	Verbose                   bool
 }

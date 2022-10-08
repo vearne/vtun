@@ -8,6 +8,7 @@ import (
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
+	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/water"
 )
 
@@ -46,12 +47,14 @@ func (c *Client) udpToTun() {
 	for {
 		n, _, err := c.localConn.ReadFromUDP(packet)
 		if err != nil || n == 0 {
+			netutil.PrintErr(err, c.config.Verbose)
 			continue
 		}
 		b := packet[:n]
 		if c.config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
+				netutil.PrintErr(err, c.config.Verbose)
 				continue
 			}
 		}
@@ -68,8 +71,9 @@ func (c *Client) tunToUdp() {
 	packet := make([]byte, c.config.BufferSize)
 	for {
 		n, err := c.iface.Read(packet)
-		if err != nil || n == 0 {
-			continue
+		if err != nil {
+			netutil.PrintErr(err, c.config.Verbose)
+			break
 		}
 		b := packet[:n]
 		if c.config.Obfs {

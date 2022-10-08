@@ -2,7 +2,6 @@ package tls
 
 import (
 	"crypto/tls"
-	"io"
 	"log"
 	"net"
 	"time"
@@ -67,7 +66,8 @@ func toClient(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	for {
 		n, err := iface.Read(packet)
-		if err != nil || err == io.EOF || n == 0 {
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
 		b := packet[:n]
@@ -93,13 +93,15 @@ func toServer(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 	for {
 		tlsconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := tlsconn.Read(packet)
-		if err != nil || err == io.EOF {
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
 			break
 		}
 		b := packet[:n]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
 				break
 			}
 		}
