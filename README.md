@@ -148,6 +148,9 @@ netbyte/vtun -S -l :3001 -c 172.16.0.1/24 -k 123456
 ## Mobile client
 
 ### [Android](https://github.com/net-byte/vTunnel)
+<p>
+<a href="https://play.google.com/store/apps/details?id=com.netbyte.vtunnel"><img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" height="100"></a>
+</p>
 
 # License
 [The MIT License (MIT)](https://raw.githubusercontent.com/net-byte/vtun/master/LICENSE)
