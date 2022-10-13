@@ -21,7 +21,7 @@ import (
 
 // StartClient starts the grpc client
 func StartClient(iface *water.Interface, config config.Config) {
-	log.Printf("vtun grpc client started on %v", config.LocalAddr)
+	log.Println("vtun grpc client started")
 	go tunToGrpc(config, iface)
 	tlsconfig := &tls.Config{
 		InsecureSkipVerify: config.TLSInsecureSkipVerify,

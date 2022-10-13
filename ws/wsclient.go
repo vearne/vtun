@@ -17,7 +17,7 @@ import (
 
 // StartClient starts the ws client
 func StartClient(iface *water.Interface, config config.Config) {
-	log.Printf("vtun websocket client started on %v", config.LocalAddr)
+	log.Println("vtun websocket client started")
 	go tunToWs(config, iface)
 	for {
 		conn := netutil.ConnectServer(config)

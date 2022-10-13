@@ -17,7 +17,7 @@ import (
 
 // StartClient starts the tls client
 func StartClient(iface *water.Interface, config config.Config) {
-	log.Printf("vtun tls client started on %v", config.LocalAddr)
+	log.Println("vtun tls client started")
 	go tunToTLS(config, iface)
 	tlsconfig := &tls.Config{
 		InsecureSkipVerify: config.TLSInsecureSkipVerify,

@@ -14,12 +14,11 @@ import (
 
 // StartClient starts the udp client
 func StartClient(iface *water.Interface, config config.Config) {
-	log.Printf("vtun udp client started on %v", config.LocalAddr)
 	serverAddr, err := net.ResolveUDPAddr("udp", config.ServerAddr)
 	if err != nil {
 		log.Fatalln("failed to resolve server addr:", err)
 	}
-	localAddr, err := net.ResolveUDPAddr("udp", config.LocalAddr)
+	localAddr, err := net.ResolveUDPAddr("udp", ":0")
 	if err != nil {
 		log.Fatalln("failed to get udp socket:", err)
 	}
@@ -28,6 +27,7 @@ func StartClient(iface *water.Interface, config config.Config) {
 		log.Fatalln("failed to listen on udp socket:", err)
 	}
 	defer conn.Close()
+	log.Printf("vtun udp client started on %v", conn.LocalAddr().String())
 	c := &Client{config: config, iface: iface, localConn: conn, serverAddr: serverAddr}
 	go c.udpToTun()
 	c.tunToUdp()
