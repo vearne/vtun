@@ -72,21 +72,21 @@ scripts/build.sh
 ## Client on Linux
 
 ```
-sudo ./vtun-linux-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456
+sudo ./vtun-linux-amd64 -s server-addr:3001 -c 172.16.0.10/24 -k 123456
 
 ```
 
 ## Client on Linux with global mode(routing all your traffic to server)
 
 ```
-sudo ./vtun-linux-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g
+sudo ./vtun-linux-amd64 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g
 
 ```
 
 ## Client on MacOS
 
 ```
-sudo ./vtun-darwin-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g -sip 172.16.0.1
+sudo ./vtun-darwin-amd64 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g -sip 172.16.0.1
 
 ```
 
@@ -94,7 +94,7 @@ sudo ./vtun-darwin-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 12345
 To use it with windows, you will need to download a [wintun.dll](https://www.wintun.net/) file in the app directory.  
 Open powershell as administrator and run cmd:
 ```
-.\vtun-win-amd64.exe  -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g -sip 172.16.0.1
+.\vtun-win-amd64.exe  -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g -sip 172.16.0.1
 
 ```
 
@@ -130,13 +130,13 @@ sudo ./vtun-linux-amd64 -S -l :3001 -c 172.16.0.1/24 -k 123456
 ### Run client
 ```
 docker run  -d --privileged --restart=always --net=host --name vtun-client \
-netbyte/vtun -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456
+netbyte/vtun -s server-addr:3001 -c 172.16.0.10/24 -k 123456
 ```
 
 ### Run client with global mode
 ```
 docker run  -d --privileged --restart=always --net=host --name vtun-client \
-netbyte/vtun -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g
+netbyte/vtun -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g
 ```
 
 ### Run server

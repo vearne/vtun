@@ -72,20 +72,20 @@ scripts/build.sh
 ## Linux客户端
 
 ```
-sudo ./vtun-linux-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456
+sudo ./vtun-linux-amd64 -s server-addr:3001 -c 172.16.0.10/24 -k 123456
 
 ```
 
 ## Linux全局模式客户端（转发所有流量）
 
 ```
-sudo ./vtun-linux-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g
+sudo ./vtun-linux-amd64 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g
 
 ```
 ## MacOS客户端
 
 ```
-sudo ./vtun-darwin-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g -sip 172.16.0.1
+sudo ./vtun-darwin-amd64 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g -sip 172.16.0.1
 
 ```
 
@@ -93,7 +93,7 @@ sudo ./vtun-darwin-amd64 -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 12345
 在windows上使用，你必须下载[wintun.dll](https://www.wintun.net/)文件并且把它放到当前应用目录下。  
 用管理员权限打开powershell并运行命令:
 ```
-.\vtun-win-amd64.exe  -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g -sip 172.16.0.1
+.\vtun-win-amd64.exe  -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g -sip 172.16.0.1
 
 ```
 
@@ -127,13 +127,13 @@ sudo ./vtun-linux-amd64 -S -l :3001 -c 172.16.0.1/24 -k 123456
 ### 运行客户端
 ```
 docker run  -d --privileged --restart=always --net=host --name vtun-client \
-netbyte/vtun -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456
+netbyte/vtun -s server-addr:3001 -c 172.16.0.10/24 -k 123456
 ```
 
 ### 运行全局模式客户端
 ```
 docker run  -d --privileged --restart=always --net=host --name vtun-client \
-netbyte/vtun -l :3000 -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g
+netbyte/vtun -s server-addr:3001 -c 172.16.0.10/24 -k 123456 -g
 ```
 
 ### 运行服务端
