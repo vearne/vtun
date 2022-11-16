@@ -46,7 +46,7 @@ func (app *App) InitConfig() {
 	log.Printf("vtun version %s", app.Version)
 	if !app.Config.ServerMode {
 		app.Config.LocalGateway = netutil.DiscoverGateway(true)
-		app.Config.LocalGatewayV6 = netutil.DiscoverGateway(false)
+		app.Config.LocalGatewayv6 = netutil.DiscoverGateway(false)
 	}
 	app.Config.BufferSize = 64 * 1024
 	cipher.SetKey(app.Config.Key)
@@ -94,7 +94,7 @@ func (app *App) StartApp() {
 
 // StopApp stops the app
 func (app *App) StopApp() {
-	tun.ResetTun(*app.Config)
+	tun.ResetRoute(*app.Config)
 	app.Iface.Close()
 	log.Println("vtun stopped")
 }
