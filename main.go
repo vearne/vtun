@@ -10,7 +10,7 @@ import (
 	"github.com/net-byte/vtun/common/config"
 )
 
-var _version = "v1.6.7"
+var _version = "v1.6.8"
 
 func main() {
 	config := config.Config{}
