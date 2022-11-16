@@ -137,7 +137,7 @@ func setRoute(config config.Config, iface *water.Interface) {
 
 // ResetRoute resets the system routes
 func ResetRoute(config config.Config) {
-	if config.ServerMode || config.GlobalMode {
+	if config.ServerMode || !config.GlobalMode {
 		return
 	}
 	os := runtime.GOOS
