@@ -211,20 +211,10 @@ func toServer(config config.Config, wsconn net.Conn, iface *water.Interface) {
 			break
 		}
 		if op == ws.OpText {
-			n := len(b)
 			if config.Verbose {
-				log.Println(n)
+				log.Println(string(b[:]))
 			}
-			if n < 4 {
-				continue
-			}
-			msg := string(b[:4])
-			if config.Verbose {
-				log.Println(msg)
-			}
-			if msg == "ping" {
-				wsutil.WriteServerMessage(wsconn, op, []byte("pong"))
-			}
+			wsutil.WriteServerMessage(wsconn, op, b)
 		} else if op == ws.OpBinary {
 			if config.Compress {
 				b, _ = snappy.Decode(nil, b)
