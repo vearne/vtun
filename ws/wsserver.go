@@ -205,21 +205,34 @@ func toServer(config config.Config, wsconn net.Conn, iface *water.Interface) {
 	defer wsconn.Close()
 	for {
 		wsconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
-		b, err := wsutil.ReadClientBinary(wsconn)
+		b, op, err := wsutil.ReadClientData(wsconn)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if config.Compress {
-			b, _ = snappy.Decode(nil, b)
-		}
-		if config.Obfs {
-			b = cipher.XOR(b)
-		}
-		if key := netutil.GetSrcKey(b); key != "" {
-			cache.GetCache().Set(key, wsconn, 10*time.Minute)
-			counter.IncrReadBytes(len(b))
-			iface.Write(b)
+		if op == ws.OpText {
+			if len(b) < 4 {
+				continue
+			}
+			msg := string(b[:4])
+			if msg == "ping" {
+				if config.Verbose {
+					log.Println(msg)
+				}
+				wsutil.WriteServerMessage(wsconn, op, []byte("pong"))
+			}
+		} else if op == ws.OpBinary {
+			if config.Compress {
+				b, _ = snappy.Decode(nil, b)
+			}
+			if config.Obfs {
+				b = cipher.XOR(b)
+			}
+			if key := netutil.GetSrcKey(b); key != "" {
+				cache.GetCache().Set(key, wsconn, 10*time.Minute)
+				counter.IncrReadBytes(len(b))
+				iface.Write(b)
+			}
 		}
 	}
 }

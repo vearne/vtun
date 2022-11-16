@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
@@ -26,8 +27,21 @@ func StartClient(iface *water.Interface, config config.Config) {
 			continue
 		}
 		cache.GetCache().Set("wsconn", conn, 24*time.Hour)
-		wsToTun(config, conn, iface)
+		go wsToTun(config, conn, iface)
+		ping(conn, config)
 		cache.GetCache().Delete("wsconn")
+	}
+}
+
+func ping(wsconn net.Conn, config config.Config) {
+	defer wsconn.Close()
+	for {
+		wsconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
+		err := wsutil.WriteClientMessage(wsconn, ws.OpText, []byte("ping"))
+		if err != nil {
+			break
+		}
+		time.Sleep(3 * time.Second)
 	}
 }
 
