@@ -57,7 +57,11 @@ func (s *Server) tunToUdp() {
 				if s.config.Compress {
 					b = snappy.Encode(nil, b)
 				}
-				s.localConn.WriteToUDP(b, v.(*net.UDPAddr))
+				_, err := s.localConn.WriteToUDP(b, v.(*net.UDPAddr))
+				if err != nil {
+					s.connCache.Delete(key)
+					continue
+				}
 				counter.IncrWrittenBytes(n)
 			}
 		}
@@ -86,7 +90,7 @@ func (s *Server) udpToTun() {
 		}
 		if key := netutil.GetSrcKey(b); key != "" {
 			s.iface.Write(b)
-			s.connCache.Set(key, cliAddr, cache.DefaultExpiration)
+			s.connCache.Set(key, cliAddr, 24*time.Hour)
 			counter.IncrReadBytes(n)
 		}
 	}

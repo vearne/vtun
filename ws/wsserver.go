@@ -193,8 +193,12 @@ func toClient(config config.Config, iface *water.Interface) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
+				err := wsutil.WriteServerBinary(v.(net.Conn), b)
+				if err != nil {
+					cache.GetCache().Delete(key)
+					continue
+				}
 				counter.IncrWrittenBytes(n)
-				wsutil.WriteServerBinary(v.(net.Conn), b)
 			}
 		}
 	}
@@ -223,7 +227,7 @@ func toServer(config config.Config, wsconn net.Conn, iface *water.Interface) {
 				b = cipher.XOR(b)
 			}
 			if key := netutil.GetSrcKey(b); key != "" {
-				cache.GetCache().Set(key, wsconn, 10*time.Minute)
+				cache.GetCache().Set(key, wsconn, 24*time.Hour)
 				counter.IncrReadBytes(len(b))
 				iface.Write(b)
 			}

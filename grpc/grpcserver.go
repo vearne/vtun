@@ -70,7 +70,11 @@ func toClient(config config.Config, iface *water.Interface) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
-				v.(proto.GrpcServe_TunnelServer).Send(&proto.PacketData{Data: b})
+				err := v.(proto.GrpcServe_TunnelServer).Send(&proto.PacketData{Data: b})
+				if err != nil {
+					cache.GetCache().Delete(key)
+					continue
+				}
 				counter.IncrWrittenBytes(n)
 			}
 		}
@@ -97,7 +101,7 @@ func toServer(srv proto.GrpcServe_TunnelServer, config config.Config, iface *wat
 			b = cipher.XOR(b)
 		}
 		if key := netutil.GetSrcKey(b); key != "" {
-			cache.GetCache().Set(key, srv, 10*time.Minute)
+			cache.GetCache().Set(key, srv, 24*time.Hour)
 			iface.Write(b)
 			counter.IncrReadBytes(len(b))
 		}
