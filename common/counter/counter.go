@@ -34,6 +34,9 @@ func GetWrittenBytes() uint64 {
 }
 
 // PrintBytes returns the bytes info
-func PrintBytes() string {
-	return fmt.Sprintf("download %v upload %v", bytesize.New(float64(GetWrittenBytes())).String(), bytesize.New(float64(GetReadBytes())).String())
+func PrintBytes(serverMode bool) string {
+	if serverMode {
+		return fmt.Sprintf("download %v upload %v", bytesize.New(float64(GetWrittenBytes())).String(), bytesize.New(float64(GetReadBytes())).String())
+	}
+	return fmt.Sprintf("download %v upload %v", bytesize.New(float64(GetReadBytes())).String(), bytesize.New(float64(GetWrittenBytes())).String())
 }

@@ -249,14 +249,14 @@ func PrintErr(err error, enableVerbose bool) {
 }
 
 // PrintStats returns the stats info
-func PrintStats(enableVerbose bool) {
+func PrintStats(enableVerbose bool, serverMode bool) {
 	if !enableVerbose {
 		return
 	}
 	go func() {
 		for {
 			time.Sleep(30 * time.Second)
-			log.Printf("stats:%v", counter.PrintBytes())
+			log.Printf("stats:%v", counter.PrintBytes(serverMode))
 		}
 	}()
 }

@@ -152,7 +152,7 @@ func StartServer(iface *water.Interface, config config.Config) {
 	})
 
 	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
-		io.WriteString(w, counter.PrintBytes())
+		io.WriteString(w, counter.PrintBytes(true))
 	})
 
 	log.Printf("vtun websocket server started on %v", config.LocalAddr)
