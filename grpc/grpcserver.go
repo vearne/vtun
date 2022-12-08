@@ -2,7 +2,8 @@ package grpc
 
 import (
 	"log"
-	"net"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang/snappy"
@@ -31,22 +32,34 @@ func (s *StreamService) Tunnel(srv proto.GrpcServe_TunnelServer) error {
 	return nil
 }
 
+// HTTP Server
+func GetHTTPServeMux() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("follow"))
+	})
+	return mux
+}
+
 // StartServer starts the grpc server
 func StartServer(iface *water.Interface, config config.Config) {
 	log.Printf("vtun grpc server started on %v", config.LocalAddr)
-	ln, err := net.Listen("tcp", config.LocalAddr)
-	if err != nil {
-		log.Panic(err)
-	}
-	defer ln.Close()
 	creds, err := credentials.NewServerTLSFromFile(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
 	if err != nil {
 		log.Panic(err)
 	}
+	mux := GetHTTPServeMux()
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
 	proto.RegisterGrpcServeServer(grpcServer, &StreamService{config: config, iface: iface})
 	go toClient(config, iface)
-	err = grpcServer.Serve(ln)
+	err = http.ListenAndServeTLS(config.LocalAddr, config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
+			grpcServer.ServeHTTP(w, r)
+		} else {
+			mux.ServeHTTP(w, r)
+		}
+		return
+	}))
 	if err != nil {
 		log.Fatalf("grpc server error: %v", err)
 	}
