@@ -81,6 +81,7 @@ func toClient(config config.Config, iface *water.Interface) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
+				v.(net.Conn).SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 				_, err := v.(net.Conn).Write(b)
 				if err != nil {
 					cache.GetCache().Delete(key)
