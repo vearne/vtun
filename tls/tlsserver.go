@@ -16,30 +16,32 @@ import (
 )
 
 // StartServer starts the tls server
-func StartServer(iface *water.Interface, config config.Config) {
+func StartServer(iFace *water.Interface, config config.Config) {
 	log.Printf("vtun tls server started on %v", config.LocalAddr)
 	cert, err := tls.LoadX509KeyPair(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
 	if err != nil {
 		log.Panic(err)
 	}
-	tlsconfig := &tls.Config{
-		Certificates:             []tls.Certificate{cert},
-		MinVersion:               tls.VersionTLS12,
-		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-		PreferServerCipherSuites: true,
+	tlsConfig := &tls.Config{
+		Certificates:     []tls.Certificate{cert},
+		MinVersion:       tls.VersionTLS13,
+		CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
 		CipherSuites: []uint16{
 			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
 			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
 			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
 		},
 	}
-	ln, err := tls.Listen("tcp", config.LocalAddr, tlsconfig)
+	ln, err := tls.Listen("tcp", config.LocalAddr, tlsConfig)
 	if err != nil {
 		log.Panic(err)
 	}
 	// server -> client
-	go toClient(config, iface)
+	go toClient(config, iFace)
 	// client -> server
 	for {
 		conn, err := ln.Accept()
@@ -57,7 +59,7 @@ func StartServer(iface *water.Interface, config config.Config) {
 				continue
 			}
 		}
-		go toServer(config, sniffConn, iface)
+		go toServer(config, sniffConn, iFace)
 	}
 }
 

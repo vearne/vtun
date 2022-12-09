@@ -3,6 +3,7 @@ package tls
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 
@@ -100,7 +101,6 @@ func (c *SniffConn) sniffHttp() bool {
 }
 
 func (c *SniffConn) sniffHttp2() bool {
-
 	return len(c.preData) >= len(http2Header) &&
 		bytes.Compare(c.preData[:len(http2Header)], http2Header) == 0
 }
@@ -121,5 +121,11 @@ func (c *SniffConn) Handle() bool {
 	if err != nil {
 		return false
 	}
+	defer func(c *SniffConn) {
+		err := c.Close()
+		if err != nil {
+			fmt.Printf("%x\n", err)
+		}
+	}(c)
 	return write > 0
 }
