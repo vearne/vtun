@@ -3,8 +3,8 @@ package tls
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
+	"log"
 	"net"
 
 	"github.com/net-byte/vtun/common/netutil"
@@ -124,7 +124,7 @@ func (c *SniffConn) Handle() bool {
 	defer func(c *SniffConn) {
 		err := c.Close()
 		if err != nil {
-			fmt.Printf("%x\n", err)
+			log.Printf("%x\n", err)
 		}
 	}(c)
 	return write > 0
