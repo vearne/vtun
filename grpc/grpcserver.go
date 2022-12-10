@@ -32,7 +32,7 @@ func (s *StreamService) Tunnel(srv proto.GrpcServe_TunnelServer) error {
 	return nil
 }
 
-// HTTP Server
+// GetHTTPServeMux common HTTP Server
 func GetHTTPServeMux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
