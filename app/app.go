@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/net-byte/vtun/quic"
 	"log"
 
 	"github.com/net-byte/vtun/common/cipher"
@@ -82,6 +83,12 @@ func (app *App) StartApp() {
 			grpc.StartServer(app.Iface, *app.Config)
 		} else {
 			grpc.StartClient(app.Iface, *app.Config)
+		}
+	case "quic":
+		if app.Config.ServerMode {
+			quic.StartServer(app.Iface, *app.Config)
+		} else {
+			quic.StartClient(app.Iface, *app.Config)
 		}
 	default:
 		if app.Config.ServerMode {
