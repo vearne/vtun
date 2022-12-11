@@ -3,6 +3,10 @@ package quic
 import (
 	"context"
 	"crypto/tls"
+	"io"
+	"log"
+	"time"
+
 	"github.com/golang/snappy"
 	"github.com/lucas-clemente/quic-go"
 	"github.com/net-byte/vtun/common/cache"
@@ -11,14 +15,11 @@ import (
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/water"
-	"io"
-	"log"
-	"time"
 )
 
 // StartServer starts the quic server
 func StartServer(iface *water.Interface, config config.Config) {
-	log.Printf("start quic server started on %v", config.LocalAddr)
+	log.Printf("vtun quic server started on %v", config.LocalAddr)
 	tlsCert, err := tls.LoadX509KeyPair(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
 	if err != nil {
 		log.Panic(err)
