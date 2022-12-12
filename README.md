@@ -16,6 +16,7 @@ A simple VPN written in Go.
 * VPN over tls
 * VPN over grpc
 * VPN over quic
+* VPN over kcp
 
 # Usage
 
@@ -48,7 +49,7 @@ Usage of ./vtun:
   -compress
         enable data compression
   -p string
-        protocol udp/tls/grpc/quic/ws/wss (default "udp")
+        protocol udp/tls/grpc/quic/kcp/ws/wss (default "udp")
   -path string
         websocket path (default "/freedom")
   -s string

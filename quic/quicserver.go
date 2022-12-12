@@ -17,7 +17,7 @@ import (
 
 // StartServer starts the quic server
 func StartServer(iface *water.Interface, config config.Config) {
-	log.Printf("start quic server started on %v", config.LocalAddr)
+	log.Printf("vtun quic server started on %v", config.LocalAddr)
 	tlsCert, err := tls.LoadX509KeyPair(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
 	if err != nil {
 		log.Panic(err)

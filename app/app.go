@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/net-byte/vtun/kcp"
 	"github.com/net-byte/vtun/quic"
 	"log"
 
@@ -89,6 +90,12 @@ func (app *App) StartApp() {
 			quic.StartServer(app.Iface, *app.Config)
 		} else {
 			quic.StartClient(app.Iface, *app.Config)
+		}
+	case "kcp":
+		if app.Config.ServerMode {
+			kcp.StartServer(app.Iface, *app.Config)
+		}else {
+			kcp.StartClient(app.Iface, *app.Config)
 		}
 	default:
 		if app.Config.ServerMode {
