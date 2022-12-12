@@ -3,6 +3,10 @@ package quic
 import (
 	"context"
 	"crypto/tls"
+	"io"
+	"log"
+	"time"
+
 	"github.com/golang/snappy"
 	"github.com/lucas-clemente/quic-go"
 	"github.com/net-byte/vtun/common/cache"
@@ -11,8 +15,6 @@ import (
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/water"
-	"log"
-	"time"
 )
 
 // StartServer starts the quic server
