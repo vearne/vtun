@@ -75,8 +75,9 @@ func toClient(config config.Config, iFace *water.Interface) {
 					b = snappy.Encode(nil, b)
 				}
 				stream := v.(quic.Stream)
-				b = append(shb, b...)
-				n, err := stream.Write(b)
+				copy(packet[len(shb):len(shb)+len(b)], b)
+				copy(packet[:len(shb)], shb)
+				n, err := stream.Write(packet[:len(shb)+len(b)])
 				if err != nil {
 					netutil.PrintErr(err, config.Verbose)
 					break
@@ -89,8 +90,9 @@ func toClient(config config.Config, iFace *water.Interface) {
 
 // toServer sends packets from quicConn to iface
 func toServer(config config.Config, stream quic.Stream, iface *water.Interface) {
-	var packet []byte
+	packet := make([]byte, config.BufferSize)
 	shb := make([]byte, 2)
+	defer stream.Close()
 	for {
 		n, err := stream.Read(shb)
 		if err != nil {
@@ -98,13 +100,12 @@ func toServer(config config.Config, stream quic.Stream, iface *water.Interface) 
 			break
 		}
 		if n < 2 {
-			continue
+			break
 		}
 		shn := 0
 		shn = ((shn & 0x00) | int(shb[0])) << 8
 		shn = shn | int(shb[1])
-		packet = make([]byte, shn)
-		n, err = stream.Read(packet)
+		n, err = stream.Read(packet[:shn])
 		if err == io.EOF || err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
