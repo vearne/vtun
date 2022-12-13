@@ -16,6 +16,7 @@
 * 支持tls
 * 支持grpc
 * 支持quic
+* 支持kcp
 
 # 用法
 
@@ -48,7 +49,7 @@ Usage of ./vtun:
   -compress
         enable data compression
   -p string
-        protocol udp/tls/grpc/quic/ws/wss (default "udp")
+        protocol udp/tls/grpc/quic/kcp/ws/wss (default "udp")
   -path string
         websocket path (default "/freedom")
   -s string

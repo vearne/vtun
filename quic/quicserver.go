@@ -37,6 +37,7 @@ func StartServer(iface *water.Interface, config config.Config) {
 	for {
 		conn, err := listener.Accept(context.Background())
 		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
 		go func() {
@@ -44,11 +45,12 @@ func StartServer(iface *water.Interface, config config.Config) {
 				stream, err := conn.AcceptStream(context.Background())
 				if err != nil {
 					netutil.PrintErr(err, config.Verbose)
-					return
+					break
 				}
 				//client -> server
 				toServer(config, stream, iface)
 			}
+			conn.CloseWithError(quic.ApplicationErrorCode(0x01), "closed")
 		}()
 	}
 }
@@ -61,7 +63,7 @@ func toClient(config config.Config, iFace *water.Interface) {
 		shn, err := iFace.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
-			break
+			continue
 		}
 		shb[0] = byte(shn >> 8 & 0xff)
 		shb[1] = byte(shn & 0xff)
@@ -74,13 +76,15 @@ func toClient(config config.Config, iFace *water.Interface) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
-				stream := v.(quic.Stream)
 				copy(packet[len(shb):len(shb)+len(b)], b)
 				copy(packet[:len(shb)], shb)
+				stream := v.(quic.Stream)
+				stream.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 				n, err := stream.Write(packet[:len(shb)+len(b)])
 				if err != nil {
+					cache.GetCache().Delete(key)
 					netutil.PrintErr(err, config.Verbose)
-					break
+					continue
 				}
 				counter.IncrWrittenBytes(n)
 			}
@@ -94,6 +98,7 @@ func toServer(config config.Config, stream quic.Stream, iface *water.Interface) 
 	shb := make([]byte, 2)
 	defer stream.Close()
 	for {
+		stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := stream.Read(shb)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
@@ -105,12 +110,32 @@ func toServer(config config.Config, stream quic.Stream, iface *water.Interface) 
 		shn := 0
 		shn = ((shn & 0x00) | int(shb[0])) << 8
 		shn = shn | int(shb[1])
-		n, err = stream.Read(packet[:shn])
-		if err == io.EOF || err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			break
+		splitSize := 99
+		var count = 0
+		if shn < splitSize {
+			stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
+			n, err = stream.Read(packet[:shn])
+			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
+				break
+			}
+			count = n
+		} else {
+			for count < shn {
+				receiveSize := splitSize
+				if shn-count < splitSize {
+					receiveSize = shn - count
+				}
+				stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
+				n, err = stream.Read(packet[count : count+receiveSize])
+				if err != nil {
+					netutil.PrintErr(err, config.Verbose)
+					break
+				}
+				count += n
+			}
 		}
-		b := packet[:n]
+		b := packet[:shn]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {

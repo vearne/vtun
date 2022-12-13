@@ -1,58 +1,41 @@
-package quic
+package kcp
 
 import (
-	"context"
-	"crypto/tls"
+	"crypto/sha1"
 	"github.com/golang/snappy"
-	"github.com/lucas-clemente/quic-go"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/water"
+	"github.com/xtaci/kcp-go"
+	"golang.org/x/crypto/pbkdf2"
 	"log"
-	"sync"
 	"time"
 )
 
-// StartClient starts the quic client
 func StartClient(iFace *water.Interface, config config.Config) {
-	log.Println("vtun quic client started")
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: config.TLSInsecureSkipVerify,
-		NextProtos:         []string{"vtun"},
+	log.Println("vtun kcp client started")
+	key := pbkdf2.Key([]byte(config.Key), []byte("default_salt"),1024,32,sha1.New)
+	block, err := kcp.NewAESBlockCrypt(key)
+	if err != nil {
+		netutil.PrintErr(err, config.Verbose)
+		return
 	}
-	if config.TLSSni != "" {
-		tlsConfig.ServerName = config.TLSSni
-	}
-	var wg sync.WaitGroup
 	for {
-		conn, err := quic.DialAddr(config.ServerAddr, tlsConfig, nil)
-		if err != nil {
-			log.Panic(err)
+		if session, err := kcp.DialWithOptions(config.ServerAddr, block, 10,3);err == nil {
+			go tunToKcp(config, session, iFace)
+			kcpToTun(config, session, iFace)
+		}else {
+			log.Fatal(err)
 		}
-		for {
-			stream, err := conn.OpenStreamSync(context.Background())
-			if err != nil {
-				netutil.PrintErr(err, config.Verbose)
-				break
-			}
-			go tunToQuic(config, stream, iFace, &wg)
-			quicToTun(config, stream, iFace, &wg)
-		}
-		wg.Wait()
 	}
 }
 
-// tunToQuic sends packets from tun to quic
-func tunToQuic(config config.Config, stream quic.Stream, iFace *water.Interface, wg *sync.WaitGroup) {
-	wg.Add(1)
+func tunToKcp(config config.Config, session *kcp.UDPSession, iFace *water.Interface){
 	packet := make([]byte, config.BufferSize)
 	shb := make([]byte, 2)
-	defer func() {
-		stream.Close()
-		wg.Done()
-	}()
+	defer session.Close()
 	for {
 		shn, err := iFace.Read(packet)
 		if err != nil {
@@ -70,8 +53,8 @@ func tunToQuic(config config.Config, stream quic.Stream, iFace *water.Interface,
 		shb[1] = byte(shn & 0xff)
 		copy(packet[len(shb):len(shb)+len(b)], b)
 		copy(packet[:len(shb)], shb)
-		stream.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
-		n, err := stream.Write(packet[:len(shb)+len(b)])
+		session.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
+		n, err := session.Write(packet[:len(shb)+len(b)])
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
@@ -80,18 +63,13 @@ func tunToQuic(config config.Config, stream quic.Stream, iFace *water.Interface,
 	}
 }
 
-// quicToTun sends packets from quic to tun
-func quicToTun(config config.Config, stream quic.Stream, iFace *water.Interface, wg *sync.WaitGroup) {
-	wg.Add(1)
+func kcpToTun(config config.Config, session *kcp.UDPSession, iFace *water.Interface){
 	packet := make([]byte, config.BufferSize)
 	shb := make([]byte, 2)
-	defer func() {
-		stream.Close()
-		wg.Done()
-	}()
+	defer session.Close()
 	for {
-		stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
-		n, err := stream.Read(shb)
+		session.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
+		n, err := session.Read(shb)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
@@ -105,8 +83,8 @@ func quicToTun(config config.Config, stream quic.Stream, iFace *water.Interface,
 		splitSize := 99
 		var count = 0
 		if shn < splitSize {
-			stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
-			n, err = stream.Read(packet[:shn])
+			session.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
+			n, err = session.Read(packet[:shn])
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
 				break
@@ -118,8 +96,8 @@ func quicToTun(config config.Config, stream quic.Stream, iFace *water.Interface,
 				if shn-count < splitSize {
 					receiveSize = shn - count
 				}
-				stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
-				n, err = stream.Read(packet[count : count+receiveSize])
+				session.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
+				n, err = session.Read(packet[count : count+receiveSize])
 				if err != nil {
 					netutil.PrintErr(err, config.Verbose)
 					break
