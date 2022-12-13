@@ -2,6 +2,9 @@ package kcp
 
 import (
 	"crypto/sha1"
+	"log"
+	"time"
+
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
@@ -10,29 +13,27 @@ import (
 	"github.com/net-byte/water"
 	"github.com/xtaci/kcp-go"
 	"golang.org/x/crypto/pbkdf2"
-	"log"
-	"time"
 )
 
 func StartClient(iFace *water.Interface, config config.Config) {
 	log.Println("vtun kcp client started")
-	key := pbkdf2.Key([]byte(config.Key), []byte("default_salt"),1024,32,sha1.New)
+	key := pbkdf2.Key([]byte(config.Key), []byte("default_salt"), 1024, 32, sha1.New)
 	block, err := kcp.NewAESBlockCrypt(key)
 	if err != nil {
 		netutil.PrintErr(err, config.Verbose)
 		return
 	}
 	for {
-		if session, err := kcp.DialWithOptions(config.ServerAddr, block, 10,3);err == nil {
+		if session, err := kcp.DialWithOptions(config.ServerAddr, block, 10, 3); err == nil {
 			go tunToKcp(config, session, iFace)
 			kcpToTun(config, session, iFace)
-		}else {
+		} else {
 			log.Fatal(err)
 		}
 	}
 }
 
-func tunToKcp(config config.Config, session *kcp.UDPSession, iFace *water.Interface){
+func tunToKcp(config config.Config, session *kcp.UDPSession, iFace *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	shb := make([]byte, 2)
 	defer session.Close()
@@ -63,7 +64,7 @@ func tunToKcp(config config.Config, session *kcp.UDPSession, iFace *water.Interf
 	}
 }
 
-func kcpToTun(config config.Config, session *kcp.UDPSession, iFace *water.Interface){
+func kcpToTun(config config.Config, session *kcp.UDPSession, iFace *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	shb := make([]byte, 2)
 	defer session.Close()

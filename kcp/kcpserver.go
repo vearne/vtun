@@ -2,6 +2,9 @@ package kcp
 
 import (
 	"crypto/sha1"
+	"log"
+	"time"
+
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
@@ -11,19 +14,17 @@ import (
 	"github.com/net-byte/water"
 	"github.com/xtaci/kcp-go"
 	"golang.org/x/crypto/pbkdf2"
-	"log"
-	"time"
 )
 
 func StartServer(iFace *water.Interface, config config.Config) {
 	log.Printf("vtun kcp server started on %v", config.LocalAddr)
-	key := pbkdf2.Key([]byte(config.Key), []byte("default_salt"), 1024,32,sha1.New)
+	key := pbkdf2.Key([]byte(config.Key), []byte("default_salt"), 1024, 32, sha1.New)
 	block, err := kcp.NewAESBlockCrypt(key)
 	if err != nil {
 		netutil.PrintErr(err, config.Verbose)
 		return
 	}
-	if listener, err := kcp.ListenWithOptions(config.LocalAddr, block, 10,3);err == nil {
+	if listener, err := kcp.ListenWithOptions(config.LocalAddr, block, 10, 3); err == nil {
 		go toClient(iFace, config)
 		for {
 			session, err := listener.AcceptKCP()
@@ -33,7 +34,7 @@ func StartServer(iFace *water.Interface, config config.Config) {
 			}
 			go toServer(iFace, session, config)
 		}
-	}else{
+	} else {
 		log.Fatal(err)
 	}
 }

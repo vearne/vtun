@@ -3,6 +3,10 @@ package quic
 import (
 	"context"
 	"crypto/tls"
+	"log"
+	"sync"
+	"time"
+
 	"github.com/golang/snappy"
 	"github.com/lucas-clemente/quic-go"
 	"github.com/net-byte/vtun/common/cipher"
@@ -10,9 +14,6 @@ import (
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/water"
-	"log"
-	"sync"
-	"time"
 )
 
 // StartClient starts the quic client

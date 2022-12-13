@@ -3,7 +3,6 @@ package quic
 import (
 	"context"
 	"crypto/tls"
-	"io"
 	"log"
 	"time"
 
