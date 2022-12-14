@@ -4,11 +4,11 @@ import (
 	"context"
 	"crypto/tls"
 	"log"
-	"sync"
 	"time"
 
 	"github.com/golang/snappy"
 	"github.com/lucas-clemente/quic-go"
+	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
@@ -26,34 +26,30 @@ func StartClient(iFace *water.Interface, config config.Config) {
 	if config.TLSSni != "" {
 		tlsConfig.ServerName = config.TLSSni
 	}
-	var wg sync.WaitGroup
+	go tunToQuic(config, iFace)
 	for {
 		conn, err := quic.DialAddr(config.ServerAddr, tlsConfig, nil)
 		if err != nil {
-			log.Panic(err)
+			netutil.PrintErr(err, config.Verbose)
+			time.Sleep(3 * time.Second)
+			continue
 		}
-		for {
-			stream, err := conn.OpenStreamSync(context.Background())
-			if err != nil {
-				netutil.PrintErr(err, config.Verbose)
-				break
-			}
-			go tunToQuic(config, stream, iFace, &wg)
-			quicToTun(config, stream, iFace, &wg)
+		stream, err := conn.OpenStreamSync(context.Background())
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			conn.CloseWithError(quic.ApplicationErrorCode(0x01), "closed")
+			continue
 		}
-		wg.Wait()
+		cache.GetCache().Set("quicstream", stream, 24*time.Hour)
+		quicToTun(config, stream, iFace)
+		cache.GetCache().Delete("quicstream")
 	}
 }
 
 // tunToQuic sends packets from tun to quic
-func tunToQuic(config config.Config, stream quic.Stream, iFace *water.Interface, wg *sync.WaitGroup) {
-	wg.Add(1)
+func tunToQuic(config config.Config, iFace *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	shb := make([]byte, 2)
-	defer func() {
-		stream.Close()
-		wg.Done()
-	}()
 	for {
 		shn, err := iFace.Read(packet)
 		if err != nil {
@@ -71,25 +67,24 @@ func tunToQuic(config config.Config, stream quic.Stream, iFace *water.Interface,
 		shb[1] = byte(shn & 0xff)
 		copy(packet[len(shb):len(shb)+len(b)], b)
 		copy(packet[:len(shb)], shb)
-		stream.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
-		n, err := stream.Write(packet[:len(shb)+len(b)])
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			break
+		if v, ok := cache.GetCache().Get("quicstream"); ok {
+			stream := v.(quic.Stream)
+			stream.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
+			n, err := stream.Write(packet[:len(shb)+len(b)])
+			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
+				continue
+			}
+			counter.IncrWrittenBytes(n)
 		}
-		counter.IncrWrittenBytes(n)
 	}
 }
 
 // quicToTun sends packets from quic to tun
-func quicToTun(config config.Config, stream quic.Stream, iFace *water.Interface, wg *sync.WaitGroup) {
-	wg.Add(1)
+func quicToTun(config config.Config, stream quic.Stream, iFace *water.Interface) {
+	defer stream.Close()
 	packet := make([]byte, config.BufferSize)
 	shb := make([]byte, 2)
-	defer func() {
-		stream.Close()
-		wg.Done()
-	}()
 	for {
 		stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := stream.Read(shb)
