@@ -54,7 +54,7 @@ func tunToQuic(config config.Config, iFace *water.Interface) {
 		shn, err := iFace.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
-			break
+			continue
 		}
 		b := packet[:shn]
 		if config.Obfs {
