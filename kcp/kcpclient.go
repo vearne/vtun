@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang/snappy"
+	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
@@ -23,25 +24,28 @@ func StartClient(iFace *water.Interface, config config.Config) {
 		netutil.PrintErr(err, config.Verbose)
 		return
 	}
+	go tunToKcp(config, iFace)
 	for {
 		if session, err := kcp.DialWithOptions(config.ServerAddr, block, 10, 3); err == nil {
-			go tunToKcp(config, session, iFace)
+			cache.GetCache().Set("kcpconn", session, 24*time.Hour)
 			kcpToTun(config, session, iFace)
+			cache.GetCache().Delete("kcpconn")
 		} else {
-			log.Fatal(err)
+			netutil.PrintErr(err, config.Verbose)
+			time.Sleep(3 * time.Second)
+			continue
 		}
 	}
 }
 
-func tunToKcp(config config.Config, session *kcp.UDPSession, iFace *water.Interface) {
+func tunToKcp(config config.Config, iFace *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	shb := make([]byte, 2)
-	defer session.Close()
 	for {
 		shn, err := iFace.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
-			break
+			continue
 		}
 		b := packet[:shn]
 		if config.Obfs {
@@ -54,13 +58,16 @@ func tunToKcp(config config.Config, session *kcp.UDPSession, iFace *water.Interf
 		shb[1] = byte(shn & 0xff)
 		copy(packet[len(shb):len(shb)+len(b)], b)
 		copy(packet[:len(shb)], shb)
-		session.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
-		n, err := session.Write(packet[:len(shb)+len(b)])
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			break
+		if v, ok := cache.GetCache().Get("kcpconn"); ok {
+			session := v.(*kcp.UDPSession)
+			session.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
+			n, err := session.Write(packet[:len(shb)+len(b)])
+			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
+				continue
+			}
+			counter.IncrWrittenBytes(n)
 		}
-		counter.IncrWrittenBytes(n)
 	}
 }
 
