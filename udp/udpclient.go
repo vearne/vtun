@@ -18,35 +18,30 @@ func StartClient(iface *water.Interface, config config.Config) {
 	if err != nil {
 		log.Fatalln("failed to resolve server addr:", err)
 	}
-	localAddr, err := net.ResolveUDPAddr("udp", ":0")
+	conn, err := net.DialUDP("udp", nil, serverAddr)
 	if err != nil {
-		log.Fatalln("failed to get udp socket:", err)
-	}
-	conn, err := net.ListenUDP("udp", localAddr)
-	if err != nil {
-		log.Fatalln("failed to listen on udp socket:", err)
+		log.Fatalln("failed to dial udp server:", err)
 	}
 	defer conn.Close()
-	log.Printf("vtun udp client started on %v", conn.LocalAddr().String())
-	c := &Client{config: config, iface: iface, localConn: conn, serverAddr: serverAddr}
+	log.Println("vtun udp client started")
+	c := &Client{config: config, iface: iface, conn: conn}
 	go c.udpToTun()
 	c.tunToUdp()
 }
 
 // The client struct
 type Client struct {
-	config     config.Config
-	iface      *water.Interface
-	localConn  *net.UDPConn
-	serverAddr *net.UDPAddr
+	config config.Config
+	iface  *water.Interface
+	conn   *net.UDPConn
 }
 
 // udpToTun sends packets from udp to tun
 func (c *Client) udpToTun() {
 	packet := make([]byte, c.config.BufferSize)
 	for {
-		n, _, err := c.localConn.ReadFromUDP(packet)
-		if err != nil || n == 0 {
+		n, err := c.conn.Read(packet)
+		if err != nil {
 			netutil.PrintErr(err, c.config.Verbose)
 			continue
 		}
@@ -82,7 +77,11 @@ func (c *Client) tunToUdp() {
 		if c.config.Compress {
 			b = snappy.Encode(nil, b)
 		}
-		c.localConn.WriteToUDP(b, c.serverAddr)
+		_, err = c.conn.Write(b)
+		if err != nil {
+			netutil.PrintErr(err, c.config.Verbose)
+			continue
+		}
 		counter.IncrWrittenBytes(n)
 	}
 }
