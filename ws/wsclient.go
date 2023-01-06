@@ -36,7 +36,6 @@ func StartClient(iface *water.Interface, config config.Config) {
 func ping(wsconn net.Conn, config config.Config) {
 	defer wsconn.Close()
 	for {
-		wsconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		err := wsutil.WriteClientMessage(wsconn, ws.OpText, []byte("ping"))
 		if err != nil {
 			break
@@ -49,7 +48,6 @@ func ping(wsconn net.Conn, config config.Config) {
 func wsToTun(config config.Config, wsconn net.Conn, iface *water.Interface) {
 	defer wsconn.Close()
 	for {
-		wsconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		packet, err := wsutil.ReadServerBinary(wsconn)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
@@ -88,7 +86,6 @@ func tunToWs(config config.Config, iface *water.Interface) {
 				b = snappy.Encode(nil, b)
 			}
 			wsconn := v.(net.Conn)
-			wsconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 			if err = wsutil.WriteClientBinary(wsconn, b); err != nil {
 				netutil.PrintErr(err, config.Verbose)
 				continue

@@ -60,7 +60,6 @@ func tunToKcp(config config.Config, iFace *water.Interface) {
 		copy(packet[:len(shb)], shb)
 		if v, ok := cache.GetCache().Get("kcpconn"); ok {
 			session := v.(*kcp.UDPSession)
-			session.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 			n, err := session.Write(packet[:len(shb)+len(b)])
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
@@ -76,7 +75,6 @@ func kcpToTun(config config.Config, session *kcp.UDPSession, iFace *water.Interf
 	shb := make([]byte, 2)
 	defer session.Close()
 	for {
-		session.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := session.Read(shb)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
@@ -91,7 +89,6 @@ func kcpToTun(config config.Config, session *kcp.UDPSession, iFace *water.Interf
 		splitSize := 99
 		var count = 0
 		if shn < splitSize {
-			session.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 			n, err = session.Read(packet[:shn])
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
@@ -104,7 +101,6 @@ func kcpToTun(config config.Config, session *kcp.UDPSession, iFace *water.Interf
 				if shn-count < splitSize {
 					receiveSize = shn - count
 				}
-				session.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 				n, err = session.Read(packet[count : count+receiveSize])
 				if err != nil {
 					netutil.PrintErr(err, config.Verbose)

@@ -69,7 +69,6 @@ func tunToQuic(config config.Config, iFace *water.Interface) {
 		copy(packet[:len(shb)], shb)
 		if v, ok := cache.GetCache().Get("quicstream"); ok {
 			stream := v.(quic.Stream)
-			stream.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 			n, err := stream.Write(packet[:len(shb)+len(b)])
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
@@ -86,7 +85,6 @@ func quicToTun(config config.Config, stream quic.Stream, iFace *water.Interface)
 	packet := make([]byte, config.BufferSize)
 	shb := make([]byte, 2)
 	for {
-		stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := stream.Read(shb)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
@@ -101,7 +99,6 @@ func quicToTun(config config.Config, stream quic.Stream, iFace *water.Interface)
 		splitSize := 99
 		var count = 0
 		if shn < splitSize {
-			stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 			n, err = stream.Read(packet[:shn])
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
@@ -114,7 +111,6 @@ func quicToTun(config config.Config, stream quic.Stream, iFace *water.Interface)
 				if shn-count < splitSize {
 					receiveSize = shn - count
 				}
-				stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 				n, err = stream.Read(packet[count : count+receiveSize])
 				if err != nil {
 					netutil.PrintErr(err, config.Verbose)

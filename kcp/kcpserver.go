@@ -44,7 +44,6 @@ func toServer(iFace *water.Interface, session *kcp.UDPSession, config config.Con
 	shb := make([]byte, 2)
 	defer session.Close()
 	for {
-		session.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := session.Read(shb)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
@@ -59,7 +58,6 @@ func toServer(iFace *water.Interface, session *kcp.UDPSession, config config.Con
 		splitSize := 99
 		var count = 0
 		if shn < splitSize {
-			session.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 			n, err = session.Read(packet[:shn])
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
@@ -72,7 +70,6 @@ func toServer(iFace *water.Interface, session *kcp.UDPSession, config config.Con
 				if shn-count < splitSize {
 					receiveSize = shn - count
 				}
-				session.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 				n, err = session.Read(packet[count : count+receiveSize])
 				if err != nil {
 					netutil.PrintErr(err, config.Verbose)
@@ -127,7 +124,6 @@ func toClient(iFace *water.Interface, config config.Config) {
 				copy(packet[len(shb):len(shb)+len(b)], b)
 				copy(packet[:len(shb)], shb)
 				session := v.(*kcp.UDPSession)
-				session.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 				n, err := session.Write(packet[:len(shb)+len(b)])
 				if err != nil {
 					cache.GetCache().Delete(key)

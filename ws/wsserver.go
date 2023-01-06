@@ -175,7 +175,6 @@ func toClient(config config.Config, iface *water.Interface) {
 func toServer(config config.Config, wsconn net.Conn, iface *water.Interface) {
 	defer wsconn.Close()
 	for {
-		wsconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		b, op, err := wsutil.ReadClientData(wsconn)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)

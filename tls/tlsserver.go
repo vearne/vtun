@@ -81,7 +81,6 @@ func toClient(config config.Config, iface *water.Interface) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
-				v.(net.Conn).SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 				_, err := v.(net.Conn).Write(b)
 				if err != nil {
 					cache.GetCache().Delete(key)
@@ -98,7 +97,6 @@ func toServer(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 	defer tlsconn.Close()
 	packet := make([]byte, config.BufferSize)
 	for {
-		tlsconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := tlsconn.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)

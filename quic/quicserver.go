@@ -78,7 +78,6 @@ func toClient(config config.Config, iFace *water.Interface) {
 				copy(packet[len(shb):len(shb)+len(b)], b)
 				copy(packet[:len(shb)], shb)
 				stream := v.(quic.Stream)
-				stream.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 				n, err := stream.Write(packet[:len(shb)+len(b)])
 				if err != nil {
 					cache.GetCache().Delete(key)
@@ -97,7 +96,6 @@ func toServer(config config.Config, stream quic.Stream, iface *water.Interface) 
 	shb := make([]byte, 2)
 	defer stream.Close()
 	for {
-		stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := stream.Read(shb)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
@@ -112,7 +110,6 @@ func toServer(config config.Config, stream quic.Stream, iface *water.Interface) 
 		splitSize := 99
 		var count = 0
 		if shn < splitSize {
-			stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 			n, err = stream.Read(packet[:shn])
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
@@ -125,7 +122,6 @@ func toServer(config config.Config, stream quic.Stream, iface *water.Interface) 
 				if shn-count < splitSize {
 					receiveSize = shn - count
 				}
-				stream.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 				n, err = stream.Read(packet[count : count+receiveSize])
 				if err != nil {
 					netutil.PrintErr(err, config.Verbose)

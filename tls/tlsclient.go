@@ -67,7 +67,6 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 				b = snappy.Encode(nil, b)
 			}
 			tlsconn := v.(net.Conn)
-			tlsconn.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 			_, err = tlsconn.Write(b)
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
@@ -83,7 +82,6 @@ func tlsToTun(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 	defer tlsconn.Close()
 	packet := make([]byte, config.BufferSize)
 	for {
-		tlsconn.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
 		n, err := tlsconn.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
