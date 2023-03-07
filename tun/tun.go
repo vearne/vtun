@@ -65,11 +65,6 @@ func setRoute(config config.Config, iface *water.Interface) {
 						netutil.ExecCmd("/sbin/ip", "-6", "route", "add", serverAddrIP.To16().String()+"/128", "via", config.LocalGatewayv6, "dev", physicalIface)
 					}
 				}
-				if net.ParseIP(config.DNSIP) != nil && net.ParseIP(config.DNSIP).To4() == nil {
-					netutil.ExecCmd("/sbin/ip", "route", "add", config.DNSIP+"/128", "via", config.LocalGatewayv6, "dev", physicalIface)
-				} else {
-					netutil.ExecCmd("/sbin/ip", "route", "add", config.DNSIP+"/32", "via", config.LocalGateway, "dev", physicalIface)
-				}
 			}
 		}
 
@@ -97,11 +92,6 @@ func setRoute(config config.Config, iface *water.Interface) {
 						netutil.ExecCmd("route", "add", "-inet6", serverAddrIP.To16().String(), config.LocalGatewayv6)
 					}
 				}
-				if net.ParseIP(config.DNSIP) != nil && net.ParseIP(config.DNSIP).To4() == nil {
-					netutil.ExecCmd("route", "add", "-inet6", config.DNSIP, config.LocalGatewayv6)
-				} else {
-					netutil.ExecCmd("route", "add", config.DNSIP, config.LocalGateway)
-				}
 			}
 		}
 	} else if os == "windows" {
@@ -121,11 +111,6 @@ func setRoute(config config.Config, iface *water.Interface) {
 					if serverAddrIP.To16() != nil {
 						netutil.ExecCmd("cmd", "/C", "route", "-6", "add", serverAddrIP.To16().String()+"/128", config.LocalGatewayv6, "metric", "5")
 					}
-				}
-				if net.ParseIP(config.DNSIP) != nil && net.ParseIP(config.DNSIP).To4() == nil {
-					netutil.ExecCmd("cmd", "/C", "route", "add", config.DNSIP+"/128", config.LocalGatewayv6, "metric", "5")
-				} else {
-					netutil.ExecCmd("cmd", "/C", "route", "add", config.DNSIP, config.LocalGateway, "metric", "5")
 				}
 			}
 		}

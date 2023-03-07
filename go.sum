@@ -73,8 +73,8 @@ github.com/klauspost/reedsolomon v1.11.3 h1:rX9UNNvDhJ0Bq45y6uBy/eYehcjyz5faokTu
 github.com/klauspost/reedsolomon v1.11.3/go.mod h1:FXLZzlJIdfqEnQLdUKWNRuMZg747hZ4oYp2Ml60Lb/k=
 github.com/net-byte/go-gateway v0.0.2 h1:xNB7CqWh7js6PB/xOochjyJlDHl6sZthhPSoJdxwoLY=
 github.com/net-byte/go-gateway v0.0.2/go.mod h1:+NvPbRjN64RUYvm6xtRBUswoAXKAe44Y/PfWtWMgwwY=
-github.com/net-byte/water v0.0.7 h1:wJUVq8x1AdfzZ5G8Qv61YRX+d22wx0ZgWNG0ihLqglo=
-github.com/net-byte/water v0.0.7/go.mod h1:tRTm034ul8JBKkYFGN/WrnUM4cctr9laq5IpwvaVqUE=
+github.com/net-byte/water v0.0.9 h1:4kgflU1N3dHA+OloRVsS0UUz++zQJ/+cthC1ZmHSPOE=
+github.com/net-byte/water v0.0.9/go.mod h1:tRTm034ul8JBKkYFGN/WrnUM4cctr9laq5IpwvaVqUE=
 github.com/onsi/ginkgo/v2 v2.2.0 h1:3ZNA3L1c5FYDFTTxbFeVGGD8jYvjYauHD30YgLxVsNI=
 github.com/onsi/ginkgo/v2 v2.2.0/go.mod h1:MEH45j8TBi6u9BMogfbp0stKC5cdGjumZj5Y7AG4VIk=
 github.com/onsi/gomega v1.20.1 h1:PA/3qinGoukvymdIDV8pii6tiZgC8kbmJO6Z5+b002Q=

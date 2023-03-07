@@ -19,13 +19,6 @@ import (
 
 // ConnectServer connects to the server with the given address.
 func ConnectServer(config config.Config) net.Conn {
-	net.DefaultResolver = &net.Resolver{
-		PreferGo: true,
-		Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
-			var dialer net.Dialer
-			return dialer.DialContext(ctx, network, net.JoinHostPort(config.DNSIP, "53"))
-		},
-	}
 	scheme := "ws"
 	if config.Protocol == "wss" {
 		scheme = "wss"
