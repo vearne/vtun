@@ -58,8 +58,6 @@ Usage of ./vtun:
         server ip (default "172.16.0.1")
   -sip6 string
         server ipv6 (default "fced:9999::1")
-  -dip string
-        dns server ip (default "8.8.8.8")
   -t int
         dial timeout in seconds (default 30)
   -v    enable verbose output
