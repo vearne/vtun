@@ -55,11 +55,11 @@ func StartServer(iface *water.Interface, config config.Config) {
 }
 
 // toClient sends packets from iface to quicconn
-func toClient(config config.Config, iFace *water.Interface) {
+func toClient(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	shb := make([]byte, 2)
 	for {
-		shn, err := iFace.Read(packet)
+		shn, err := iface.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			continue

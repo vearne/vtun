@@ -16,7 +16,7 @@ import (
 )
 
 // StartServer starts the tls server
-func StartServer(iFace *water.Interface, config config.Config) {
+func StartServer(iface *water.Interface, config config.Config) {
 	log.Printf("vtun tls server started on %v", config.LocalAddr)
 	cert, err := tls.LoadX509KeyPair(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
 	if err != nil {
@@ -41,7 +41,7 @@ func StartServer(iFace *water.Interface, config config.Config) {
 		log.Panic(err)
 	}
 	// server -> client
-	go toClient(config, iFace)
+	go toClient(config, iface)
 	// client -> server
 	for {
 		conn, err := ln.Accept()
@@ -59,7 +59,7 @@ func StartServer(iFace *water.Interface, config config.Config) {
 				continue
 			}
 		}
-		go toServer(config, sniffConn, iFace)
+		go toServer(config, sniffConn, iface)
 	}
 }
 

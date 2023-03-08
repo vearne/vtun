@@ -16,7 +16,7 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-func StartServer(iFace *water.Interface, config config.Config) {
+func StartServer(iface *water.Interface, config config.Config) {
 	log.Printf("vtun kcp server started on %v", config.LocalAddr)
 	key := pbkdf2.Key([]byte(config.Key), []byte("default_salt"), 1024, 32, sha1.New)
 	block, err := kcp.NewAESBlockCrypt(key)
@@ -25,21 +25,21 @@ func StartServer(iFace *water.Interface, config config.Config) {
 		return
 	}
 	if listener, err := kcp.ListenWithOptions(config.LocalAddr, block, 10, 3); err == nil {
-		go toClient(iFace, config)
+		go toClient(iface, config)
 		for {
 			session, err := listener.AcceptKCP()
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
 				continue
 			}
-			go toServer(iFace, session, config)
+			go toServer(iface, session, config)
 		}
 	} else {
 		log.Fatal(err)
 	}
 }
 
-func toServer(iFace *water.Interface, session *kcp.UDPSession, config config.Config) {
+func toServer(iface *water.Interface, session *kcp.UDPSession, config config.Config) {
 	packet := make([]byte, config.BufferSize)
 	shb := make([]byte, 2)
 	defer session.Close()
@@ -91,7 +91,7 @@ func toServer(iFace *water.Interface, session *kcp.UDPSession, config config.Con
 		}
 		if key := netutil.GetSrcKey(b); key != "" {
 			cache.GetCache().Set(key, session, 24*time.Hour)
-			n, err = iFace.Write(b)
+			n, err = iface.Write(b)
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
 				break
@@ -101,11 +101,11 @@ func toServer(iFace *water.Interface, session *kcp.UDPSession, config config.Con
 	}
 }
 
-func toClient(iFace *water.Interface, config config.Config) {
+func toClient(iface *water.Interface, config config.Config) {
 	packet := make([]byte, config.BufferSize)
 	shb := make([]byte, 2)
 	for {
-		shn, err := iFace.Read(packet)
+		shn, err := iface.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			continue

@@ -17,7 +17,7 @@ import (
 )
 
 // StartClient starts the quic client
-func StartClient(iFace *water.Interface, config config.Config) {
+func StartClient(iface *water.Interface, config config.Config) {
 	log.Println("vtun quic client started")
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: config.TLSInsecureSkipVerify,
@@ -26,7 +26,7 @@ func StartClient(iFace *water.Interface, config config.Config) {
 	if config.TLSSni != "" {
 		tlsConfig.ServerName = config.TLSSni
 	}
-	go tunToQuic(config, iFace)
+	go tunToQuic(config, iface)
 	for {
 		conn, err := quic.DialAddr(config.ServerAddr, tlsConfig, nil)
 		if err != nil {
@@ -41,17 +41,17 @@ func StartClient(iFace *water.Interface, config config.Config) {
 			continue
 		}
 		cache.GetCache().Set("quicstream", stream, 24*time.Hour)
-		quicToTun(config, stream, iFace)
+		quicToTun(config, stream, iface)
 		cache.GetCache().Delete("quicstream")
 	}
 }
 
 // tunToQuic sends packets from tun to quic
-func tunToQuic(config config.Config, iFace *water.Interface) {
+func tunToQuic(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	shb := make([]byte, 2)
 	for {
-		shn, err := iFace.Read(packet)
+		shn, err := iface.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			continue
@@ -80,7 +80,7 @@ func tunToQuic(config config.Config, iFace *water.Interface) {
 }
 
 // quicToTun sends packets from quic to tun
-func quicToTun(config config.Config, stream quic.Stream, iFace *water.Interface) {
+func quicToTun(config config.Config, stream quic.Stream, iface *water.Interface) {
 	defer stream.Close()
 	packet := make([]byte, config.BufferSize)
 	shb := make([]byte, 2)
@@ -130,7 +130,7 @@ func quicToTun(config config.Config, stream quic.Stream, iFace *water.Interface)
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		n, err = iFace.Write(b)
+		n, err = iface.Write(b)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
