@@ -137,7 +137,7 @@ func CheckKCPSessionAlive(session *kcp.UDPSession, config config.Config) {
 		time.Sleep(time.Duration(config.Timeout) * time.Second)
 
 		result := netutil.ExecCmd("ping", "-c", "4", config.ServerIP)
-		// macos return "100.0% packet loss",  linux return "100% packet loss"
+		// macos return "100.0% packet loss",  windows and linux return "100% packet loss"
 		if strings.Contains(result, `100.0%`) || strings.Contains(result, `100%`) {
 			session.Close()
 			netutil.PrintErr(errors.New("ping server failed, reconnecting"), config.Verbose)
