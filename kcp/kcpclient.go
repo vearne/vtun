@@ -2,7 +2,9 @@ package kcp
 
 import (
 	"crypto/sha1"
+	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/golang/snappy"
@@ -27,6 +29,7 @@ func StartClient(iface *water.Interface, config config.Config) {
 	go tunToKcp(config, iface)
 	for {
 		if session, err := kcp.DialWithOptions(config.ServerAddr, block, 10, 3); err == nil {
+		        go CheckKCPSessionAlive(session, config)
 			cache.GetCache().Set("kcpconn", session, 24*time.Hour)
 			kcpToTun(config, session, iface)
 			cache.GetCache().Delete("kcpconn")
@@ -126,5 +129,20 @@ func kcpToTun(config config.Config, session *kcp.UDPSession, iface *water.Interf
 			break
 		}
 		counter.IncrReadBytes(n)
+	}
+}
+
+func CheckKCPSessionAlive(session *kcp.UDPSession, config config.Config) {
+	for {
+		time.Sleep(time.Duration(config.Timeout) * time.Second)
+
+		result := netutil.ExecCmd("ping", "-c", "4", config.ServerIP)
+		// macos return "100.0% packet loss",  linux return "100% packet loss"
+		if strings.Contains(result, `100.0%`) || strings.Contains(result, `100%`) {
+			session.Close()
+			netutil.PrintErr(errors.New("ping server failed, reconnecting"), config.Verbose)
+			break
+		}
+
 	}
 }
