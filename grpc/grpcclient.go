@@ -23,13 +23,13 @@ import (
 func StartClient(iface *water.Interface, config config.Config) {
 	log.Println("vtun grpc client started")
 	go tunToGrpc(config, iface)
-	tlsconfig := &tls.Config{
+	tlsConfig := &tls.Config{
 		InsecureSkipVerify: config.TLSInsecureSkipVerify,
 	}
 	if config.TLSSni != "" {
-		tlsconfig.ServerName = config.TLSSni
+		tlsConfig.ServerName = config.TLSSni
 	}
-	creds := credentials.NewTLS(tlsconfig)
+	creds := credentials.NewTLS(tlsConfig)
 	for {
 		conn, err := grpc.Dial(config.ServerAddr, grpc.WithBlock(), grpc.WithTransportCredentials(creds))
 		if err != nil {

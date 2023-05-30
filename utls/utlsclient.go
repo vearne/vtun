@@ -1,7 +1,7 @@
-package tls
+package utls
 
 import (
-	"crypto/tls"
+	utls "github.com/refraction-networking/utls"
 	"log"
 	"net"
 	"time"
@@ -17,35 +17,31 @@ import (
 
 // StartClient starts the tls client
 func StartClient(iface *water.Interface, config config.Config) {
-	log.Println("vtun tls client started")
+	log.Println("vtun utls client started")
 	go tunToTLS(config, iface)
-	tlsConfig := &tls.Config{
+	tlsconfig := &utls.Config{
 		InsecureSkipVerify: config.TLSInsecureSkipVerify,
-		MinVersion:         tls.VersionTLS13,
-		CurvePreferences:   []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-		},
 	}
 	if config.TLSSni != "" {
-		tlsConfig.ServerName = config.TLSSni
+		tlsconfig.ServerName = config.TLSSni
 	}
 	for {
-		conn, err := tls.Dial("tcp", config.ServerAddr, tlsConfig)
+		tcpConn, err := net.Dial("tcp", config.ServerAddr)
 		if err != nil {
 			time.Sleep(3 * time.Second)
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		cache.GetCache().Set("tlsconn", conn, 24*time.Hour)
+		conn := utls.UClient(tcpConn, tlsconfig, utls.HelloRandomized)
+		err = conn.Handshake()
+		if err != nil {
+			time.Sleep(3 * time.Second)
+			netutil.PrintErr(err, config.Verbose)
+			continue
+		}
+		cache.GetCache().Set("utlsconn", conn, 24*time.Hour)
 		tlsToTun(config, conn, iface)
-		cache.GetCache().Delete("tlsconn")
+		cache.GetCache().Delete("utlsconn")
 	}
 }
 
@@ -58,7 +54,7 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if v, ok := cache.GetCache().Get("tlsconn"); ok {
+		if v, ok := cache.GetCache().Get("utlsconn"); ok {
 			b := packet[:n]
 			if config.Obfs {
 				b = cipher.XOR(b)
@@ -66,8 +62,8 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 			if config.Compress {
 				b = snappy.Encode(nil, b)
 			}
-			tlsconn := v.(net.Conn)
-			_, err = tlsconn.Write(b)
+			utlsconn := v.(*utls.UConn)
+			_, err = utlsconn.Write(b)
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
 				continue
@@ -78,11 +74,11 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 }
 
 // tlsToTun sends packets from tls to tun
-func tlsToTun(config config.Config, tlsconn net.Conn, iface *water.Interface) {
-	defer tlsconn.Close()
+func tlsToTun(config config.Config, utlsconn *utls.UConn, iface *water.Interface) {
+	defer utlsconn.Close()
 	packet := make([]byte, config.BufferSize)
 	for {
-		n, err := tlsconn.Read(packet)
+		n, err := utlsconn.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
