@@ -1,7 +1,7 @@
 package dtls
 
 import (
-	"github.com/pion/dtls"
+	"github.com/pion/dtls/v2"
 	"log"
 	"net"
 	"time"
@@ -15,20 +15,28 @@ import (
 	"github.com/net-byte/water"
 )
 
-// StartClient starts the tls client
+// StartClient starts the dtls client
 func StartClient(iface *water.Interface, config config.Config) {
 	log.Println("vtun dtls client started")
 	go tunToTLS(config, iface)
-	tlsConfig := &dtls.Config{
-		PSK: func(bytes []byte) ([]byte, error) {
-			return []byte{0x09, 0x46, 0x59, 0x02, 0x49}, nil
-		},
-		PSKIdentityHint:      []byte(config.Key),
-		CipherSuites:         []dtls.CipherSuiteID{dtls.TLS_PSK_WITH_AES_128_GCM_SHA256, dtls.TLS_PSK_WITH_AES_128_CCM_8},
-		ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
-	}
-	if config.TLSSni != "" {
-		tlsConfig.ServerName = config.TLSSni
+	var tlsConfig *dtls.Config
+	if config.PSKMode {
+		tlsConfig = &dtls.Config{
+			PSK: func(bytes []byte) ([]byte, error) {
+				return []byte{0x09, 0x46, 0x59, 0x02, 0x49}, nil
+			},
+			PSKIdentityHint:      []byte(config.Key),
+			CipherSuites:         []dtls.CipherSuiteID{dtls.TLS_PSK_WITH_AES_128_GCM_SHA256, dtls.TLS_PSK_WITH_AES_128_CCM_8},
+			ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
+		}
+	} else {
+		tlsConfig = &dtls.Config{
+			ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
+			InsecureSkipVerify:   config.TLSInsecureSkipVerify,
+		}
+		if config.TLSSni != "" {
+			tlsConfig.ServerName = config.TLSSni
+		}
 	}
 	for {
 		addr, err := net.ResolveUDPAddr("udp", config.ServerAddr)

@@ -1,7 +1,7 @@
 package dtls
 
 import (
-	"github.com/pion/dtls"
+	"crypto/tls"
 	"log"
 	"net"
 	"time"
@@ -13,18 +13,32 @@ import (
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/water"
+	"github.com/pion/dtls/v2"
 )
 
-// StartServer starts the tls server
+// StartServer starts the dtls server
 func StartServer(iface *water.Interface, config config.Config) {
 	log.Printf("vtun dtls server started on %v", config.LocalAddr)
-	tlsConfig := &dtls.Config{
-		PSK: func(bytes []byte) ([]byte, error) {
-			return []byte{0x09, 0x46, 0x59, 0x02, 0x49}, nil
-		},
-		PSKIdentityHint:      []byte(config.Key),
-		CipherSuites:         []dtls.CipherSuiteID{dtls.TLS_PSK_WITH_AES_128_GCM_SHA256, dtls.TLS_PSK_WITH_AES_128_CCM_8},
-		ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
+	var tlsConfig *dtls.Config
+	if config.PSKMode {
+		tlsConfig = &dtls.Config{
+			PSK: func(bytes []byte) ([]byte, error) {
+				return []byte{0x09, 0x46, 0x59, 0x02, 0x49}, nil
+			},
+			PSKIdentityHint:      []byte(config.Key),
+			CipherSuites:         []dtls.CipherSuiteID{dtls.TLS_PSK_WITH_AES_128_GCM_SHA256, dtls.TLS_PSK_WITH_AES_128_CCM_8},
+			ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
+		}
+	} else {
+		certificate, err := tls.LoadX509KeyPair(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
+		if err != nil {
+			log.Panic(err)
+		}
+		tlsConfig = &dtls.Config{
+			Certificates:         []tls.Certificate{certificate},
+			ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
+			ClientAuth:           dtls.NoClientCert,
+		}
 	}
 	addr, err := net.ResolveUDPAddr("udp", config.LocalAddr)
 	if err != nil {
@@ -46,7 +60,7 @@ func StartServer(iface *water.Interface, config config.Config) {
 	}
 }
 
-// toClient sends packets from iface to tlsconn
+// toClient sends packets from iface to conn
 func toClient(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	for {
@@ -75,12 +89,12 @@ func toClient(config config.Config, iface *water.Interface) {
 	}
 }
 
-// toServer sends packets from tlsconn to iface
-func toServer(config config.Config, tlsconn net.Conn, iface *water.Interface) {
-	defer tlsconn.Close()
+// toServer sends packets from conn to iface
+func toServer(config config.Config, conn net.Conn, iface *water.Interface) {
+	defer conn.Close()
 	packet := make([]byte, config.BufferSize)
 	for {
-		n, err := tlsconn.Read(packet)
+		n, err := conn.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
@@ -97,7 +111,7 @@ func toServer(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 			b = cipher.XOR(b)
 		}
 		if key := netutil.GetSrcKey(b); key != "" {
-			cache.GetCache().Set(key, tlsconn, 24*time.Hour)
+			cache.GetCache().Set(key, conn, 24*time.Hour)
 			iface.Write(b)
 			counter.IncrReadBytes(n)
 		}

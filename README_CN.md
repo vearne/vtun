@@ -17,50 +17,54 @@
 * 支持grpc
 * 支持quic
 * 支持kcp
+* 支持utls
+* 支持dtls
 
 # 用法
 
 ```
-Usage of ./vtun:
-  -S    server mode
+Usage of vtun:
+  -S  server mode
   -c string
-        tun interface cidr (default "172.16.0.10/24")
+      tun interface cidr (default "172.16.0.10/24")
   -c6 string
-        tun interface ipv6 cidr (default "fced:9999::9999/64")
+      tun interface ipv6 cidr (default "fced:9999::9999/64")
   -certificate string
-        tls certificate file path (default "./certs/server.pem")
-  -privatekey string
-        tls certificate key file path (default "./certs/server.key")
-  -sni string
-        tls handshake sni
-  -isv
-        tls insecure skip verify
-  -dn string
-        device name
-  -g    client global mode
-  -k string
-        key (default "freedom@2022")
-  -l string
-        local address (default ":3000")
-  -mtu int
-        tun mtu (default 1500)
-  -obfs
-        enable data obfuscation
+      tls certificate file path (default "./certs/server.pem")
   -compress
-        enable data compression
+      enable data compression
+  -dn string
+      device name
+  -g  client global mode
+  -isv
+      tls insecure skip verify
+  -k string
+      key (default "freedom@2023")
+  -l string
+      local address (default ":3000")
+  -mtu int
+      tun mtu (default 1500)
+  -obfs
+      enable data obfuscation
   -p string
-        protocol udp/tls/grpc/quic/kcp/ws/wss (default "udp")
+      protocol udp/tls/grpc/quic/utls/dtls/ws/wss (default "udp")
   -path string
-        websocket path (default "/freedom")
+      websocket path (default "/freedom")
+  -privatekey string
+      tls certificate key file path (default "./certs/server.key")
+  -psk
+      enable psk mode (dtls only)
   -s string
-        server address (default ":3001")
+      server address (default ":3001")
   -sip string
-        server ip (default "172.16.0.1")
+      server ip (default "172.16.0.1")
   -sip6 string
-        server ipv6 (default "fced:9999::1")
+      server ipv6 (default "fced:9999::1")
+  -sni string
+      tls handshake sni
   -t int
-        dial timeout in seconds (default 30)
-  -v    enable verbose output
+      dial timeout in seconds (default 30)
+  -v  enable verbose output
 ```
 
 ## 编译

@@ -26,4 +26,5 @@ type Config struct {
 	TLSInsecureSkipVerify     bool
 	BufferSize                int
 	Verbose                   bool
+	PSKMode                   bool
 }
