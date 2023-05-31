@@ -15,7 +15,7 @@ import (
 	"github.com/net-byte/water"
 )
 
-// StartClient starts the tls client
+// StartClient starts the utls client
 func StartClient(iface *water.Interface, config config.Config) {
 	log.Println("vtun utls client started")
 	go tunToTLS(config, iface)
@@ -74,11 +74,11 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 }
 
 // tlsToTun sends packets from tls to tun
-func tlsToTun(config config.Config, utlsconn *utls.UConn, iface *water.Interface) {
-	defer utlsconn.Close()
+func tlsToTun(config config.Config, conn *utls.UConn, iface *water.Interface) {
+	defer conn.Close()
 	packet := make([]byte, config.BufferSize)
 	for {
-		n, err := utlsconn.Read(packet)
+		n, err := conn.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break

@@ -15,7 +15,7 @@ import (
 	utls "github.com/refraction-networking/utls"
 )
 
-// StartServer starts the tls server
+// StartServer starts the utls server
 func StartServer(iface *water.Interface, config config.Config) {
 	log.Printf("vtun utls server started on %v", config.LocalAddr)
 	cert, err := utls.LoadX509KeyPair(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
@@ -52,7 +52,7 @@ func StartServer(iface *water.Interface, config config.Config) {
 	}
 }
 
-// toClient sends packets from iface to tlsconn
+// toClient sends packets from iface to conn
 func toClient(config config.Config, iface *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	for {
@@ -81,12 +81,12 @@ func toClient(config config.Config, iface *water.Interface) {
 	}
 }
 
-// toServer sends packets from tlsconn to iface
-func toServer(config config.Config, tlsconn net.Conn, iface *water.Interface) {
-	defer tlsconn.Close()
+// toServer sends packets from conn to iface
+func toServer(config config.Config, conn net.Conn, iface *water.Interface) {
+	defer conn.Close()
 	packet := make([]byte, config.BufferSize)
 	for {
-		n, err := tlsconn.Read(packet)
+		n, err := conn.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
@@ -103,7 +103,7 @@ func toServer(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 			b = cipher.XOR(b)
 		}
 		if key := netutil.GetSrcKey(b); key != "" {
-			cache.GetCache().Set(key, tlsconn, 24*time.Hour)
+			cache.GetCache().Set(key, conn, 24*time.Hour)
 			iface.Write(b)
 			counter.IncrReadBytes(n)
 		}

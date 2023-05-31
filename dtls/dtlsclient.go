@@ -86,11 +86,11 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 }
 
 // tlsToTun sends packets from tls to tun
-func tlsToTun(config config.Config, tlsconn net.Conn, iface *water.Interface) {
-	defer tlsconn.Close()
+func tlsToTun(config config.Config, conn net.Conn, iface *water.Interface) {
+	defer conn.Close()
 	packet := make([]byte, config.BufferSize)
 	for {
-		n, err := tlsconn.Read(packet)
+		n, err := conn.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
