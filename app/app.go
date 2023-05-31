@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/net-byte/vtun/dtls"
+	"github.com/net-byte/vtun/h2"
 	"github.com/net-byte/vtun/kcp"
 	"github.com/net-byte/vtun/quic"
 	"github.com/net-byte/vtun/utls"
@@ -110,6 +111,12 @@ func (app *App) StartApp() {
 			dtls.StartServer(app.Iface, *app.Config)
 		} else {
 			dtls.StartClient(app.Iface, *app.Config)
+		}
+	case "h2":
+		if app.Config.ServerMode {
+			h2.StartServer(app.Iface, *app.Config)
+		} else {
+			h2.StartClient(app.Iface, *app.Config)
 		}
 	default:
 		if app.Config.ServerMode {

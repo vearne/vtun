@@ -19,6 +19,7 @@ A simple VPN written in Go.
 * VPN over kcp
 * VPN over utls
 * VPN over dtls
+* VPN over h2
 # Usage
 
 ```
@@ -46,7 +47,7 @@ Usage of vtun:
   -obfs
       enable data obfuscation
   -p string
-      protocol udp/tls/grpc/quic/utls/dtls/ws/wss (default "udp")
+      protocol udp/tls/grpc/quic/utls/dtls/h2/ws/wss (default "udp")
   -path string
       websocket path (default "/freedom")
   -privatekey string

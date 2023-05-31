@@ -23,7 +23,7 @@ func main() {
 	flag.StringVar(&config.ServerIP, "sip", "172.16.0.1", "server ip")
 	flag.StringVar(&config.ServerIPv6, "sip6", "fced:9999::1", "server ipv6")
 	flag.StringVar(&config.Key, "k", "freedom@2023", "key")
-	flag.StringVar(&config.Protocol, "p", "udp", "protocol udp/tls/grpc/quic/utls/dtls/ws/wss")
+	flag.StringVar(&config.Protocol, "p", "udp", "protocol udp/tls/grpc/quic/utls/dtls/h2/ws/wss")
 	flag.StringVar(&config.WebSocketPath, "path", "/freedom", "websocket path")
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
 	flag.BoolVar(&config.GlobalMode, "g", false, "client global mode")
