@@ -1,8 +1,11 @@
 package app
 
 import (
+	"github.com/net-byte/vtun/dtls"
+	"github.com/net-byte/vtun/h2"
 	"github.com/net-byte/vtun/kcp"
 	"github.com/net-byte/vtun/quic"
+	"github.com/net-byte/vtun/utls"
 	"log"
 
 	"github.com/net-byte/vtun/common/cipher"
@@ -94,8 +97,26 @@ func (app *App) StartApp() {
 	case "kcp":
 		if app.Config.ServerMode {
 			kcp.StartServer(app.Iface, *app.Config)
-		}else {
+		} else {
 			kcp.StartClient(app.Iface, *app.Config)
+		}
+	case "utls":
+		if app.Config.ServerMode {
+			utls.StartServer(app.Iface, *app.Config)
+		} else {
+			utls.StartClient(app.Iface, *app.Config)
+		}
+	case "dtls":
+		if app.Config.ServerMode {
+			dtls.StartServer(app.Iface, *app.Config)
+		} else {
+			dtls.StartClient(app.Iface, *app.Config)
+		}
+	case "h2":
+		if app.Config.ServerMode {
+			h2.StartServer(app.Iface, *app.Config)
+		} else {
+			h2.StartClient(app.Iface, *app.Config)
 		}
 	default:
 		if app.Config.ServerMode {

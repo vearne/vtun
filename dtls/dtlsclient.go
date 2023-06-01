@@ -1,7 +1,7 @@
-package tls
+package dtls
 
 import (
-	"crypto/tls"
+	"github.com/pion/dtls/v2"
 	"log"
 	"net"
 	"time"
@@ -15,37 +15,45 @@ import (
 	"github.com/net-byte/water"
 )
 
-// StartClient starts the tls client
+// StartClient starts the dtls client
 func StartClient(iface *water.Interface, config config.Config) {
-	log.Println("vtun tls client started")
+	log.Println("vtun dtls client started")
 	go tunToTLS(config, iface)
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: config.TLSInsecureSkipVerify,
-		MinVersion:         tls.VersionTLS13,
-		CurvePreferences:   []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-		},
-	}
-	if config.TLSSni != "" {
-		tlsConfig.ServerName = config.TLSSni
+	var tlsConfig *dtls.Config
+	if config.PSKMode {
+		tlsConfig = &dtls.Config{
+			PSK: func(bytes []byte) ([]byte, error) {
+				return []byte{0x09, 0x46, 0x59, 0x02, 0x49}, nil
+			},
+			PSKIdentityHint:      []byte(config.Key),
+			CipherSuites:         []dtls.CipherSuiteID{dtls.TLS_PSK_WITH_AES_128_GCM_SHA256, dtls.TLS_PSK_WITH_AES_128_CCM_8},
+			ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
+		}
+	} else {
+		tlsConfig = &dtls.Config{
+			ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
+			InsecureSkipVerify:   config.TLSInsecureSkipVerify,
+		}
+		if config.TLSSni != "" {
+			tlsConfig.ServerName = config.TLSSni
+		}
 	}
 	for {
-		conn, err := tls.Dial("tcp", config.ServerAddr, tlsConfig)
+		addr, err := net.ResolveUDPAddr("udp", config.ServerAddr)
 		if err != nil {
 			time.Sleep(3 * time.Second)
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		cache.GetCache().Set("tlsconn", conn, 24*time.Hour)
+		conn, err := dtls.Dial("udp", addr, tlsConfig)
+		if err != nil {
+			time.Sleep(3 * time.Second)
+			netutil.PrintErr(err, config.Verbose)
+			continue
+		}
+		cache.GetCache().Set("dtlsconn", conn, 24*time.Hour)
 		tlsToTun(config, conn, iface)
-		cache.GetCache().Delete("tlsconn")
+		cache.GetCache().Delete("dtlsconn")
 	}
 }
 
@@ -58,7 +66,7 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if v, ok := cache.GetCache().Get("tlsconn"); ok {
+		if v, ok := cache.GetCache().Get("dtlsconn"); ok {
 			b := packet[:n]
 			if config.Obfs {
 				b = cipher.XOR(b)
@@ -78,11 +86,11 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 }
 
 // tlsToTun sends packets from tls to tun
-func tlsToTun(config config.Config, tlsconn net.Conn, iface *water.Interface) {
-	defer tlsconn.Close()
+func tlsToTun(config config.Config, conn net.Conn, iface *water.Interface) {
+	defer conn.Close()
 	packet := make([]byte, config.BufferSize)
 	for {
-		n, err := tlsconn.Read(packet)
+		n, err := conn.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
