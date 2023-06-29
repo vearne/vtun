@@ -27,13 +27,16 @@ func ConnectServer(config config.Config) net.Conn {
 	header := make(http.Header)
 	header.Set("user-agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36")
 	header.Set("key", config.Key)
-	tlsconfig := &tls.Config{
+	tlsConfig := &tls.Config{
 		InsecureSkipVerify: config.TLSInsecureSkipVerify,
+	}
+	if config.TLSSni != "" {
+		tlsConfig.ServerName = config.TLSSni
 	}
 	dialer := ws.Dialer{
 		Header:    ws.HandshakeHeaderHTTP(header),
 		Timeout:   time.Duration(config.Timeout) * time.Second,
-		TLSConfig: tlsconfig,
+		TLSConfig: tlsConfig,
 	}
 	c, _, _, err := dialer.Dial(context.Background(), u.String())
 	if err != nil {
