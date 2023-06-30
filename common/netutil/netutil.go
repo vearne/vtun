@@ -45,7 +45,6 @@ func ConnectServer(config config.Config) net.Conn {
 			return net.Dial(network, config.ServerAddr)
 		},
 	}
-	log.Printf("%v\n", dialer.TLSConfig)
 	c, _, _, err := dialer.Dial(context.Background(), u.String())
 	if err != nil {
 		log.Printf("[client] failed to dial websocket %s %v", u.String(), err)
