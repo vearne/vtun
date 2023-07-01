@@ -20,20 +20,30 @@ import (
 // ConnectServer connects to the server with the given address.
 func ConnectServer(config config.Config) net.Conn {
 	scheme := "ws"
+	host := config.ServerAddr
 	if config.Protocol == "wss" {
 		scheme = "wss"
+		host = config.TLSSni
 	}
-	u := url.URL{Scheme: scheme, Host: config.ServerAddr, Path: config.WebSocketPath}
+	u := url.URL{Scheme: scheme, Host: host, Path: config.WebSocketPath}
 	header := make(http.Header)
 	header.Set("user-agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36")
-	header.Set("key", config.Key)
-	tlsconfig := &tls.Config{
+	if config.Key != "" {
+		header.Set("key", config.Key)
+	}
+	tlsConfig := &tls.Config{
 		InsecureSkipVerify: config.TLSInsecureSkipVerify,
+	}
+	if config.TLSSni != "" {
+		tlsConfig.ServerName = config.TLSSni
 	}
 	dialer := ws.Dialer{
 		Header:    ws.HandshakeHeaderHTTP(header),
 		Timeout:   time.Duration(config.Timeout) * time.Second,
-		TLSConfig: tlsconfig,
+		TLSConfig: tlsConfig,
+		NetDial: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return net.Dial(network, config.ServerAddr)
+		},
 	}
 	c, _, _, err := dialer.Dial(context.Background(), u.String())
 	if err != nil {

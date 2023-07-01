@@ -133,6 +133,9 @@ func StartServer(iface *water.Interface, config config.Config) {
 
 // checkPermission checks the permission of the request
 func checkPermission(w http.ResponseWriter, req *http.Request, config config.Config) bool {
+	if config.Key == "" {
+		return true
+	}
 	key := req.Header.Get("key")
 	if key != config.Key {
 		w.WriteHeader(http.StatusForbidden)
