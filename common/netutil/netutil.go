@@ -23,7 +23,9 @@ func ConnectServer(config config.Config) net.Conn {
 	host := config.ServerAddr
 	if config.Protocol == "wss" {
 		scheme = "wss"
-		host = config.TLSSni
+		if config.TLSSni != "" {
+			host = config.TLSSni
+		}
 	}
 	u := url.URL{Scheme: scheme, Host: host, Path: config.WebSocketPath}
 	header := make(http.Header)
