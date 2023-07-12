@@ -2,6 +2,9 @@ package dtls
 
 import (
 	"crypto/tls"
+	"errors"
+	"fmt"
+	"github.com/net-byte/vtun/common/xproto"
 	"log"
 	"net"
 	"time"
@@ -17,7 +20,7 @@ import (
 )
 
 // StartServer starts the dtls server
-func StartServer(iface *water.Interface, config config.Config) {
+func StartServer(iFace *water.Interface, config config.Config) {
 	log.Printf("vtun dtls server started on %v", config.LocalAddr)
 	var tlsConfig *dtls.Config
 	if config.PSKMode {
@@ -49,22 +52,22 @@ func StartServer(iface *water.Interface, config config.Config) {
 		log.Panic(err)
 	}
 	// server -> client
-	go toClient(config, iface)
+	go toClient(config, iFace)
 	// client -> server
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
 			continue
 		}
-		go toServer(config, conn, iface)
+		go toServer(config, conn, iFace)
 	}
 }
 
-// toClient sends packets from iface to conn
-func toClient(config config.Config, iface *water.Interface) {
+// toClient sends packets from iFace to conn
+func toClient(config config.Config, iFace *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	for {
-		n, err := iface.Read(packet)
+		n, err := iFace.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			continue
@@ -78,7 +81,16 @@ func toClient(config config.Config, iface *water.Interface) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
-				_, err := v.(net.Conn).Write(b)
+				ph := &xproto.ServerSendPacketHeader{
+					ProtocolVersion: xproto.ProtocolVersion,
+					Length:          len(b),
+				}
+				_, err := v.(net.Conn).Write(ph.Bytes())
+				if err != nil {
+					cache.GetCache().Delete(key)
+					continue
+				}
+				n, err = v.(net.Conn).Write(b[:])
 				if err != nil {
 					cache.GetCache().Delete(key)
 					continue
@@ -89,14 +101,43 @@ func toClient(config config.Config, iface *water.Interface) {
 	}
 }
 
-// toServer sends packets from conn to iface
-func toServer(config config.Config, conn net.Conn, iface *water.Interface) {
-	defer conn.Close()
-	packet := make([]byte, config.BufferSize)
-	for {
-		n, err := conn.Read(packet)
+// toServer sends packets from conn to iFace
+func toServer(config config.Config, conn net.Conn, iFace *water.Interface) {
+	defer func(conn net.Conn) {
+		err := conn.Close()
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
+		}
+	}(conn)
+	header := make([]byte, xproto.ClientSendPacketHeaderLength)
+	packet := make([]byte, config.BufferSize)
+	authKey := xproto.ParseAuthKeyFromString(config.Key)
+	for {
+		n, err := conn.Read(header)
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
+		}
+		if n != xproto.ClientSendPacketHeaderLength {
+			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, xproto.ClientSendPacketHeaderLength)), config.Verbose)
+			break
+		}
+		ph := xproto.ParseClientSendPacketHeader(header[:n])
+		if ph == nil {
+			netutil.PrintErr(errors.New("ph == nil"), config.Verbose)
+			break
+		}
+		if !ph.Key.Equals(authKey) {
+			netutil.PrintErr(errors.New("authentication failed"), config.Verbose)
+			break
+		}
+		n, err = conn.Read(packet)
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
+		}
+		if n != ph.Length {
+			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, ph.Length)), config.Verbose)
 			break
 		}
 		b := packet[:n]
@@ -112,7 +153,11 @@ func toServer(config config.Config, conn net.Conn, iface *water.Interface) {
 		}
 		if key := netutil.GetSrcKey(b); key != "" {
 			cache.GetCache().Set(key, conn, 24*time.Hour)
-			iface.Write(b)
+			_, err := iFace.Write(b)
+			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
+				break
+			}
 			counter.IncrReadBytes(n)
 		}
 	}
