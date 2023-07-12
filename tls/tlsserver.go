@@ -2,6 +2,9 @@ package tls
 
 import (
 	"crypto/tls"
+	"errors"
+	"fmt"
+	"github.com/net-byte/vtun/common/xproto"
 	"log"
 	"net"
 	"time"
@@ -16,7 +19,7 @@ import (
 )
 
 // StartServer starts the tls server
-func StartServer(iface *water.Interface, config config.Config) {
+func StartServer(iFace *water.Interface, config config.Config) {
 	log.Printf("vtun tls server started on %v", config.LocalAddr)
 	cert, err := tls.LoadX509KeyPair(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
 	if err != nil {
@@ -41,7 +44,7 @@ func StartServer(iface *water.Interface, config config.Config) {
 		log.Panic(err)
 	}
 	// server -> client
-	go toClient(config, iface)
+	go toClient(config, iFace)
 	// client -> server
 	for {
 		conn, err := ln.Accept()
@@ -59,20 +62,20 @@ func StartServer(iface *water.Interface, config config.Config) {
 				continue
 			}
 		}
-		go toServer(config, sniffConn, iface)
+		go toServer(config, sniffConn, iFace)
 	}
 }
 
-// toClient sends packets from iface to tlsconn
-func toClient(config config.Config, iface *water.Interface) {
-	packet := make([]byte, config.BufferSize)
+// toClient sends packets from iFace to tlsConn
+func toClient(config config.Config, iFace *water.Interface) {
+	buffer := make([]byte, config.BufferSize)
 	for {
-		n, err := iface.Read(packet)
+		n, err := iFace.Read(buffer)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		b := packet[:n]
+		b := buffer[:n]
 		if key := netutil.GetDstKey(b); key != "" {
 			if v, ok := cache.GetCache().Get(key); ok {
 				if config.Obfs {
@@ -81,7 +84,16 @@ func toClient(config config.Config, iface *water.Interface) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
-				_, err := v.(net.Conn).Write(b)
+				ph := &xproto.ServerSendPacketHeader{
+					ProtocolVersion: xproto.ProtocolVersion,
+					Length:          len(b),
+				}
+				_, err := v.(net.Conn).Write(ph.Bytes())
+				if err != nil {
+					cache.GetCache().Delete(key)
+					continue
+				}
+				n, err := v.(net.Conn).Write(b[:])
 				if err != nil {
 					cache.GetCache().Delete(key)
 					continue
@@ -92,14 +104,43 @@ func toClient(config config.Config, iface *water.Interface) {
 	}
 }
 
-// toServer sends packets from tlsconn to iface
-func toServer(config config.Config, tlsconn net.Conn, iface *water.Interface) {
-	defer tlsconn.Close()
-	packet := make([]byte, config.BufferSize)
-	for {
-		n, err := tlsconn.Read(packet)
+// toServer sends packets from tlsConn to iFace
+func toServer(config config.Config, tlsConn net.Conn, iFace *water.Interface) {
+	defer func(tlsConn net.Conn) {
+		err := tlsConn.Close()
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
+		}
+	}(tlsConn)
+	header := make([]byte, xproto.ClientSendPacketHeaderLength)
+	packet := make([]byte, config.BufferSize)
+	authKey := xproto.ParseAuthKeyFromString(config.Key)
+	for {
+		n, err := tlsConn.Read(header)
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
+		}
+		if n != xproto.ClientSendPacketHeaderLength {
+			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, xproto.ClientSendPacketHeaderLength)), config.Verbose)
+			break
+		}
+		ph := xproto.ParseClientSendPacketHeader(header[:n])
+		if ph == nil {
+			netutil.PrintErr(errors.New("ph == nil"), config.Verbose)
+			break
+		}
+		if !ph.Key.Equals(authKey) {
+			netutil.PrintErr(errors.New("authentication failed"), config.Verbose)
+			break
+		}
+		n, err = tlsConn.Read(packet[:ph.Length])
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
+		}
+		if n != ph.Length {
+			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, ph.Length)), config.Verbose)
 			break
 		}
 		b := packet[:n]
@@ -114,8 +155,12 @@ func toServer(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 			b = cipher.XOR(b)
 		}
 		if key := netutil.GetSrcKey(b); key != "" {
-			cache.GetCache().Set(key, tlsconn, 24*time.Hour)
-			iface.Write(b)
+			cache.GetCache().Set(key, tlsConn, 24*time.Hour)
+			n, err := iFace.Write(b)
+			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
+				break
+			}
 			counter.IncrReadBytes(n)
 		}
 	}

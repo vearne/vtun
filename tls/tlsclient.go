@@ -2,6 +2,9 @@ package tls
 
 import (
 	"crypto/tls"
+	"errors"
+	"fmt"
+	"github.com/net-byte/vtun/common/xproto"
 	"log"
 	"net"
 	"time"
@@ -16,9 +19,9 @@ import (
 )
 
 // StartClient starts the tls client
-func StartClient(iface *water.Interface, config config.Config) {
+func StartClient(iFace *water.Interface, config config.Config) {
 	log.Println("vtun tls client started")
-	go tunToTLS(config, iface)
+	go tunToTLS(config, iFace)
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: config.TLSInsecureSkipVerify,
 		MinVersion:         tls.VersionTLS13,
@@ -43,31 +46,42 @@ func StartClient(iface *water.Interface, config config.Config) {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		cache.GetCache().Set("tlsconn", conn, 24*time.Hour)
-		tlsToTun(config, conn, iface)
-		cache.GetCache().Delete("tlsconn")
+		cache.GetCache().Set("tlsConn", conn, 24*time.Hour)
+		tlsToTun(config, conn, iFace)
+		cache.GetCache().Delete("tlsConn")
 	}
 }
 
 // tunToTLS sends packets from tun to tls
-func tunToTLS(config config.Config, iface *water.Interface) {
-	packet := make([]byte, config.BufferSize)
+func tunToTLS(config config.Config, iFace *water.Interface) {
+	authKey := xproto.ParseAuthKeyFromString(config.Key)
+	buffer := make([]byte, config.BufferSize)
 	for {
-		n, err := iface.Read(packet)
+		n, err := iFace.Read(buffer)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
-			break
+			continue
 		}
-		if v, ok := cache.GetCache().Get("tlsconn"); ok {
-			b := packet[:n]
+		b := buffer[:n]
+		if v, ok := cache.GetCache().Get("tlsConn"); ok {
 			if config.Obfs {
 				b = cipher.XOR(b)
 			}
 			if config.Compress {
 				b = snappy.Encode(nil, b)
 			}
-			tlsconn := v.(net.Conn)
-			_, err = tlsconn.Write(b)
+			tlsConn := v.(net.Conn)
+			ph := &xproto.ClientSendPacketHeader{
+				ProtocolVersion: xproto.ProtocolVersion,
+				Key:             authKey,
+				Length:          len(b),
+			}
+			_, err := tlsConn.Write(ph.Bytes())
+			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
+				continue
+			}
+			n, err := tlsConn.Write(b[:])
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
 				continue
@@ -78,13 +92,37 @@ func tunToTLS(config config.Config, iface *water.Interface) {
 }
 
 // tlsToTun sends packets from tls to tun
-func tlsToTun(config config.Config, tlsconn net.Conn, iface *water.Interface) {
-	defer tlsconn.Close()
-	packet := make([]byte, config.BufferSize)
-	for {
-		n, err := tlsconn.Read(packet)
+func tlsToTun(config config.Config, tlsConn net.Conn, iFace *water.Interface) {
+	defer func(tlsConn net.Conn) {
+		err := tlsConn.Close()
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
+		}
+	}(tlsConn)
+	header := make([]byte, xproto.ServerSendPacketHeaderLength)
+	packet := make([]byte, config.BufferSize)
+	for {
+		n, err := tlsConn.Read(header)
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
+		}
+		if n != xproto.ServerSendPacketHeaderLength {
+			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, xproto.ServerSendPacketHeaderLength)), config.Verbose)
+			break
+		}
+		ph := xproto.ParseServerSendPacketHeader(header[:n])
+		if ph == nil {
+			netutil.PrintErr(errors.New("ph == nil"), config.Verbose)
+			break
+		}
+		n, err = tlsConn.Read(packet[:ph.Length])
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
+		}
+		if n != ph.Length {
+			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, ph.Length)), config.Verbose)
 			break
 		}
 		b := packet[:n]
@@ -98,7 +136,7 @@ func tlsToTun(config config.Config, tlsconn net.Conn, iface *water.Interface) {
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		_, err = iface.Write(b)
+		n, err = iFace.Write(b)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
