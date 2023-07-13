@@ -22,9 +22,14 @@ import (
 // StartClient starts the h1 client
 func StartClient(iFace *water.Interface, config config.Config) {
 	log.Println("vtun h1 client started")
+	var cl *Client
 	go tunToH1(config, iFace)
 	for {
-		cl := NewClient(config.ServerAddr)
+		if config.Protocol == "https" {
+			cl = NewTLSClient(config)
+		} else {
+			cl = NewClient(config.ServerAddr)
+		}
 		conn, err := cl.Dial()
 		if err != nil {
 			time.Sleep(3 * time.Second)

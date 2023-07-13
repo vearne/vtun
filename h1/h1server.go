@@ -1,6 +1,7 @@
 package h1
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"github.com/golang/snappy"
@@ -23,9 +24,27 @@ func StartServer(iFace *water.Interface, config config.Config) {
 	websrv := NewHandle(http.NotFoundHandler())
 	http.Handle("/", websrv)
 	srv := &http.Server{Addr: config.LocalAddr, Handler: nil}
-	go func(*http.Server) {
-		err := srv.ListenAndServe()
-		if err != nil {
+	go func(srv *http.Server) {
+		var err error
+		if config.Protocol == "https" {
+			tlsConfig := &tls.Config{
+				MinVersion:       tls.VersionTLS12,
+				CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+				CipherSuites: []uint16{
+					tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+					tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+					tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+					tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+					tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				},
+			}
+			srv.TLSConfig = tlsConfig
+			err = srv.ListenAndServeTLS(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
+		} else {
+			err = srv.ListenAndServe()
+		}
+		if err != ErrServerClose {
 			panic(err)
 		}
 	}(srv)

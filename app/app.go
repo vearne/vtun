@@ -132,6 +132,12 @@ func (app *App) StartApp() {
 		} else {
 			h1.StartClient(app.Iface, *app.Config)
 		}
+	case "https":
+		if app.Config.ServerMode {
+			h1.StartServer(app.Iface, *app.Config)
+		} else {
+			h1.StartClient(app.Iface, *app.Config)
+		}
 	default:
 		if app.Config.ServerMode {
 			udp.StartServer(app.Iface, *app.Config)
