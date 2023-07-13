@@ -2,9 +2,11 @@ package app
 
 import (
 	"github.com/net-byte/vtun/dtls"
+	"github.com/net-byte/vtun/h1"
 	"github.com/net-byte/vtun/h2"
 	"github.com/net-byte/vtun/kcp"
 	"github.com/net-byte/vtun/quic"
+	"github.com/net-byte/vtun/tcp"
 	"github.com/net-byte/vtun/utls"
 	"log"
 
@@ -117,6 +119,18 @@ func (app *App) StartApp() {
 			h2.StartServer(app.Iface, *app.Config)
 		} else {
 			h2.StartClient(app.Iface, *app.Config)
+		}
+	case "tcp":
+		if app.Config.ServerMode {
+			tcp.StartServer(app.Iface, *app.Config)
+		} else {
+			tcp.StartClient(app.Iface, *app.Config)
+		}
+	case "http":
+		if app.Config.ServerMode {
+			h1.StartServer(app.Iface, *app.Config)
+		} else {
+			h1.StartClient(app.Iface, *app.Config)
 		}
 	default:
 		if app.Config.ServerMode {

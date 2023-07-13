@@ -1,72 +1,47 @@
-package tls
+package h1
 
 import (
-	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/net-byte/vtun/common/xproto"
-	"log"
-	"net"
-	"time"
-
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
+	"github.com/net-byte/vtun/common/xproto"
 	"github.com/net-byte/water"
+	"log"
+	"net"
+	"net/http"
+	"time"
 )
 
-// StartServer starts the tls server
+// StartServer starts the h1 server
 func StartServer(iFace *water.Interface, config config.Config) {
-	log.Printf("vtun tls server started on %v", config.LocalAddr)
-	cert, err := tls.LoadX509KeyPair(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
-	if err != nil {
-		log.Panic(err)
-	}
-	tlsConfig := &tls.Config{
-		Certificates:     []tls.Certificate{cert},
-		MinVersion:       tls.VersionTLS13,
-		CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-		},
-	}
-	ln, err := tls.Listen("tcp", config.LocalAddr, tlsConfig)
-	if err != nil {
-		log.Panic(err)
-	}
+	log.Printf("vtun h1 server started on %v", config.LocalAddr)
+	websrv := NewHandle(http.NotFoundHandler())
+	http.Handle("/", websrv)
+	srv := &http.Server{Addr: config.LocalAddr, Handler: nil}
+	go func(*http.Server) {
+		err := srv.ListenAndServe()
+		if err != nil {
+			panic(err)
+		}
+	}(srv)
 	// server -> client
 	go toClient(config, iFace)
 	// client -> server
 	for {
-		conn, err := ln.Accept()
+		conn, err := websrv.Accept()
 		if err != nil {
 			continue
 		}
-		sniffConn := NewPeekPreDataConn(conn)
-		switch sniffConn.Type {
-		case TypeHttp:
-			if sniffConn.Handle() {
-				continue
-			}
-		case TypeHttp2:
-			if sniffConn.Handle() {
-				continue
-			}
-		}
-		go toServer(config, sniffConn, iFace)
+		go toServer(config, conn, iFace)
 	}
 }
 
-// toClient sends packets from iFace to tlsConn
+// toClient sends packets from iFace to conn
 func toClient(config config.Config, iFace *water.Interface) {
 	buffer := make([]byte, config.BufferSize)
 	for {
@@ -88,17 +63,19 @@ func toClient(config config.Config, iFace *water.Interface) {
 					ProtocolVersion: xproto.ProtocolVersion,
 					Length:          len(b),
 				}
-				tlsConn := v.(net.Conn)
-				_, err := tlsConn.Write(ph.Bytes())
+				conn := v.(net.Conn)
+				_, err := conn.Write(ph.Bytes())
 				if err != nil {
 					netutil.PrintErr(err, config.Verbose)
 					cache.GetCache().Delete(key)
+					conn.Close()
 					continue
 				}
-				n, err := tlsConn.Write(b[:])
+				n, err := conn.Write(b[:])
 				if err != nil {
 					netutil.PrintErr(err, config.Verbose)
 					cache.GetCache().Delete(key)
+					conn.Close()
 					continue
 				}
 				counter.IncrWrittenBytes(n)
@@ -107,19 +84,40 @@ func toClient(config config.Config, iFace *water.Interface) {
 	}
 }
 
-// toServer sends packets from tlsConn to iFace
-func toServer(config config.Config, tlsConn net.Conn, iFace *water.Interface) {
-	defer func(tlsConn net.Conn) {
-		err := tlsConn.Close()
+// toServer sends packets from conn to iFace
+func toServer(config config.Config, conn net.Conn, iFace *water.Interface) {
+	defer func(conn net.Conn) {
+		err := conn.Close()
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 		}
-	}(tlsConn)
+	}(conn)
+	handshake := make([]byte, xproto.ClientHandshakePacketLength)
 	header := make([]byte, xproto.ClientSendPacketHeaderLength)
 	packet := make([]byte, config.BufferSize)
 	authKey := xproto.ParseAuthKeyFromString(config.Key)
+	n, err := conn.Read(handshake)
+	if err != nil {
+		netutil.PrintErr(err, config.Verbose)
+		return
+	}
+	if n != xproto.ClientHandshakePacketLength {
+		netutil.PrintErr(errors.New(fmt.Sprintf("received handshake length <%d> not equals <%d>!", n, xproto.ClientHandshakePacketLength)), config.Verbose)
+		return
+	}
+	hs := xproto.ParseClientHandshakePacket(handshake[:n])
+	if hs == nil {
+		netutil.PrintErr(errors.New("hs == nil"), config.Verbose)
+		return
+	}
+	if !hs.Key.Equals(authKey) {
+		netutil.PrintErr(errors.New("authentication failed"), config.Verbose)
+		return
+	}
+	cache.GetCache().Set(hs.CIDRv4.String(), conn, 24*time.Hour)
+	cache.GetCache().Set(hs.CIDRv6.String(), conn, 24*time.Hour)
 	for {
-		n, err := tlsConn.Read(header)
+		n, err := conn.Read(header)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
@@ -137,7 +135,7 @@ func toServer(config config.Config, tlsConn net.Conn, iFace *water.Interface) {
 			netutil.PrintErr(errors.New("authentication failed"), config.Verbose)
 			break
 		}
-		n, err = tlsConn.Read(packet[:ph.Length])
+		n, err = splitRead(conn, ph.Length, packet[:ph.Length])
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
@@ -157,14 +155,14 @@ func toServer(config config.Config, tlsConn net.Conn, iFace *water.Interface) {
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		if key := netutil.GetSrcKey(b); key != "" {
-			cache.GetCache().Set(key, tlsConn, 24*time.Hour)
-			n, err := iFace.Write(b)
-			if err != nil {
-				netutil.PrintErr(err, config.Verbose)
-				break
-			}
-			counter.IncrReadBytes(n)
+		n, err = iFace.Write(b)
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
 		}
+		if config.Verbose {
+			fmt.Printf("iface write: %v\n", b)
+		}
+		counter.IncrReadBytes(n)
 	}
 }

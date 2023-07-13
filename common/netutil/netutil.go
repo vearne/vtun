@@ -169,7 +169,7 @@ func GetDstKey(packet []byte) string {
 
 // ExecuteCommand executes the given command
 func ExecCmd(c string, args ...string) string {
-	log.Printf("exec %v %v", c, args)
+	//log.Printf("exec %v %v", c, args)
 	cmd := exec.Command(c, args...)
 	out, err := cmd.Output()
 	if err != nil {

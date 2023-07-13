@@ -22,16 +22,16 @@ import (
 func StartClient(iFace *water.Interface, config config.Config) {
 	log.Println("vtun h2 client started")
 	go tunToH2(config, iFace)
-	tlsconfig := &tls.Config{
+	tlsConfig := &tls.Config{
 		InsecureSkipVerify: config.TLSInsecureSkipVerify,
 	}
 	if config.TLSSni != "" {
-		tlsconfig.ServerName = config.TLSSni
+		tlsConfig.ServerName = config.TLSSni
 	}
 	client := &Client{
 		Client: &http.Client{
 			Transport: &http2.Transport{
-				TLSClientConfig: tlsconfig,
+				TLSClientConfig: tlsConfig,
 			},
 		},
 	}
