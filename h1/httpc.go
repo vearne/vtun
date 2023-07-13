@@ -21,18 +21,18 @@ type NetDialer interface {
 	DialTimeout(host string, timeout time.Duration) (net.Conn, error)    // net.DialTimeout("tcp", Host, Timeout)
 }
 
-type dialNonTLS Client
+type dialer Client
 
-func (dl dialNonTLS) GetProto() string {
+func (dl dialer) GetProto() string {
 	return "http://"
 }
-func (dl dialNonTLS) Do(req *http.Request, timeout time.Duration) (*http.Response, error) {
+func (dl dialer) Do(req *http.Request, timeout time.Duration) (*http.Response, error) {
 	client := &http.Client{
 		Timeout: timeout,
 	}
 	return client.Do(req)
 }
-func (dl dialNonTLS) DialTimeout(host string, timeout time.Duration) (net.Conn, error) {
+func (dl dialer) DialTimeout(host string, timeout time.Duration) (net.Conn, error) {
 	return net.DialTimeout("tcp", host, timeout)
 }
 
@@ -119,9 +119,9 @@ func (cl *Client) getTx(token string) (net.Conn, []byte, error) { //io.WriteClos
 
 	req.Write(tx)
 
-	txbuf := bufio.NewReaderSize(tx, 1024)
+	txBuf := bufio.NewReaderSize(tx, 1024)
 
-	res, err := http.ReadResponse(txbuf, req)
+	res, err := http.ReadResponse(txBuf, req)
 	if err != nil {
 
 		tx.Close()
@@ -134,7 +134,7 @@ func (cl *Client) getTx(token string) (net.Conn, []byte, error) { //io.WriteClos
 		return nil, nil, ErrTokenTimeout
 	}
 
-	txbuf.Buffered()
+	txBuf.Buffered()
 
 	return tx, nil, nil
 }
@@ -162,11 +162,10 @@ func (cl *Client) getRx(token string) (net.Conn, []byte, error) { //io.ReadClose
 
 	req.Write(rx)
 
-	rxbuf := bufio.NewReaderSize(rx, 1024)
+	rxBuf := bufio.NewReaderSize(rx, 1024)
 
-	res, err := http.ReadResponse(rxbuf, req)
+	res, err := http.ReadResponse(rxBuf, req)
 	if err != nil {
-
 		rx.Close()
 		return nil, nil, err
 	}
@@ -177,11 +176,11 @@ func (cl *Client) getRx(token string) (net.Conn, []byte, error) { //io.ReadClose
 		return nil, nil, ErrTokenTimeout
 	}
 
-	n := rxbuf.Buffered()
+	n := rxBuf.Buffered()
 
 	if n > 0 {
 		buf := make([]byte, n)
-		rxbuf.Read(buf[:n])
+		rxBuf.Read(buf[:n])
 		return rx, buf[:n], nil
 	} else {
 		return rx, nil, nil
@@ -202,7 +201,7 @@ func NewClient(target string) *Client {
 		Timeout:      timeout,
 		Host:         target,
 	}
-	cl.Dialer = dialNonTLS(*cl)
+	cl.Dialer = dialer(*cl)
 	return cl
 }
 
@@ -235,16 +234,16 @@ func (cl *Client) dial(token string) (net.Conn, error) {
 		txRetCh <- ret{tx, nil, err}
 	}()
 	go func() {
-		rx, rxbuf, err := cl.getRx(token)
+		rx, rxBuf, err := cl.getRx(token)
 
-		rxRetCh <- ret{rx, rxbuf, err}
+		rxRetCh <- ret{rx, rxBuf, err}
 	}()
 
 	txRet := <-txRetCh
 	tx, _, txErr := txRet.conn, txRet.buf, txRet.err
 
 	rxRet := <-rxRetCh
-	rx, rxbuf, rxErr := rxRet.conn, rxRet.buf, rxRet.err
+	rx, rxBuf, rxErr := rxRet.conn, rxRet.buf, rxRet.err
 
 	if txErr != nil {
 		if rx != nil { // close other side, no half open
@@ -260,5 +259,5 @@ func (cl *Client) dial(token string) (net.Conn, error) {
 		return nil, rxErr
 	}
 
-	return mkConn(rx, tx, rxbuf), nil
+	return mkConn(rx, tx, rxBuf), nil
 }

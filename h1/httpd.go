@@ -65,7 +65,7 @@ func NewServer(lis net.Listener) *Server {
 	return srv
 }
 
-func NewHandle(hdlr http.Handler) *Server {
+func NewHandle(handler http.Handler) *Server {
 	srv := &Server{
 		states:       make(map[string]*state),
 		accepts:      make(chan net.Conn, 128),
@@ -77,7 +77,7 @@ func NewHandle(hdlr http.Handler) *Server {
 		TokenCookieB: tokenCookieB,
 		TokenCookieC: tokenCookieC,
 		HeaderServer: headerServer,
-		HttpHandler:  hdlr,
+		HttpHandler:  handler,
 		TokenTTL:     tokenTTL,
 	}
 
@@ -186,10 +186,6 @@ func (srv *Server) handleBase(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Server) handleWs(w http.ResponseWriter, r *http.Request, token string, flag string, cc *state) {
-	//	for k, v := range r.Header {
-
-	//	}
-	//	ip := r.Header.Get("X-Forwarded-For")
 
 	ip := r.Header.Get("Cf-Connecting-Ip")
 
@@ -199,13 +195,12 @@ func (srv *Server) handleWs(w http.ResponseWriter, r *http.Request, token string
 		return
 	}
 
-	conn, bufrw, err := hj.Hijack()
+	conn, bufRW, err := hj.Hijack()
 	if err != nil {
-
 		return
 	}
 
-	bufrw.Flush()
+	bufRW.Flush()
 
 	conn.Write([]byte("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: " + token + "\r\n\r\n"))
 
@@ -232,28 +227,24 @@ func (srv *Server) handleNonWs(w http.ResponseWriter, r *http.Request, token str
 
 	hj, ok := w.(http.Hijacker)
 	if !ok {
-
 		return
 	}
 
-	conn, bufrw, err := hj.Hijack()
+	conn, bufRW, err := hj.Hijack()
 	if err != nil {
-
 		return
 	}
 
-	bufrw.Flush()
+	bufRW.Flush()
 
 	cc.mx.Lock()
 	defer cc.mx.Unlock()
 	if r.Method == srv.RxMethod && flag == srv.RxFlag {
-
 		cc.connW = conn
 	}
 	if r.Method == srv.TxMethod && flag == srv.TxFlag {
-
 		cc.connR = conn
-		cc.bufR = bufrw
+		cc.bufR = bufRW
 	}
 	if cc.connR != nil && cc.connW != nil {
 		srv.rmToken(token)

@@ -86,12 +86,7 @@ func toClient(config config.Config, iFace *water.Interface) {
 
 // toServer sends packets from conn to iFace
 func toServer(config config.Config, conn net.Conn, iFace *water.Interface) {
-	defer func(conn net.Conn) {
-		err := conn.Close()
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-		}
-	}(conn)
+	defer conn.Close()
 	handshake := make([]byte, xproto.ClientHandshakePacketLength)
 	header := make([]byte, xproto.ClientSendPacketHeaderLength)
 	packet := make([]byte, config.BufferSize)
@@ -159,9 +154,6 @@ func toServer(config config.Config, conn net.Conn, iFace *water.Interface) {
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
-		}
-		if config.Verbose {
-			fmt.Printf("iface write: %v\n", b)
 		}
 		counter.IncrReadBytes(n)
 	}

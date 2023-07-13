@@ -3,6 +3,9 @@ package quic
 import (
 	"context"
 	"crypto/tls"
+	"errors"
+	"fmt"
+	"github.com/net-byte/vtun/common/xproto"
 	"log"
 	"time"
 
@@ -17,7 +20,7 @@ import (
 )
 
 // StartClient starts the quic client
-func StartClient(iface *water.Interface, config config.Config) {
+func StartClient(iFace *water.Interface, config config.Config) {
 	log.Println("vtun quic client started")
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: config.TLSInsecureSkipVerify,
@@ -26,7 +29,7 @@ func StartClient(iface *water.Interface, config config.Config) {
 	if config.TLSSni != "" {
 		tlsConfig.ServerName = config.TLSSni
 	}
-	go tunToQuic(config, iface)
+	go tunToQuic(config, iFace)
 	for {
 		conn, err := quic.DialAddr(config.ServerAddr, tlsConfig, nil)
 		if err != nil {
@@ -40,37 +43,73 @@ func StartClient(iface *water.Interface, config config.Config) {
 			conn.CloseWithError(quic.ApplicationErrorCode(0x01), "closed")
 			continue
 		}
-		cache.GetCache().Set("quicstream", stream, 24*time.Hour)
-		quicToTun(config, stream, iface)
-		cache.GetCache().Delete("quicstream")
-	}
-}
-
-// tunToQuic sends packets from tun to quic
-func tunToQuic(config config.Config, iface *water.Interface) {
-	packet := make([]byte, config.BufferSize)
-	shb := make([]byte, 2)
-	for {
-		shn, err := iface.Read(packet)
+		err = handshake(config, stream)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		b := packet[:shn]
-		if config.Obfs {
-			b = cipher.XOR(b)
+		cache.GetCache().Set("quicStream", stream, 24*time.Hour)
+		quicToTun(config, stream, iFace)
+		cache.GetCache().Delete("quicStream")
+	}
+}
+
+func handshake(config config.Config, stream quic.Stream) error {
+	var obj *xproto.ClientHandshakePacket
+	var err error
+	if v, ok := cache.GetCache().Get("handshake"); ok {
+		obj = v.(*xproto.ClientHandshakePacket)
+	} else {
+		obj, err = xproto.GenClientHandshakePacket(config)
+		if err != nil {
+			stream.Close()
+			return err
 		}
-		if config.Compress {
-			b = snappy.Encode(nil, b)
+		cache.GetCache().Set("handshake", obj, 24*time.Hour)
+	}
+
+	_, err = stream.Write(obj.Bytes())
+	if err != nil {
+		stream.Close()
+		return err
+	}
+
+	return nil
+}
+
+// tunToQuic sends packets from tun to quic
+func tunToQuic(config config.Config, iFace *water.Interface) {
+	authKey := xproto.ParseAuthKeyFromString(config.Key)
+	buffer := make([]byte, config.BufferSize)
+	for {
+		n, err := iFace.Read(buffer)
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			continue
 		}
-		shb[0] = byte(shn >> 8 & 0xff)
-		shb[1] = byte(shn & 0xff)
-		copy(packet[len(shb):len(shb)+len(b)], b)
-		copy(packet[:len(shb)], shb)
-		if v, ok := cache.GetCache().Get("quicstream"); ok {
+		b := buffer[:n]
+		if v, ok := cache.GetCache().Get("quicStream"); ok {
+			if config.Obfs {
+				b = cipher.XOR(b)
+			}
+			if config.Compress {
+				b = snappy.Encode(nil, b)
+			}
 			stream := v.(quic.Stream)
-			n, err := stream.Write(packet[:len(shb)+len(b)])
+			ph := &xproto.ClientSendPacketHeader{
+				ProtocolVersion: xproto.ProtocolVersion,
+				Key:             authKey,
+				Length:          len(b),
+			}
+			_, err := stream.Write(ph.Bytes())
 			if err != nil {
+				stream.Close()
+				netutil.PrintErr(err, config.Verbose)
+				continue
+			}
+			n, err := stream.Write(b[:])
+			if err != nil {
+				stream.Close()
 				netutil.PrintErr(err, config.Verbose)
 				continue
 			}
@@ -80,46 +119,35 @@ func tunToQuic(config config.Config, iface *water.Interface) {
 }
 
 // quicToTun sends packets from quic to tun
-func quicToTun(config config.Config, stream quic.Stream, iface *water.Interface) {
+func quicToTun(config config.Config, stream quic.Stream, iFace *water.Interface) {
 	defer stream.Close()
+	header := make([]byte, xproto.ServerSendPacketHeaderLength)
 	packet := make([]byte, config.BufferSize)
-	shb := make([]byte, 2)
 	for {
-		n, err := stream.Read(shb)
+		n, err := stream.Read(header)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if n < 2 {
+		if n != xproto.ServerSendPacketHeaderLength {
+			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, xproto.ServerSendPacketHeaderLength)), config.Verbose)
 			break
 		}
-		shn := 0
-		shn = ((shn & 0x00) | int(shb[0])) << 8
-		shn = shn | int(shb[1])
-		splitSize := 99
-		var count = 0
-		if shn < splitSize {
-			n, err = stream.Read(packet[:shn])
-			if err != nil {
-				netutil.PrintErr(err, config.Verbose)
-				break
-			}
-			count = n
-		} else {
-			for count < shn {
-				receiveSize := splitSize
-				if shn-count < splitSize {
-					receiveSize = shn - count
-				}
-				n, err = stream.Read(packet[count : count+receiveSize])
-				if err != nil {
-					netutil.PrintErr(err, config.Verbose)
-					break
-				}
-				count += n
-			}
+		ph := xproto.ParseServerSendPacketHeader(header[:n])
+		if ph == nil {
+			netutil.PrintErr(errors.New("ph == nil"), config.Verbose)
+			break
 		}
-		b := packet[:shn]
+		n, err = splitRead(stream, ph.Length, packet[:ph.Length])
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
+		}
+		if n != ph.Length {
+			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, ph.Length)), config.Verbose)
+			break
+		}
+		b := packet[:n]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
@@ -130,11 +158,10 @@ func quicToTun(config config.Config, stream quic.Stream, iface *water.Interface)
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		n, err = iface.Write(b)
+		n, err = iFace.Write(b)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		counter.IncrReadBytes(n)
 	}
 }

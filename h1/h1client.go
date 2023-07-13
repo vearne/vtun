@@ -84,19 +84,19 @@ func tunToH1(config config.Config, iFace *water.Interface) {
 			if config.Compress {
 				b = snappy.Encode(nil, b)
 			}
-			conn := v.(net.Conn)
 			ph := &xproto.ClientSendPacketHeader{
 				ProtocolVersion: xproto.ProtocolVersion,
 				Key:             authKey,
 				Length:          len(b),
 			}
-			_, err := conn.Write(ph.Bytes())
+			conn := v.(net.Conn)
+			_, err = conn.Write(ph.Bytes())
 			if err != nil {
 				conn.Close()
 				netutil.PrintErr(err, config.Verbose)
 				continue
 			}
-			n, err := conn.Write(b[:])
+			n, err = conn.Write(b[:])
 			if err != nil {
 				conn.Close()
 				netutil.PrintErr(err, config.Verbose)
@@ -109,12 +109,7 @@ func tunToH1(config config.Config, iFace *water.Interface) {
 
 // h1ToTun sends packets from tls to tun
 func h1ToTun(config config.Config, conn net.Conn, iFace *water.Interface) {
-	defer func(conn net.Conn) {
-		err := conn.Close()
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-		}
-	}(conn)
+	defer conn.Close()
 	header := make([]byte, xproto.ServerSendPacketHeaderLength)
 	packet := make([]byte, config.BufferSize)
 	for {
