@@ -22,6 +22,7 @@
 * 支持h2
 * 支持http
 * 支持tcp
+* 支持https
 
 # 用法
 
@@ -50,7 +51,7 @@ Usage of vtun:
   -obfs
       enable data obfuscation
   -p string
-      protocol udp/tls/grpc/quic/utls/dtls/h2/http/tcp/ws/wss (default "udp")
+      protocol udp/tls/grpc/quic/utls/dtls/h2/http/tcp/https/ws/wss (default "udp")
   -path string
       websocket path (default "/freedom")
   -privatekey string

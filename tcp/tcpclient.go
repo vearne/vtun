@@ -3,6 +3,7 @@ package tcp
 import (
 	"errors"
 	"fmt"
+	"github.com/net-byte/vtun/common/xcrypto"
 	"github.com/net-byte/vtun/common/xproto"
 	"log"
 	"net"
@@ -66,6 +67,12 @@ func handshake(config config.Config, conn net.Conn) error {
 func tunToTcp(config config.Config, iFace *water.Interface) {
 	authKey := xproto.ParseAuthKeyFromString(config.Key)
 	buffer := make([]byte, config.BufferSize)
+	xp := &xcrypto.XCrypto{}
+	err := xp.Init(config.Key)
+	if err != nil {
+		netutil.PrintErr(err, config.Verbose)
+		return
+	}
 	for {
 		n, err := iFace.Read(buffer)
 		if err != nil {
@@ -76,6 +83,11 @@ func tunToTcp(config config.Config, iFace *water.Interface) {
 		if v, ok := cache.GetCache().Get("conn"); ok {
 			if config.Obfs {
 				b = cipher.XOR(b)
+			}
+			b, err = xp.Encode(b)
+			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
+				break
 			}
 			if config.Compress {
 				b = snappy.Encode(nil, b)
@@ -108,6 +120,12 @@ func tcpToTun(config config.Config, conn net.Conn, iFace *water.Interface) {
 	defer conn.Close()
 	header := make([]byte, xproto.ServerSendPacketHeaderLength)
 	packet := make([]byte, config.BufferSize)
+	xp := &xcrypto.XCrypto{}
+	err := xp.Init(config.Key)
+	if err != nil {
+		netutil.PrintErr(err, config.Verbose)
+		return
+	}
 	for {
 		n, err := conn.Read(header)
 		if err != nil {
@@ -139,6 +157,11 @@ func tcpToTun(config config.Config, conn net.Conn, iFace *water.Interface) {
 				netutil.PrintErr(err, config.Verbose)
 				break
 			}
+		}
+		b, err = xp.Decode(b)
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
 		}
 		if config.Obfs {
 			b = cipher.XOR(b)

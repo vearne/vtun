@@ -3,11 +3,10 @@ package h1
 import (
 	"errors"
 	"fmt"
+	"github.com/net-byte/vtun/common/xcrypto"
 	"github.com/net-byte/vtun/common/xproto"
 	"log"
 	"net"
-	"runtime"
-	"strings"
 	"time"
 
 	"github.com/golang/snappy"
@@ -41,7 +40,6 @@ func StartClient(iFace *water.Interface, config config.Config) {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		//go checkH1SessionAlive(conn, config)
 		cache.GetCache().Set("conn", conn, 24*time.Hour)
 		h1ToTun(config, conn, iFace)
 		cache.GetCache().Delete("conn")
@@ -71,10 +69,16 @@ func handshake(config config.Config, conn net.Conn) error {
 	return nil
 }
 
-// tunToH1 sends packets from tun to tls
+// tunToH1 sends packets from tun to h1
 func tunToH1(config config.Config, iFace *water.Interface) {
 	authKey := xproto.ParseAuthKeyFromString(config.Key)
 	buffer := make([]byte, config.BufferSize)
+	xp := &xcrypto.XCrypto{}
+	err := xp.Init(config.Key)
+	if err != nil {
+		netutil.PrintErr(err, config.Verbose)
+		return
+	}
 	for {
 		n, err := iFace.Read(buffer)
 		if err != nil {
@@ -85,6 +89,11 @@ func tunToH1(config config.Config, iFace *water.Interface) {
 		if v, ok := cache.GetCache().Get("conn"); ok {
 			if config.Obfs {
 				b = cipher.XOR(b)
+			}
+			b, err = xp.Encode(b)
+			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
+				break
 			}
 			if config.Compress {
 				b = snappy.Encode(nil, b)
@@ -112,11 +121,17 @@ func tunToH1(config config.Config, iFace *water.Interface) {
 	}
 }
 
-// h1ToTun sends packets from tls to tun
+// h1ToTun sends packets from h1 to tun
 func h1ToTun(config config.Config, conn net.Conn, iFace *water.Interface) {
 	defer conn.Close()
 	header := make([]byte, xproto.ServerSendPacketHeaderLength)
 	packet := make([]byte, config.BufferSize)
+	xp := &xcrypto.XCrypto{}
+	err := xp.Init(config.Key)
+	if err != nil {
+		netutil.PrintErr(err, config.Verbose)
+		return
+	}
 	for {
 		n, err := conn.Read(header)
 		if err != nil {
@@ -149,6 +164,11 @@ func h1ToTun(config config.Config, conn net.Conn, iFace *water.Interface) {
 				break
 			}
 		}
+		b, err = xp.Decode(b)
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
+		}
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
@@ -158,28 +178,5 @@ func h1ToTun(config config.Config, conn net.Conn, iFace *water.Interface) {
 			break
 		}
 		counter.IncrReadBytes(n)
-	}
-}
-
-func checkH1SessionAlive(conn net.Conn, config config.Config) {
-	os := runtime.GOOS
-	defer conn.Close()
-	for {
-		if os == "windows" {
-			result := netutil.ExecCmd("ping", "-n", "2", "-l", "21", "-w", "1200", config.ServerIP)
-			if strings.Contains(result, `100%`) {
-				netutil.PrintErr(errors.New("ping server failed, reconnecting"), config.Verbose)
-				break
-			}
-			continue
-		} else if os == "linux" || os == "darwin" {
-			result := netutil.ExecCmd("ping", "-c", "2", "-s", "21", "-w", "1200", config.ServerIP)
-			// macos return "100.0% packet loss",  linux return "100% packet loss"
-			if strings.Contains(result, `100.0%`) || strings.Contains(result, `100%`) {
-				netutil.PrintErr(errors.New("ping server failed, reconnecting"), config.Verbose)
-				break
-			}
-			continue
-		}
 	}
 }

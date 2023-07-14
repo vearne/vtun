@@ -9,6 +9,7 @@ import (
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
+	"github.com/net-byte/vtun/common/xcrypto"
 	"github.com/net-byte/vtun/common/xproto"
 	"github.com/net-byte/water"
 	"log"
@@ -40,6 +41,12 @@ func StartServer(iFace *water.Interface, config config.Config) {
 // toClient sends packets from iFace to conn
 func toClient(config config.Config, iFace *water.Interface) {
 	buffer := make([]byte, config.BufferSize)
+	xp := &xcrypto.XCrypto{}
+	err := xp.Init(config.Key)
+	if err != nil {
+		netutil.PrintErr(err, config.Verbose)
+		return
+	}
 	for {
 		n, err := iFace.Read(buffer)
 		if err != nil {
@@ -55,6 +62,11 @@ func toClient(config config.Config, iFace *water.Interface) {
 				if config.Obfs {
 					b = cipher.XOR(b)
 				}
+				b, err = xp.Encode(b)
+				if err != nil {
+					netutil.PrintErr(err, config.Verbose)
+					break
+				}
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
@@ -67,7 +79,6 @@ func toClient(config config.Config, iFace *water.Interface) {
 				if err != nil {
 					netutil.PrintErr(err, config.Verbose)
 					cache.GetCache().Delete(key)
-					//fmt.Printf("del %s %v\r\n", key, conn)
 					conn.Close()
 					continue
 				}
@@ -78,7 +89,6 @@ func toClient(config config.Config, iFace *water.Interface) {
 				if err != nil {
 					netutil.PrintErr(err, config.Verbose)
 					cache.GetCache().Delete(key)
-					//fmt.Printf("del %s %v\r\n", key, conn)
 					conn.Close()
 					continue
 				}
@@ -86,8 +96,6 @@ func toClient(config config.Config, iFace *water.Interface) {
 					fmt.Printf("conn-p write: %v\n", b)
 				}
 				counter.IncrWrittenBytes(n)
-				//} else {
-				//	fmt.Printf("%s not ok!!!\n", key)
 			}
 		}
 	}
@@ -100,6 +108,12 @@ func toServer(config config.Config, conn net.Conn, iFace *water.Interface) {
 	header := make([]byte, xproto.ClientSendPacketHeaderLength)
 	packet := make([]byte, config.BufferSize)
 	authKey := xproto.ParseAuthKeyFromString(config.Key)
+	xp := &xcrypto.XCrypto{}
+	err := xp.Init(config.Key)
+	if err != nil {
+		netutil.PrintErr(err, config.Verbose)
+		return
+	}
 	n, err := conn.Read(handshake)
 	if err != nil {
 		netutil.PrintErr(err, config.Verbose)
@@ -164,6 +178,11 @@ func toServer(config config.Config, conn net.Conn, iFace *water.Interface) {
 				netutil.PrintErr(err, config.Verbose)
 				break
 			}
+		}
+		b, err = xp.Decode(b)
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
 		}
 		if config.Obfs {
 			b = cipher.XOR(b)

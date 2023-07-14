@@ -20,8 +20,9 @@ A simple VPN written in Go.
 * VPN over utls
 * VPN over dtls
 * VPN over h2
-* VPN over http
-* VPN over tcp
+* VPN over http  (Use aes-256-gcm encryption by default)
+* VPN over tcp   (Use aes-256-gcm encryption by default)
+* VPN over https (Use aes-256-gcm encryption by default)
 # Usage
 
 ```
@@ -49,7 +50,7 @@ Usage of vtun:
   -obfs
       enable data obfuscation
   -p string
-      protocol udp/tls/grpc/quic/utls/dtls/h2/http/tcp/ws/wss (default "udp")
+      protocol udp/tls/grpc/quic/utls/dtls/h2/http/tcp/https/ws/wss (default "udp")
   -path string
       websocket path (default "/freedom")
   -privatekey string
