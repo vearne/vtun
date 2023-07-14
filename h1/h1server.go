@@ -22,8 +22,8 @@ import (
 // StartServer starts the h1 server
 func StartServer(iFace *water.Interface, config config.Config) {
 	log.Printf("vtun h1 server started on %v", config.LocalAddr)
-	websrv := NewHandle(http.NotFoundHandler())
-	http.Handle("/", websrv)
+	webSrv := NewHandle(netutil.GetDefaultHttpHandleFunc())
+	http.Handle("/", webSrv)
 	srv := &http.Server{Addr: config.LocalAddr, Handler: nil}
 	go func(srv *http.Server) {
 		var err error
@@ -53,7 +53,7 @@ func StartServer(iFace *water.Interface, config config.Config) {
 	go toClient(config, iFace)
 	// client -> server
 	for {
-		conn, err := websrv.Accept()
+		conn, err := webSrv.Accept()
 		if err != nil {
 			continue
 		}

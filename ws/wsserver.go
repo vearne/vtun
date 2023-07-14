@@ -39,7 +39,13 @@ func StartServer(iface *water.Interface, config config.Config) {
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Content-Length", "6")
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("CF-Cache-Status", "DYNAMIC")
+		w.Header().Set("Server", "cloudflare")
 		w.Write([]byte(`follow`))
 	})
 

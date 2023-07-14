@@ -32,7 +32,7 @@ func ExistClientIP(ip string) bool {
 	return ok
 }
 
-// keepAlive keeps the client ip alive
+// KeepAliveClientIP keeps the client ip alive
 func KeepAliveClientIP(ip string) {
 	if ExistClientIP(ip) {
 		_register.Increment(ip, 1)
@@ -67,7 +67,7 @@ func PickClientIP(cidr string) (clientIP string, prefixLength string) {
 
 // ListClientIPs returns the client ips in the register
 func ListClientIPs() []string {
-	result := []string{}
+	var result []string
 	for k := range _register.Items() {
 		result = append(result, k)
 	}
@@ -82,7 +82,7 @@ func addressCount(network *net.IPNet) uint64 {
 
 // incr increments the ip by 1
 func incr(IP net.IP) net.IP {
-	IP = checkIPv4(IP)
+	//IP = checkIPv4(IP)
 	incIP := make([]byte, len(IP))
 	copy(incIP, IP)
 	for j := len(incIP) - 1; j >= 0; j-- {
@@ -98,6 +98,14 @@ func incr(IP net.IP) net.IP {
 func checkIPv4(ip net.IP) net.IP {
 	if v4 := ip.To4(); v4 != nil {
 		return v4
+	}
+	return ip
+}
+
+// checkIPv6 checks if the ip is IPv6
+func checkIPv6(ip net.IP) net.IP {
+	if v6 := ip.To16(); v6 != nil {
+		return v6
 	}
 	return ip
 }
