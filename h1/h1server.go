@@ -23,13 +23,16 @@ import (
 func StartServer(iFace *water.Interface, config config.Config) {
 	log.Printf("vtun h1 server started on %v", config.LocalAddr)
 	webSrv := NewHandle(netutil.GetDefaultHttpHandleFunc())
+	webSrv.TokenCookieA = RandomStringByStringNonce(16, config.Key, 123)
+	webSrv.TokenCookieB = RandomStringByStringNonce(32, config.Key, 456)
+	webSrv.TokenCookieC = RandomStringByStringNonce(64, config.Key, 789)
 	http.Handle("/", webSrv)
 	srv := &http.Server{Addr: config.LocalAddr, Handler: nil}
 	go func(srv *http.Server) {
 		var err error
 		if config.Protocol == "https" {
 			tlsConfig := &tls.Config{
-				MinVersion:       tls.VersionTLS12,
+				MinVersion:       tls.VersionTLS13,
 				CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
 				CipherSuites: []uint16{
 					tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
@@ -45,7 +48,7 @@ func StartServer(iFace *water.Interface, config config.Config) {
 		} else {
 			err = srv.ListenAndServe()
 		}
-		if err != ErrServerClose {
+		if err != http.ErrServerClosed {
 			panic(err)
 		}
 	}(srv)

@@ -3,7 +3,6 @@ package h1
 import (
 	"bytes"
 	"io"
-	"math/rand"
 	"net"
 	"time"
 )
@@ -116,14 +115,4 @@ func mkConnAddr(p1 net.Conn, address string) net.Conn {
 		return conn
 	}
 	return p1
-}
-
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-_"
-
-func randStringBytes(n int) string {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-	return string(b)
 }

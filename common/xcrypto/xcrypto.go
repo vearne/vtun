@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/sha1"
 	"crypto/sha256"
+	"hash/fnv"
 )
 
 type XCrypto struct {
@@ -25,10 +26,21 @@ func (x *XCrypto) LoadKey(key string) {
 }
 
 func (x *XCrypto) LoadNonce(key string) {
+	n := 2 * 2 * 3
 	h := sha1.New()
 	h.Write([]byte(key))
 	b := h.Sum(nil)
-	x.Nonce = b[:12]
+	ia := int(String2Int64(key) % int64(len(b)-n))
+	x.Nonce = b[ia : ia+n]
+}
+
+func String2Int64(s string) int64 {
+	h := fnv.New32a()
+	_, err := h.Write([]byte(s))
+	if err != nil {
+		return 0
+	}
+	return int64(h.Sum32())
 }
 
 func (x *XCrypto) Init(key string) error {

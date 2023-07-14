@@ -38,6 +38,16 @@ func NewTLSClient(config config.Config) *Client {
 	cl := NewClient(config.ServerAddr)
 
 	tlsConfig := &tls.Config{
+		MinVersion:       tls.VersionTLS13,
+		CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		},
 		InsecureSkipVerify: config.TLSInsecureSkipVerify,
 	}
 

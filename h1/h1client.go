@@ -22,6 +22,10 @@ import (
 func StartClient(iFace *water.Interface, config config.Config) {
 	log.Println("vtun h1 client started")
 	var cl *Client
+	tcA := RandomStringByStringNonce(16, config.Key, 123)
+	tcB := RandomStringByStringNonce(32, config.Key, 456)
+	tcC := RandomStringByStringNonce(64, config.Key, 789)
+	ua := RandomUserAgent(config.Key)
 	go tunToH1(config, iFace)
 	for {
 		if config.Protocol == "https" {
@@ -29,6 +33,12 @@ func StartClient(iFace *water.Interface, config config.Config) {
 		} else {
 			cl = NewClient(config.ServerAddr)
 		}
+		cl.TokenCookieA = tcA
+		cl.TokenCookieB = tcB
+		cl.TokenCookieC = tcC
+		cl.Url = "/" + RandomStringByInt64(64, time.Now().UnixMilli())
+		cl.Host = "www.microsoft.com"
+		cl.UserAgent = ua
 		conn, err := cl.Dial()
 		if err != nil {
 			time.Sleep(3 * time.Second)
