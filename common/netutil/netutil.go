@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os/exec"
 	"strings"
+	"tailscale.com/net/interfaces"
 	"time"
 
 	"github.com/gobwas/ws"
@@ -55,7 +56,7 @@ func ConnectServer(config config.Config) net.Conn {
 	return c
 }
 
-// GetInterfaceName returns the name of interface
+// GetInterface returns the name of interface
 func GetInterface() (name string) {
 	ifaces := getAllInterfaces()
 	if len(ifaces) == 0 {
@@ -74,18 +75,18 @@ func GetInterface() (name string) {
 
 // getAllInterfaces returns all interfaces
 func getAllInterfaces() []net.Interface {
-	ifaces, err := net.Interfaces()
+	iFaceList, err := net.Interfaces()
 	if err != nil {
 		log.Println(err)
 		return nil
 	}
 
 	var outInterfaces []net.Interface
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagLoopback == 0 && iface.Flags&net.FlagUp == 1 && isPhysicalInterface(iface.Name) {
-			netAddrs, _ := iface.Addrs()
-			if len(netAddrs) > 0 {
-				outInterfaces = append(outInterfaces, iface)
+	for _, iFace := range iFaceList {
+		if iFace.Flags&net.FlagLoopback == 0 && iFace.Flags&net.FlagUp == 1 && isPhysicalInterface(iFace.Name) {
+			netAddrList, _ := iFace.Addrs()
+			if len(netAddrList) > 0 {
+				outInterfaces = append(outInterfaces, iFace)
 			}
 		}
 	}
@@ -103,7 +104,7 @@ func isPhysicalInterface(addr string) bool {
 	return false
 }
 
-// Lookup IP address of the given hostname
+// LookupIP Lookup IP address of the given hostname
 func LookupIP(domain string) net.IP {
 	ips, err := net.LookupIP(domain)
 	if err != nil || len(ips) == 0 {
@@ -130,7 +131,7 @@ func GetIPv4Src(packet []byte) net.IP {
 	return net.IPv4(packet[12], packet[13], packet[14], packet[15])
 }
 
-// GEtIPv4Dst returns the IPv4 destination address of the packet
+// GetIPv4Dst returns the IPv4 destination address of the packet
 func GetIPv4Dst(packet []byte) net.IP {
 	return net.IPv4(packet[16], packet[17], packet[18], packet[19])
 }
@@ -246,4 +247,8 @@ func PrintStats(enableVerbose bool, serverMode bool) {
 			log.Printf("stats:%v", counter.PrintBytes(serverMode))
 		}
 	}()
+}
+
+func DefaultRouteInterface() (string, error) {
+	return interfaces.DefaultRouteInterface()
 }

@@ -1,24 +1,23 @@
 package app
 
 import (
+	"github.com/net-byte/vtun/common/cipher"
+	"github.com/net-byte/vtun/common/config"
+	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/vtun/dtls"
+	"github.com/net-byte/vtun/grpc"
 	"github.com/net-byte/vtun/h1"
 	"github.com/net-byte/vtun/h2"
 	"github.com/net-byte/vtun/kcp"
 	"github.com/net-byte/vtun/quic"
 	"github.com/net-byte/vtun/tcp"
-	"github.com/net-byte/vtun/utls"
-	"log"
-
-	"github.com/net-byte/vtun/common/cipher"
-	"github.com/net-byte/vtun/common/config"
-	"github.com/net-byte/vtun/common/netutil"
-	"github.com/net-byte/vtun/grpc"
 	"github.com/net-byte/vtun/tls"
 	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/vtun/udp"
+	"github.com/net-byte/vtun/utls"
 	"github.com/net-byte/vtun/ws"
 	"github.com/net-byte/water"
+	"log"
 )
 
 var _banner = `

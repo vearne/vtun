@@ -12,8 +12,15 @@ import (
 	"github.com/net-byte/water"
 )
 
+// Client The client struct
+type Client struct {
+	config config.Config
+	iFace  *water.Interface
+	conn   *net.UDPConn
+}
+
 // StartClient starts the udp client
-func StartClient(iface *water.Interface, config config.Config) {
+func StartClient(iFace *water.Interface, config config.Config) {
 	serverAddr, err := net.ResolveUDPAddr("udp", config.ServerAddr)
 	if err != nil {
 		log.Fatalln("failed to resolve server addr:", err)
@@ -24,16 +31,9 @@ func StartClient(iface *water.Interface, config config.Config) {
 	}
 	defer conn.Close()
 	log.Println("vtun udp client started")
-	c := &Client{config: config, iface: iface, conn: conn}
+	c := &Client{config: config, iFace: iFace, conn: conn}
 	go c.udpToTun()
 	c.tunToUdp()
-}
-
-// The client struct
-type Client struct {
-	config config.Config
-	iface  *water.Interface
-	conn   *net.UDPConn
 }
 
 // udpToTun sends packets from udp to tun
@@ -56,7 +56,7 @@ func (c *Client) udpToTun() {
 		if c.config.Obfs {
 			b = cipher.XOR(b)
 		}
-		c.iface.Write(b)
+		c.iFace.Write(b)
 		counter.IncrReadBytes(n)
 	}
 }
@@ -65,7 +65,7 @@ func (c *Client) udpToTun() {
 func (c *Client) tunToUdp() {
 	packet := make([]byte, c.config.BufferSize)
 	for {
-		n, err := c.iface.Read(packet)
+		n, err := c.iFace.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, c.config.Verbose)
 			break

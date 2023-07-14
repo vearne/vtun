@@ -20,7 +20,7 @@ import (
 
 // StartClient starts the tcp client
 func StartClient(iFace *water.Interface, config config.Config) {
-	log.Println("vtun h1 client started")
+	log.Println("vtun tcp client started")
 	go tunToTcp(config, iFace)
 	for {
 		conn, err := net.Dial("tcp", config.ServerAddr)

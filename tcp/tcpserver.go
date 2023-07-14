@@ -19,7 +19,7 @@ import (
 
 // StartServer starts the tcp server
 func StartServer(iFace *water.Interface, config config.Config) {
-	log.Printf("vtun h1 server started on %v", config.LocalAddr)
+	log.Printf("vtun tcp server started on %v", config.LocalAddr)
 	listener, err := net.Listen("tcp", config.LocalAddr)
 	if err != nil {
 		panic(err)
@@ -53,9 +53,6 @@ func toClient(config config.Config, iFace *water.Interface) {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		if config.Verbose {
-			fmt.Printf("iface read: %v\n", buffer[:n])
-		}
 		b := buffer[:n]
 		if key := netutil.GetDstKey(b); key != "" {
 			if v, ok := cache.GetCache().Get(key); ok {
@@ -82,18 +79,12 @@ func toClient(config config.Config, iFace *water.Interface) {
 					conn.Close()
 					continue
 				}
-				if config.Verbose {
-					fmt.Printf("conn-h write: %v\n", ph.Bytes())
-				}
 				n, err := conn.Write(b[:])
 				if err != nil {
 					netutil.PrintErr(err, config.Verbose)
 					cache.GetCache().Delete(key)
 					conn.Close()
 					continue
-				}
-				if config.Verbose {
-					fmt.Printf("conn-p write: %v\n", b)
 				}
 				counter.IncrWrittenBytes(n)
 			}
@@ -119,9 +110,6 @@ func toServer(config config.Config, conn net.Conn, iFace *water.Interface) {
 		netutil.PrintErr(err, config.Verbose)
 		return
 	}
-	if config.Verbose {
-		fmt.Printf("handshake read: %v\n", handshake[:n])
-	}
 	if n != xproto.ClientHandshakePacketLength {
 		netutil.PrintErr(errors.New(fmt.Sprintf("received handshake length <%d> not equals <%d>!", n, xproto.ClientHandshakePacketLength)), config.Verbose)
 		return
@@ -143,9 +131,6 @@ func toServer(config config.Config, conn net.Conn, iFace *water.Interface) {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if config.Verbose {
-			fmt.Printf("conn-h read: %v\n", header[:n])
-		}
 		if n != xproto.ClientSendPacketHeaderLength {
 			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, xproto.ClientSendPacketHeaderLength)), config.Verbose)
 			break
@@ -163,9 +148,6 @@ func toServer(config config.Config, conn net.Conn, iFace *water.Interface) {
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
-		}
-		if config.Verbose {
-			fmt.Printf("conn-p read: %v\n", packet[:ph.Length])
 		}
 		if n != ph.Length {
 			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, ph.Length)), config.Verbose)
@@ -191,9 +173,6 @@ func toServer(config config.Config, conn net.Conn, iFace *water.Interface) {
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
-		}
-		if config.Verbose {
-			fmt.Printf("iface write: %v\n", b)
 		}
 		counter.IncrReadBytes(n)
 	}
