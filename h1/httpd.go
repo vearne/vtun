@@ -45,30 +45,10 @@ type state struct {
 	ttl   time.Time
 }
 
-func NewServer(lis net.Listener) *Server {
-	srv := &Server{
-		lis:          lis,
-		states:       make(map[string]*state),
-		accepts:      make(chan net.Conn, 128),
-		TxMethod:     txMethod,
-		RxMethod:     rxMethod,
-		TxFlag:       txFlag,
-		RxFlag:       rxFlag,
-		TokenCookieA: tokenCookieA,
-		TokenCookieB: tokenCookieB,
-		TokenCookieC: tokenCookieC,
-		HeaderServer: headerServer,
-		HttpHandler:  http.FileServer(http.Dir("./www")),
-		TokenTTL:     tokenTTL,
-	}
-
-	return srv
-}
-
 func NewHandle(handler http.Handler) *Server {
 	srv := &Server{
 		states:       make(map[string]*state),
-		accepts:      make(chan net.Conn, 128),
+		accepts:      make(chan net.Conn, 512),
 		TxMethod:     txMethod,
 		RxMethod:     rxMethod,
 		TxFlag:       txFlag,
@@ -151,7 +131,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			goto FILE
 		}
-		srv.handleNonWs(w, r, c.Value, ct.Value, cc)
+		srv.handleHttp(w, r, c.Value, ct.Value, cc)
 		return
 	}
 FILE:
@@ -169,28 +149,7 @@ func (srv *Server) handleBase(w http.ResponseWriter, r *http.Request) {
 	srv.HttpHandler.ServeHTTP(w, r)
 }
 
-func (srv *Server) handleWs(w http.ResponseWriter, r *http.Request, token string, flag string, cc *state) {
-	ip := r.Header.Get("Cf-Connecting-Ip")
-	hj, ok := w.(http.Hijacker)
-	if !ok {
-
-		return
-	}
-	conn, bufRW, err := hj.Hijack()
-	if err != nil {
-		return
-	}
-	bufRW.Flush()
-	conn.Write([]byte("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: " + token + "\r\n\r\n"))
-	cc.mx.Lock()
-	defer cc.mx.Unlock()
-	if r.Method == srv.RxMethod && flag == srv.RxFlag {
-		srv.rmToken(token)
-		srv.accepts <- mkConnAddr(conn, ip)
-	}
-}
-
-func (srv *Server) handleNonWs(w http.ResponseWriter, r *http.Request, token string, flag string, cc *state) {
+func (srv *Server) handleHttp(w http.ResponseWriter, r *http.Request, token string, flag string, cc *state) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		srv.handleBase(w, r)

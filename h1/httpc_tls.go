@@ -35,7 +35,7 @@ func (dl *dialerT) DialTimeout(host string, timeout time.Duration) (net.Conn, er
 }
 
 func NewTLSClient(config config.Config) *Client {
-	cl := NewClient(config.ServerAddr)
+	cl := NewClient(config.ServerAddr, config.Host)
 
 	tlsConfig := &tls.Config{
 		MinVersion:       tls.VersionTLS13,

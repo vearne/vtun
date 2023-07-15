@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"time"
@@ -45,7 +46,7 @@ type Client struct {
 	TokenCookieB string
 	TokenCookieC string
 	UserAgent    string
-	Url          string
+	Path         string
 	Timeout      time.Duration
 	Host         string
 	ServerAddr   string
@@ -54,7 +55,8 @@ type Client struct {
 }
 
 func (cl *Client) getURL() string {
-	url := cl.ServerAddr + cl.Url
+	url := cl.ServerAddr + cl.Path
+	log.Panicln(url)
 	return cl.Dialer.GetProto() + url
 }
 
@@ -98,7 +100,6 @@ func (cl *Client) checkToken(res *http.Response) (string, error) {
 }
 
 func (cl *Client) getTx(token string) (net.Conn, []byte, error) { //io.WriteCloser
-
 	req, err := http.NewRequest(cl.TxMethod, cl.getURL(), nil)
 	if err != nil {
 
@@ -140,7 +141,6 @@ func (cl *Client) getTx(token string) (net.Conn, []byte, error) { //io.WriteClos
 }
 
 func (cl *Client) getRx(token string) (net.Conn, []byte, error) { //io.ReadCloser
-
 	req, err := http.NewRequest(cl.RxMethod, cl.getURL(), nil)
 	if err != nil {
 		return nil, nil, err
@@ -180,7 +180,10 @@ func (cl *Client) getRx(token string) (net.Conn, []byte, error) { //io.ReadClose
 	}
 }
 
-func NewClient(target string) *Client {
+func NewClient(serverAddr, host string) *Client {
+	if host == "" {
+		host = serverAddr
+	}
 	cl := &Client{
 		TxMethod:     txMethod,
 		RxMethod:     rxMethod,
@@ -190,18 +193,13 @@ func NewClient(target string) *Client {
 		TokenCookieB: tokenCookieB,
 		TokenCookieC: tokenCookieC,
 		UserAgent:    userAgent,
-		Url:          targetUrl,
+		Path:         path,
 		Timeout:      timeout,
-		Host:         target,
-		ServerAddr:   target,
+		Host:         host,
+		ServerAddr:   serverAddr,
 	}
 	cl.Dialer = dialer(*cl)
 	return cl
-}
-
-func Dial(target string) (net.Conn, error) {
-	cl := NewClient(target)
-	return cl.Dial()
 }
 
 func (cl *Client) Dial() (net.Conn, error) {
@@ -209,7 +207,6 @@ func (cl *Client) Dial() (net.Conn, error) {
 	if token == "" || err != nil {
 		return nil, err
 	}
-
 	return cl.dial(token)
 }
 
@@ -227,6 +224,7 @@ func (cl *Client) dial(token string) (net.Conn, error) {
 
 		txRetCh <- ret{tx, nil, err}
 	}()
+
 	go func() {
 		rx, rxBuf, err := cl.getRx(token)
 

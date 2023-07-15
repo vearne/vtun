@@ -2,11 +2,10 @@ package main
 
 import (
 	"flag"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
-
-	"log"
 
 	"github.com/net-byte/vtun/app"
 	"github.com/net-byte/vtun/common/config"
@@ -18,6 +17,13 @@ var (
 	_buildTime = "nil"
 	_goVersion = "nil"
 )
+
+func displayVersionInfo() {
+	log.Printf("vtun version %s", _version)
+	log.Printf("git hash %s", _gitHash)
+	log.Printf("build time %s", _buildTime)
+	log.Printf("go version %s", _goVersion)
+}
 
 func main() {
 	config := config.Config{}
@@ -43,11 +49,9 @@ func main() {
 	flag.BoolVar(&config.TLSInsecureSkipVerify, "isv", false, "tls insecure skip verify")
 	flag.BoolVar(&config.Verbose, "v", false, "enable verbose output")
 	flag.BoolVar(&config.PSKMode, "psk", false, "enable psk mode (dtls only)")
+	flag.StringVar(&config.Host, "host", "", "http host")
 	flag.Parse()
-	log.Printf("vtun version %s", _version)
-	log.Printf("git hash %s", _gitHash)
-	log.Printf("build time %s", _buildTime)
-	log.Printf("go version %s", _goVersion)
+	displayVersionInfo()
 	app := app.NewApp(&config, _version)
 	app.InitConfig()
 	go app.StartApp()

@@ -26,19 +26,18 @@ func StartClient(iFace *water.Interface, config config.Config) {
 	tcB := RandomStringByStringNonce(32, config.Key, 456)
 	tcC := RandomStringByStringNonce(64, config.Key, 789)
 	ua := RandomUserAgent(config.Key)
+	if config.Protocol == "https" {
+		cl = NewTLSClient(config)
+	} else {
+		cl = NewClient(config.ServerAddr, config.Host)
+	}
+	cl.TokenCookieA = tcA
+	cl.TokenCookieB = tcB
+	cl.TokenCookieC = tcC
+	cl.Path = "/" + RandomStringByInt64(32, time.Now().UnixMilli())
+	cl.UserAgent = ua
 	go tunToH1(config, iFace)
 	for {
-		if config.Protocol == "https" {
-			cl = NewTLSClient(config)
-		} else {
-			cl = NewClient(config.ServerAddr)
-		}
-		cl.TokenCookieA = tcA
-		cl.TokenCookieB = tcB
-		cl.TokenCookieC = tcC
-		cl.Url = "/" + RandomStringByInt64(64, time.Now().UnixMilli())
-		cl.Host = "www.microsoft.com"
-		cl.UserAgent = ua
 		conn, err := cl.Dial()
 		if err != nil {
 			time.Sleep(3 * time.Second)

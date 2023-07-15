@@ -27,4 +27,5 @@ type Config struct {
 	BufferSize                int
 	Verbose                   bool
 	PSKMode                   bool
+	Host                      string
 }

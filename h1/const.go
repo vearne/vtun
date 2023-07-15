@@ -11,7 +11,7 @@ const (
 	txFlag = "CDbHYQzabuNgrtgwSrC05w=="
 	rxFlag = "CEjzOhPubJItdJA72O+6ETV+peA="
 
-	targetUrl = "/ping"
+	path = "/ping"
 
 	tokenCookieA = "cna"
 	tokenCookieB = "_tb_token_"
