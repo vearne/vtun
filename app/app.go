@@ -31,7 +31,7 @@ A simple VPN written in Go.
 `
 var _srcUrl = "https://github.com/net-byte/vtun"
 
-// vtun app struct
+// App vtun app struct
 type App struct {
 	Config  *config.Config
 	Version string

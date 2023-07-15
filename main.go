@@ -13,10 +13,10 @@ import (
 )
 
 var (
-	_version   string = "v1.7.0"
-	_gitHash   string = "nil"
-	_buildTime string = "nil"
-	_goVersion string = "nil"
+	_version   = "v1.7.0"
+	_gitHash   = "nil"
+	_buildTime = "nil"
+	_goVersion = "nil"
 )
 
 func main() {
