@@ -17,8 +17,8 @@ var (
 
 type NetDialer interface {
 	GetProto() string
-	Do(req *http.Request, timeout time.Duration) (*http.Response, error) // http.Client
-	DialTimeout(host string, timeout time.Duration) (net.Conn, error)    // net.DialTimeout("tcp", Host, Timeout)
+	Do(req *http.Request, timeout time.Duration) (*http.Response, error)
+	DialTimeout(host string, timeout time.Duration) (net.Conn, error)
 }
 
 type dialer Client
@@ -32,8 +32,8 @@ func (dl dialer) Do(req *http.Request, timeout time.Duration) (*http.Response, e
 	}
 	return client.Do(req)
 }
-func (dl dialer) DialTimeout(host string, timeout time.Duration) (net.Conn, error) {
-	return net.DialTimeout("tcp", host, timeout)
+func (dl dialer) DialTimeout(serverAddr string, timeout time.Duration) (net.Conn, error) {
+	return net.DialTimeout("tcp", serverAddr, timeout)
 }
 
 type Client struct {
@@ -48,12 +48,13 @@ type Client struct {
 	Url          string
 	Timeout      time.Duration
 	Host         string
+	ServerAddr   string
 
 	Dialer NetDialer
 }
 
 func (cl *Client) getURL() string {
-	url := cl.Host + cl.Url
+	url := cl.ServerAddr + cl.Url
 	return cl.Dialer.GetProto() + url
 }
 
@@ -63,7 +64,9 @@ func (cl *Client) getToken() (string, error) {
 
 		return "", err
 	}
-
+	if cl.Host != "" {
+		req.Header.Set("Host", cl.Host)
+	}
 	req.Header.Set("User-Agent", cl.UserAgent)
 	req.Close = true
 	res, err := cl.Dialer.Do(req, cl.Timeout)
@@ -101,29 +104,26 @@ func (cl *Client) getTx(token string) (net.Conn, []byte, error) { //io.WriteClos
 
 		return nil, nil, err
 	}
-
+	if cl.Host != "" {
+		req.Header.Set("Host", cl.Host)
+	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Pragma", "no-cache")
 	req.Header.Set("Cache-Control", "private, no-store, no-cache, max-age=0")
 	req.Header.Set("User-Agent", cl.UserAgent)
-	req.Header.Set(cl.TokenCookieB, token)
-	req.Header.Set(cl.TokenCookieC, cl.RxFlag)
 	req.Header.Set("Cookie", fmt.Sprintf("Tag=follow; %s=%s; %s=%s", cl.TokenCookieB, token, cl.TokenCookieC, cl.TxFlag))
 
-	tx, err := cl.Dialer.DialTimeout(cl.Host, cl.Timeout)
+	tx, err := cl.Dialer.DialTimeout(cl.ServerAddr, cl.Timeout)
 	if err != nil {
-
 		return nil, nil, err
 	}
 
 	req.Write(tx)
 
 	txBuf := bufio.NewReaderSize(tx, 1024)
-
 	res, err := http.ReadResponse(txBuf, req)
 	if err != nil {
-
 		tx.Close()
 		return nil, nil, err
 	}
@@ -143,27 +143,21 @@ func (cl *Client) getRx(token string) (net.Conn, []byte, error) { //io.ReadClose
 
 	req, err := http.NewRequest(cl.RxMethod, cl.getURL(), nil)
 	if err != nil {
-
 		return nil, nil, err
 	}
-
+	if cl.Host != "" {
+		req.Header.Set("Host", cl.Host)
+	}
 	req.Header.Set("Pragma", "no-cache")
 	req.Header.Set("Cache-Control", "private, no-store, no-cache, max-age=0")
 	req.Header.Set("User-Agent", cl.UserAgent)
-	req.Header.Set(cl.TokenCookieB, token)
-	req.Header.Set(cl.TokenCookieC, cl.RxFlag)
 	req.Header.Set("Cookie", fmt.Sprintf("Tag=follow; %s=%s; %s=%s", cl.TokenCookieB, token, cl.TokenCookieC, cl.RxFlag))
-
-	rx, err := cl.Dialer.DialTimeout(cl.Host, cl.Timeout)
+	rx, err := cl.Dialer.DialTimeout(cl.ServerAddr, cl.Timeout)
 	if err != nil {
-
 		return nil, nil, err
 	}
-
 	req.Write(rx)
-
 	rxBuf := bufio.NewReaderSize(rx, 1024)
-
 	res, err := http.ReadResponse(rxBuf, req)
 	if err != nil {
 		rx.Close()
@@ -177,7 +171,6 @@ func (cl *Client) getRx(token string) (net.Conn, []byte, error) { //io.ReadClose
 	}
 
 	n := rxBuf.Buffered()
-
 	if n > 0 {
 		buf := make([]byte, n)
 		rxBuf.Read(buf[:n])
@@ -200,6 +193,7 @@ func NewClient(target string) *Client {
 		Url:          targetUrl,
 		Timeout:      timeout,
 		Host:         target,
+		ServerAddr:   target,
 	}
 	cl.Dialer = dialer(*cl)
 	return cl
@@ -246,7 +240,7 @@ func (cl *Client) dial(token string) (net.Conn, error) {
 	rx, rxBuf, rxErr := rxRet.conn, rxRet.buf, rxRet.err
 
 	if txErr != nil {
-		if rx != nil { // close other side, no half open
+		if rx != nil {
 			rx.Close()
 		}
 		return nil, txErr
