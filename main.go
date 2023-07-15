@@ -6,11 +6,18 @@ import (
 	"os/signal"
 	"syscall"
 
+	"log"
+
 	"github.com/net-byte/vtun/app"
 	"github.com/net-byte/vtun/common/config"
 )
 
-var _version = "v1.7.0"
+var (
+	_version   string = "v1.7.0"
+	_gitHash   string = "nil"
+	_buildTime string = "nil"
+	_goVersion string = "nil"
+)
 
 func main() {
 	config := config.Config{}
@@ -37,6 +44,10 @@ func main() {
 	flag.BoolVar(&config.Verbose, "v", false, "enable verbose output")
 	flag.BoolVar(&config.PSKMode, "psk", false, "enable psk mode (dtls only)")
 	flag.Parse()
+	log.Printf("vtun version %s", _version)
+	log.Printf("git hash %s", _gitHash)
+	log.Printf("build time %s", _buildTime)
+	log.Printf("go version %s", _goVersion)
 	app := app.NewApp(&config, _version)
 	app.InitConfig()
 	go app.StartApp()
