@@ -39,7 +39,6 @@ type App struct {
 }
 
 func NewApp(config *config.Config, version string) *App {
-
 	return &App{
 		Config:  config,
 		Version: version,
@@ -63,7 +62,6 @@ func (app *App) InitConfig() {
 
 // StartApp starts the app
 func (app *App) StartApp() {
-
 	switch app.Config.Protocol {
 	case "udp":
 		if app.Config.ServerMode {
@@ -125,13 +123,7 @@ func (app *App) StartApp() {
 		} else {
 			tcp.StartClient(app.Iface, *app.Config)
 		}
-	case "http":
-		if app.Config.ServerMode {
-			h1.StartServer(app.Iface, *app.Config)
-		} else {
-			h1.StartClient(app.Iface, *app.Config)
-		}
-	case "https":
+	case "http", "https":
 		if app.Config.ServerMode {
 			h1.StartServer(app.Iface, *app.Config)
 		} else {
