@@ -152,9 +152,14 @@ netbyte/vtun -S -l :3001 -c 172.16.0.1/24 -k 123456
 
 ## 移动端
 
-### [Android](https://github.com/net-byte/vTunnel)
+### 1. [vTunnel](https://github.com/net-byte/vTunnel)
 <p>
 <a href="https://play.google.com/store/apps/details?id=com.netbyte.vtunnel"><img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" height="100"></a>
+</p>
+
+### 2. GoFly VPN
+<p>
+<a href="https://play.google.com/store/apps/details?id=app.fjj.gofly"><img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" height="100"></a>
 </p>
 
 # License

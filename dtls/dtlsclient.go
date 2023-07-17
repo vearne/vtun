@@ -114,6 +114,9 @@ func conn2Tun(config config.Config, conn *dtls.Conn, inputStream chan<- []byte, 
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
+		if count == 0 {
+			continue
+		}
 		b := buffer[:count]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)

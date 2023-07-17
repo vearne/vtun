@@ -113,6 +113,9 @@ func toServer(config config.Config, conn *dtls.Conn, iFace *water.Interface) {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
+		if count == 0 {
+			continue
+		}
 		b := buffer[:count]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
