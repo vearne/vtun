@@ -79,7 +79,7 @@ func ToClient(config config.Config, iFace *water.Interface) {
 					conn.Close()
 					continue
 				}
-				n, err := conn.Write(b[:])
+				n, err := conn.Write(b)
 				if err != nil {
 					netutil.PrintErr(err, config.Verbose)
 					cache.GetCache().Delete(key)

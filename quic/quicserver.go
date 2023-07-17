@@ -3,7 +3,6 @@ package quic
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
@@ -62,15 +61,14 @@ func StartServer(iFace *water.Interface, config config.Config) {
 // toClient sends packets from iFace to quic
 func toClient(config config.Config, iFace *water.Interface) {
 	packet := make([]byte, config.BufferSize)
-	shb := make([]byte, 2)
+	header := make([]byte, xproto.HeaderLength)
 	for {
-		shn, err := iFace.Read(packet)
+		n, err := iFace.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		xproto.WriteLength(shb, shn)
-		b := packet[:shn]
+		b := packet[:n]
 		if key := netutil.GetDstKey(b); key != "" {
 			if v, ok := cache.GetCache().Get(key); ok {
 				if config.Obfs {
@@ -79,10 +77,9 @@ func toClient(config config.Config, iFace *water.Interface) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
-				copy(packet[len(shb):len(shb)+len(b)], b)
-				copy(packet[:len(shb)], shb)
+				xproto.WriteLength(header, len(b))
 				stream := v.(quic.Stream)
-				n, err := stream.Write(packet[:len(shb)+len(b)])
+				n, err = stream.Write(xproto.Merge(header, b))
 				if err != nil {
 					cache.GetCache().Delete(key)
 					netutil.PrintErr(err, config.Verbose)
@@ -97,25 +94,26 @@ func toClient(config config.Config, iFace *water.Interface) {
 // toServer sends packets from quic to iFace
 func toServer(config config.Config, stream quic.Stream, iFace *water.Interface) {
 	packet := make([]byte, config.BufferSize)
-	shb := make([]byte, 2)
+	header := make([]byte, xproto.HeaderLength)
 	defer stream.Close()
 	for {
-		n, err := stream.Read(shb)
+		n, err := stream.Read(header)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if n < 2 {
+		if n < xproto.HeaderLength {
+			netutil.PrintErrF(config.Verbose, "%d < header_length %d\n", n, xproto.HeaderLength)
 			break
 		}
-		shn := xproto.ReadLength(shb)
-		count, err := splitRead(stream, shn, packet)
+		length := xproto.ReadLength(header)
+		count, err := splitRead(stream, length, packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if count != shn || count <= 0 {
-			netutil.PrintErr(errors.New("count read error"), config.Verbose)
+		if count != length || count <= 0 {
+			netutil.PrintErrF(config.Verbose, "count %d != length %d\n", count, length)
 			break
 		}
 		b := packet[:count]

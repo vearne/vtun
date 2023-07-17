@@ -5,6 +5,7 @@ import (
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/counter"
+	"github.com/net-byte/vtun/common/xproto"
 	"github.com/net-byte/vtun/common/xtun"
 	"github.com/pion/dtls/v2"
 	"log"
@@ -44,13 +45,15 @@ func StartClientForApi(config config.Config, outputStream <-chan []byte, inputSt
 	}
 	go tun2Conn(config, outputStream, _ctx, readCallback)
 	for xtun.ContextOpened(_ctx) {
+		ctx, cancel := context.WithTimeout(_ctx, 30*time.Second)
+		defer cancel()
 		addr, err := net.ResolveUDPAddr("udp", config.ServerAddr)
 		if err != nil {
 			time.Sleep(3 * time.Second)
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		conn, err := dtls.Dial("udp", addr, tlsConfig)
+		conn, err := dtls.DialWithContext(ctx, "udp", addr, tlsConfig)
 		if err != nil {
 			time.Sleep(3 * time.Second)
 			netutil.PrintErr(err, config.Verbose)
@@ -59,6 +62,7 @@ func StartClientForApi(config config.Config, outputStream <-chan []byte, inputSt
 		cache.GetCache().Set(ConnTag, conn, 24*time.Hour)
 		conn2Tun(config, conn, inputStream, _ctx, writeCallback)
 		cache.GetCache().Delete(ConnTag)
+		conn.Close()
 	}
 }
 
@@ -90,7 +94,7 @@ func tun2Conn(config config.Config, outputStream <-chan []byte, _ctx context.Con
 				b = snappy.Encode(nil, b)
 			}
 			conn := v.(*dtls.Conn)
-			n, err := conn.Write(b)
+			n, err := conn.Write(xproto.Copy(b))
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
 				continue
@@ -103,14 +107,14 @@ func tun2Conn(config config.Config, outputStream <-chan []byte, _ctx context.Con
 // conn2Tun sends packets from conn to tun
 func conn2Tun(config config.Config, conn *dtls.Conn, inputStream chan<- []byte, _ctx context.Context, callback func(int)) {
 	defer conn.Close()
-	packet := make([]byte, config.BufferSize)
+	buffer := make([]byte, config.BufferSize)
 	for xtun.ContextOpened(_ctx) {
-		n, err := conn.Read(packet)
+		count, err := conn.Read(buffer)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		b := packet[:n]
+		b := buffer[:count]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
@@ -121,8 +125,8 @@ func conn2Tun(config config.Config, conn *dtls.Conn, inputStream chan<- []byte, 
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		inputStream <- b[:]
-		callback(n)
+		inputStream <- xproto.Copy(b)
+		callback(len(b))
 	}
 }
 

@@ -2,7 +2,6 @@ package kcp
 
 import (
 	"crypto/sha1"
-	"errors"
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
@@ -19,13 +18,25 @@ import (
 
 func StartServer(iFace *water.Interface, config config.Config) {
 	log.Printf("vtun kcp server started on %v", config.LocalAddr)
-	key := pbkdf2.Key([]byte(config.Key), []byte("default_salt"), 1024, 32, sha1.New)
-	block, err := kcp.NewAESBlockCrypt(key)
+	key := pbkdf2.Key([]byte(config.Key), []byte(SALT), 4096, 32, sha1.New)
+	block, err := kcp.NewAESBlockCrypt(key[:16])
 	if err != nil {
 		netutil.PrintErr(err, config.Verbose)
 		return
 	}
 	if listener, err := kcp.ListenWithOptions(config.LocalAddr, block, 10, 3); err == nil {
+		if err := listener.SetDSCP(DSCP); err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			return
+		}
+		if err := listener.SetReadBuffer(SockBuf); err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			return
+		}
+		if err := listener.SetWriteBuffer(SockBuf); err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			return
+		}
 		go toClient(iFace, config)
 		for {
 			session, err := listener.AcceptKCP()
@@ -33,6 +44,9 @@ func StartServer(iFace *water.Interface, config config.Config) {
 				netutil.PrintErr(err, config.Verbose)
 				continue
 			}
+			session.SetWindowSize(SndWnd, RcvWnd)
+			session.SetACKNoDelay(false)
+			session.SetStreamMode(true)
 			go toServer(iFace, session, config)
 		}
 	} else {
@@ -42,25 +56,26 @@ func StartServer(iFace *water.Interface, config config.Config) {
 
 func toServer(iFace *water.Interface, session *kcp.UDPSession, config config.Config) {
 	packet := make([]byte, config.BufferSize)
-	shb := make([]byte, 2)
+	header := make([]byte, xproto.HeaderLength)
 	defer session.Close()
 	for {
-		n, err := session.Read(shb)
+		n, err := session.Read(header)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if n < 2 {
+		if n < xproto.HeaderLength {
+			netutil.PrintErrF(config.Verbose, "%d < header_length %d\n", n, xproto.HeaderLength)
 			break
 		}
-		shn := xproto.ReadLength(shb)
-		count, err := splitRead(session, shn, packet)
+		length := xproto.ReadLength(header)
+		count, err := splitRead(session, length, packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if count != shn || count <= 0 {
-			netutil.PrintErr(errors.New("count read error"), config.Verbose)
+		if count != length || count <= 0 {
+			netutil.PrintErrF(config.Verbose, "count %d != length %d\n", count, length)
 			break
 		}
 		b := packet[:count]
@@ -88,15 +103,14 @@ func toServer(iFace *water.Interface, session *kcp.UDPSession, config config.Con
 
 func toClient(iFace *water.Interface, config config.Config) {
 	packet := make([]byte, config.BufferSize)
-	shb := make([]byte, 2)
+	header := make([]byte, xproto.HeaderLength)
 	for {
-		shn, err := iFace.Read(packet)
+		n, err := iFace.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		xproto.WriteLength(shb, shn)
-		b := packet[:shn]
+		b := packet[:n]
 		if key := netutil.GetDstKey(b); key != "" {
 			if v, ok := cache.GetCache().Get(key); ok {
 				if config.Obfs {
@@ -105,10 +119,9 @@ func toClient(iFace *water.Interface, config config.Config) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
-				copy(packet[len(shb):len(shb)+len(b)], b)
-				copy(packet[:len(shb)], shb)
+				xproto.WriteLength(header, len(b))
 				session := v.(*kcp.UDPSession)
-				n, err := session.Write(packet[:len(shb)+len(b)])
+				n, err = session.Write(xproto.Merge(header, b))
 				if err != nil {
 					cache.GetCache().Delete(key)
 					netutil.PrintErr(err, config.Verbose)

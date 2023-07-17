@@ -1,10 +1,10 @@
 package dtls
 
 import (
-	"net"
+	"github.com/pion/dtls/v2"
 )
 
-func splitRead(conn net.Conn, expectLen int, packet []byte) (int, error) {
+func splitRead(conn *dtls.Conn, expectLen int, packet []byte) (int, error) {
 	count := 0
 	splitSize := 99
 	for count < expectLen {

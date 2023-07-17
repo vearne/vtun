@@ -119,7 +119,7 @@ func Tun2Conn(config config.Config, outputStream <-chan []byte, _ctx context.Con
 				netutil.PrintErr(err, config.Verbose)
 				continue
 			}
-			n, err := conn.Write(b[:])
+			n, err := conn.Write(b)
 			if err != nil {
 				conn.Close()
 				netutil.PrintErr(err, config.Verbose)
@@ -134,7 +134,7 @@ func Tun2Conn(config config.Config, outputStream <-chan []byte, _ctx context.Con
 func Conn2Tun(config config.Config, conn net.Conn, inputStream chan<- []byte, _ctx context.Context, callback func(int)) {
 	defer conn.Close()
 	header := make([]byte, xproto.ServerSendPacketHeaderLength)
-	packet := make([]byte, config.BufferSize)
+	buffer := make([]byte, config.BufferSize)
 	xp := &xcrypto.XCrypto{}
 	err := xp.Init(config.Key)
 	if err != nil {
@@ -156,7 +156,7 @@ func Conn2Tun(config config.Config, conn net.Conn, inputStream chan<- []byte, _c
 			netutil.PrintErr(errors.New("ph == nil"), config.Verbose)
 			break
 		}
-		n, err = splitRead(conn, ph.Length, packet[:ph.Length])
+		n, err = splitRead(conn, ph.Length, buffer[:ph.Length])
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
@@ -165,7 +165,7 @@ func Conn2Tun(config config.Config, conn net.Conn, inputStream chan<- []byte, _c
 			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, ph.Length)), config.Verbose)
 			break
 		}
-		b := packet[:n]
+		b := buffer[:n]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
@@ -181,7 +181,7 @@ func Conn2Tun(config config.Config, conn net.Conn, inputStream chan<- []byte, _c
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		inputStream <- b[:]
+		inputStream <- xproto.Copy(b)
 		callback(xproto.ServerSendPacketHeaderLength + ph.Length)
 	}
 }

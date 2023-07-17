@@ -1,8 +1,8 @@
 package dtls
 
 import (
+	"context"
 	"crypto/tls"
-	"errors"
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
@@ -20,6 +20,8 @@ import (
 // StartServer starts the dtls server
 func StartServer(iFace *water.Interface, config config.Config) {
 	log.Printf("vtun dtls server started on %v", config.LocalAddr)
+	_ctx, cancel = context.WithCancel(context.Background())
+	defer cancel()
 	var tlsConfig *dtls.Config
 	if config.PSKMode {
 		tlsConfig = &dtls.Config{
@@ -29,6 +31,9 @@ func StartServer(iFace *water.Interface, config config.Config) {
 			PSKIdentityHint:      []byte(config.Key),
 			CipherSuites:         []dtls.CipherSuiteID{dtls.TLS_PSK_WITH_AES_128_GCM_SHA256, dtls.TLS_PSK_WITH_AES_128_CCM_8},
 			ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
+			ConnectContextMaker: func() (context.Context, func()) {
+				return context.WithTimeout(_ctx, 30*time.Second)
+			},
 		}
 	} else {
 		certificate, err := tls.LoadX509KeyPair(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
@@ -39,6 +44,9 @@ func StartServer(iFace *water.Interface, config config.Config) {
 			Certificates:         []tls.Certificate{certificate},
 			ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
 			ClientAuth:           dtls.NoClientCert,
+			ConnectContextMaker: func() (context.Context, func()) {
+				return context.WithTimeout(_ctx, 30*time.Second)
+			},
 		}
 	}
 	addr, err := net.ResolveUDPAddr("udp", config.LocalAddr)
@@ -49,6 +57,7 @@ func StartServer(iFace *water.Interface, config config.Config) {
 	if err != nil {
 		log.Panic(err)
 	}
+	defer ln.Close()
 	// server -> client
 	go toClient(config, iFace)
 	// client -> server
@@ -58,22 +67,20 @@ func StartServer(iFace *water.Interface, config config.Config) {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		go toServer(config, conn, iFace)
+		go toServer(config, conn.(*dtls.Conn), iFace)
 	}
 }
 
 // toClient sends packets from iFace to dtls
 func toClient(config config.Config, iFace *water.Interface) {
 	packet := make([]byte, config.BufferSize)
-	shb := make([]byte, 2)
 	for {
-		shn, err := iFace.Read(packet)
+		n, err := iFace.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		xproto.WriteLength(shb, shn)
-		b := packet[:shn]
+		b := packet[:n]
 		if key := netutil.GetDstKey(b); key != "" {
 			if v, ok := cache.GetCache().Get(key); ok {
 				if config.Obfs {
@@ -82,10 +89,8 @@ func toClient(config config.Config, iFace *water.Interface) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
-				copy(packet[len(shb):len(shb)+len(b)], b)
-				copy(packet[:len(shb)], shb)
 				conn := v.(*dtls.Conn)
-				n, err := conn.Write(packet[:len(shb)+len(b)])
+				n, err = conn.Write(xproto.Copy(b))
 				if err != nil {
 					cache.GetCache().Delete(key)
 					netutil.PrintErr(err, config.Verbose)
@@ -98,30 +103,17 @@ func toClient(config config.Config, iFace *water.Interface) {
 }
 
 // toServer sends packets from dtls to iFace
-func toServer(config config.Config, conn net.Conn, iFace *water.Interface) {
-	packet := make([]byte, config.BufferSize)
-	shb := make([]byte, 2)
+func toServer(config config.Config, conn *dtls.Conn, iFace *water.Interface) {
+	buffer := make([]byte, config.BufferSize)
 	defer conn.Close()
 	for {
-		n, err := conn.Read(shb)
+		var n int
+		count, err := conn.Read(buffer)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if n < 2 {
-			break
-		}
-		shn := xproto.ReadLength(shb)
-		count, err := splitRead(conn, shn, packet)
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			break
-		}
-		if count != shn || count <= 0 {
-			netutil.PrintErr(errors.New("count read error"), config.Verbose)
-			break
-		}
-		b := packet[:count]
+		b := buffer[:count]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {

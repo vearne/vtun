@@ -8,6 +8,7 @@ import (
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
+	"github.com/net-byte/vtun/common/xproto"
 	"github.com/net-byte/water"
 	"io"
 	"log"
@@ -44,6 +45,7 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request, config config.Config, iFa
 // toClient sends packets from tun to h2
 func toClient(config config.Config, iFace *water.Interface) {
 	packet := make([]byte, config.BufferSize)
+	header := make([]byte, xproto.HeaderLength)
 	for {
 		n, err := iFace.Read(packet)
 		if err != nil {
@@ -59,7 +61,8 @@ func toClient(config config.Config, iFace *water.Interface) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
-				_, err = v.(*Conn).Write(b)
+				xproto.WriteLength(header, len(b))
+				n, err = v.(*Conn).Write(xproto.Merge(header, b))
 				if err != nil {
 					cache.GetCache().Delete(key)
 					continue
@@ -72,14 +75,30 @@ func toClient(config config.Config, iFace *water.Interface) {
 
 // toServer sends packets from h2 to tun
 func toServer(conn *Conn, config config.Config, iFace *water.Interface) {
-	packet := make([]byte, config.BufferSize)
+	defer conn.Close()
+	buffer := make([]byte, config.BufferSize)
+	header := make([]byte, xproto.HeaderLength)
 	for {
-		n, err := conn.Read(packet)
+		n, err := conn.Read(header)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		b := packet[:n]
+		if n != xproto.HeaderLength {
+			netutil.PrintErrF(config.Verbose, "n %d != header_length %d\n", n, xproto.HeaderLength)
+			break
+		}
+		length := xproto.ReadLength(header)
+		count, err := conn.Read(buffer[:length])
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
+		}
+		if count != length {
+			netutil.PrintErrF(config.Verbose, "count %d != length %d\n", count, length)
+			break
+		}
+		b := buffer[:count]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
@@ -92,8 +111,12 @@ func toServer(conn *Conn, config config.Config, iFace *water.Interface) {
 		}
 		if key := netutil.GetSrcKey(b); key != "" {
 			cache.GetCache().Set(key, conn, 24*time.Hour)
-			iFace.Write(b)
-			counter.IncrReadBytes(len(b))
+			_, err := iFace.Write(b)
+			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
+				return
+			}
+			counter.IncrReadBytes(xproto.HeaderLength + n)
 		}
 	}
 }

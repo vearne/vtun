@@ -69,53 +69,54 @@ func StartClient(iFace *water.Interface, config config.Config) {
 
 // tunToStream sends packets from tun to quic
 func tunToStream(config config.Config, outputStream <-chan []byte, _ctx context.Context, callback func(int)) {
-	packet := make([]byte, config.BufferSize)
-	shb := make([]byte, 2)
+	header := make([]byte, xproto.HeaderLength)
 	for xtun.ContextOpened(_ctx) {
 		b := <-outputStream
-		n := len(b)
-		if config.Obfs {
-			b = cipher.XOR(b)
-		}
-		if config.Compress {
-			b = snappy.Encode(nil, b)
-		}
-		xproto.WriteLength(shb, n)
-		copy(packet[len(shb):len(shb)+n], b)
-		copy(packet[:len(shb)], shb)
 		if v, ok := cache.GetCache().Get(ConnTag); ok {
+			if config.Obfs {
+				b = cipher.XOR(b)
+			}
+			if config.Compress {
+				b = snappy.Encode(nil, b)
+			}
+			xproto.WriteLength(header, len(b))
 			session := v.(quic.Stream)
-			n, err := session.Write(packet[:len(shb)+n])
+			n, err := session.Write(xproto.Merge(header, b))
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
 				continue
 			}
-			callback(len(shb) + n)
+			callback(xproto.HeaderLength + n)
 		}
 	}
 }
 
 // streamToTun sends packets from quic to tun
 func streamToTun(config config.Config, stream quic.Stream, inputStream chan<- []byte, _ctx context.Context, callback func(int)) {
-	packet := make([]byte, config.BufferSize)
-	shb := make([]byte, 2)
+	buffer := make([]byte, config.BufferSize)
+	header := make([]byte, xproto.HeaderLength)
 	defer stream.Close()
 	for xtun.ContextOpened(_ctx) {
-		n, err := stream.Read(shb)
+		n, err := stream.Read(header)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if n < 2 {
+		if n != xproto.HeaderLength {
+			netutil.PrintErrF(config.Verbose, "n %d != header_length %d\n", n, xproto.HeaderLength)
 			break
 		}
-		shn := xproto.ReadLength(shb)
-		count, err := splitRead(stream, shn, packet)
+		length := xproto.ReadLength(header)
+		count, err := splitRead(stream, length, buffer)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		b := packet[:count]
+		if count != length || count <= 0 {
+			netutil.PrintErrF(config.Verbose, "count %d != length %d\n", count, length)
+			break
+		}
+		b := buffer[:count]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
@@ -126,7 +127,9 @@ func streamToTun(config config.Config, stream quic.Stream, inputStream chan<- []
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		inputStream <- b[:]
+		c := make([]byte, len(b))
+		copy(c, b)
+		inputStream <- c
 		callback(n)
 	}
 }
