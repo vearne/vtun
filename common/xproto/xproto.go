@@ -116,14 +116,21 @@ func ParseServerSendPacketHeader(data []byte) *ServerSendPacketHeader {
 	return obj
 }
 
-// ConvertLength []byte length to int length
-func ConvertLength(header []byte) int {
+// ReadLength []byte length to int length
+func ReadLength(header []byte) int {
 	length := 0
 	if len(header) >= 2 {
 		length = ((length & 0x00) | int(header[0])) << 8
 		length = length | int(header[1])
 	}
 	return length
+}
+
+func WriteLength(header []byte, length int) {
+	if len(header) >= 2 {
+		header[0] = byte(length >> 8 & 0xff)
+		header[1] = byte(length & 0xff)
+	}
 }
 
 type AuthKey [16]byte

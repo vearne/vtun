@@ -28,7 +28,7 @@ func ConnectServer(config config.Config) net.Conn {
 			host = config.TLSSni
 		}
 	}
-	u := url.URL{Scheme: scheme, Host: host, Path: config.WebSocketPath}
+	u := url.URL{Scheme: scheme, Host: host, Path: config.Path}
 	header := make(http.Header)
 	header.Set("user-agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36")
 	if config.Key != "" {
@@ -234,6 +234,14 @@ func PrintErr(err error, enableVerbose bool) {
 		return
 	}
 	log.Printf("error:%v", err)
+}
+
+// PrintErrF returns the error log
+func PrintErrF(enableVerbose bool, formatString string, args ...any) {
+	if !enableVerbose {
+		return
+	}
+	log.Printf("error: "+formatString, args...)
 }
 
 // PrintStats returns the stats info

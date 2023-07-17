@@ -19,7 +19,7 @@ import (
 func StartServer(iFace *water.Interface, config config.Config) {
 	log.Printf("vtun h2 server started on %v", config.LocalAddr)
 	mux := http.NewServeMux()
-	mux.Handle(config.WebSocketPath, http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+	mux.Handle(config.Path, http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		ServeHTTP(writer, request, config, iFace)
 	}))
 	srv := &http.Server{

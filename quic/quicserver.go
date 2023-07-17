@@ -4,19 +4,17 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"fmt"
-	"github.com/net-byte/vtun/common/xproto"
-	"log"
-	"time"
-
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
+	"github.com/net-byte/vtun/common/xproto"
 	"github.com/net-byte/water"
 	"github.com/quic-go/quic-go"
+	"log"
+	"time"
 )
 
 // StartServer starts the quic server
@@ -63,14 +61,16 @@ func StartServer(iFace *water.Interface, config config.Config) {
 
 // toClient sends packets from iFace to quic
 func toClient(config config.Config, iFace *water.Interface) {
-	buffer := make([]byte, config.BufferSize)
+	packet := make([]byte, config.BufferSize)
+	shb := make([]byte, 2)
 	for {
-		n, err := iFace.Read(buffer)
+		shn, err := iFace.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		b := buffer[:n]
+		xproto.WriteLength(shb, shn)
+		b := packet[:shn]
 		if key := netutil.GetDstKey(b); key != "" {
 			if v, ok := cache.GetCache().Get(key); ok {
 				if config.Obfs {
@@ -79,23 +79,13 @@ func toClient(config config.Config, iFace *water.Interface) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
-				ph := &xproto.ServerSendPacketHeader{
-					ProtocolVersion: xproto.ProtocolVersion,
-					Length:          len(b),
-				}
+				copy(packet[len(shb):len(shb)+len(b)], b)
+				copy(packet[:len(shb)], shb)
 				stream := v.(quic.Stream)
-				_, err := stream.Write(ph.Bytes())
+				n, err := stream.Write(packet[:len(shb)+len(b)])
 				if err != nil {
-					netutil.PrintErr(err, config.Verbose)
 					cache.GetCache().Delete(key)
-					stream.Close()
-					continue
-				}
-				n, err := stream.Write(b[:])
-				if err != nil {
 					netutil.PrintErr(err, config.Verbose)
-					cache.GetCache().Delete(key)
-					stream.Close()
 					continue
 				}
 				counter.IncrWrittenBytes(n)
@@ -106,60 +96,29 @@ func toClient(config config.Config, iFace *water.Interface) {
 
 // toServer sends packets from quic to iFace
 func toServer(config config.Config, stream quic.Stream, iFace *water.Interface) {
-	defer stream.Close()
-	handshake := make([]byte, xproto.ClientHandshakePacketLength)
-	header := make([]byte, xproto.ClientSendPacketHeaderLength)
 	packet := make([]byte, config.BufferSize)
-	authKey := xproto.ParseAuthKeyFromString(config.Key)
-	n, err := stream.Read(handshake)
-	if err != nil {
-		netutil.PrintErr(err, config.Verbose)
-		return
-	}
-	if n != xproto.ClientHandshakePacketLength {
-		netutil.PrintErr(errors.New(fmt.Sprintf("received handshake length <%d> not equals <%d>!", n, xproto.ClientHandshakePacketLength)), config.Verbose)
-		return
-	}
-	hs := xproto.ParseClientHandshakePacket(handshake[:n])
-	if hs == nil {
-		netutil.PrintErr(errors.New("hs == nil"), config.Verbose)
-		return
-	}
-	if !hs.Key.Equals(authKey) {
-		netutil.PrintErr(errors.New("authentication failed"), config.Verbose)
-		return
-	}
-	cache.GetCache().Set(hs.CIDRv4.String(), stream, 24*time.Hour)
-	cache.GetCache().Set(hs.CIDRv6.String(), stream, 24*time.Hour)
+	shb := make([]byte, 2)
+	defer stream.Close()
 	for {
-		n, err := stream.Read(header)
+		n, err := stream.Read(shb)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if n != xproto.ClientSendPacketHeaderLength {
-			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, xproto.ClientSendPacketHeaderLength)), config.Verbose)
+		if n < 2 {
 			break
 		}
-		ph := xproto.ParseClientSendPacketHeader(header[:n])
-		if ph == nil {
-			netutil.PrintErr(errors.New("ph == nil"), config.Verbose)
-			break
-		}
-		if !ph.Key.Equals(authKey) {
-			netutil.PrintErr(errors.New("authentication failed"), config.Verbose)
-			break
-		}
-		n, err = splitRead(stream, ph.Length, packet[:ph.Length])
+		shn := xproto.ReadLength(shb)
+		count, err := splitRead(stream, shn, packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if n != ph.Length {
-			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, ph.Length)), config.Verbose)
+		if count != shn || count <= 0 {
+			netutil.PrintErr(errors.New("count read error"), config.Verbose)
 			break
 		}
-		b := packet[:n]
+		b := packet[:count]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
@@ -170,11 +129,14 @@ func toServer(config config.Config, stream quic.Stream, iFace *water.Interface) 
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		n, err = iFace.Write(b)
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			break
+		if key := netutil.GetSrcKey(b); key != "" {
+			cache.GetCache().Set(key, stream, 24*time.Hour)
+			n, err = iFace.Write(b)
+			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
+				break
+			}
+			counter.IncrReadBytes(n)
 		}
-		counter.IncrReadBytes(n)
 	}
 }

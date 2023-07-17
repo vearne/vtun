@@ -3,20 +3,18 @@ package dtls
 import (
 	"crypto/tls"
 	"errors"
-	"fmt"
-	"github.com/net-byte/vtun/common/xproto"
-	"log"
-	"net"
-	"time"
-
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
+	"github.com/net-byte/vtun/common/xproto"
 	"github.com/net-byte/water"
 	"github.com/pion/dtls/v2"
+	"log"
+	"net"
+	"time"
 )
 
 // StartServer starts the dtls server
@@ -57,22 +55,25 @@ func StartServer(iFace *water.Interface, config config.Config) {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
 		go toServer(config, conn, iFace)
 	}
 }
 
-// toClient sends packets from iFace to conn
+// toClient sends packets from iFace to dtls
 func toClient(config config.Config, iFace *water.Interface) {
 	packet := make([]byte, config.BufferSize)
+	shb := make([]byte, 2)
 	for {
-		n, err := iFace.Read(packet)
+		shn, err := iFace.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		b := packet[:n]
+		xproto.WriteLength(shb, shn)
+		b := packet[:shn]
 		if key := netutil.GetDstKey(b); key != "" {
 			if v, ok := cache.GetCache().Get(key); ok {
 				if config.Obfs {
@@ -81,18 +82,13 @@ func toClient(config config.Config, iFace *water.Interface) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
-				ph := &xproto.ServerSendPacketHeader{
-					ProtocolVersion: xproto.ProtocolVersion,
-					Length:          len(b),
-				}
-				_, err := v.(net.Conn).Write(ph.Bytes())
+				copy(packet[len(shb):len(shb)+len(b)], b)
+				copy(packet[:len(shb)], shb)
+				conn := v.(*dtls.Conn)
+				n, err := conn.Write(packet[:len(shb)+len(b)])
 				if err != nil {
 					cache.GetCache().Delete(key)
-					continue
-				}
-				n, err = v.(net.Conn).Write(b[:])
-				if err != nil {
-					cache.GetCache().Delete(key)
+					netutil.PrintErr(err, config.Verbose)
 					continue
 				}
 				counter.IncrWrittenBytes(n)
@@ -101,46 +97,31 @@ func toClient(config config.Config, iFace *water.Interface) {
 	}
 }
 
-// toServer sends packets from conn to iFace
+// toServer sends packets from dtls to iFace
 func toServer(config config.Config, conn net.Conn, iFace *water.Interface) {
-	defer func(conn net.Conn) {
-		err := conn.Close()
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-		}
-	}(conn)
-	header := make([]byte, xproto.ClientSendPacketHeaderLength)
 	packet := make([]byte, config.BufferSize)
-	authKey := xproto.ParseAuthKeyFromString(config.Key)
+	shb := make([]byte, 2)
+	defer conn.Close()
 	for {
-		n, err := conn.Read(header)
+		n, err := conn.Read(shb)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if n != xproto.ClientSendPacketHeaderLength {
-			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, xproto.ClientSendPacketHeaderLength)), config.Verbose)
+		if n < 2 {
 			break
 		}
-		ph := xproto.ParseClientSendPacketHeader(header[:n])
-		if ph == nil {
-			netutil.PrintErr(errors.New("ph == nil"), config.Verbose)
-			break
-		}
-		if !ph.Key.Equals(authKey) {
-			netutil.PrintErr(errors.New("authentication failed"), config.Verbose)
-			break
-		}
-		n, err = conn.Read(packet)
+		shn := xproto.ReadLength(shb)
+		count, err := splitRead(conn, shn, packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if n != ph.Length {
-			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, ph.Length)), config.Verbose)
+		if count != shn || count <= 0 {
+			netutil.PrintErr(errors.New("count read error"), config.Verbose)
 			break
 		}
-		b := packet[:n]
+		b := packet[:count]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
@@ -153,7 +134,7 @@ func toServer(config config.Config, conn net.Conn, iFace *water.Interface) {
 		}
 		if key := netutil.GetSrcKey(b); key != "" {
 			cache.GetCache().Set(key, conn, 24*time.Hour)
-			_, err := iFace.Write(b)
+			n, err = iFace.Write(b)
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
 				break

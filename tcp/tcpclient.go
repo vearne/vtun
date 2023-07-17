@@ -1,10 +1,12 @@
 package tcp
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/net-byte/vtun/common/xcrypto"
 	"github.com/net-byte/vtun/common/xproto"
+	"github.com/net-byte/vtun/common/xtun"
 	"log"
 	"net"
 	"time"
@@ -18,32 +20,52 @@ import (
 	"github.com/net-byte/water"
 )
 
-// StartClient starts the tcp client
-func StartClient(iFace *water.Interface, config config.Config) {
-	log.Println("vtun tcp client started")
-	go tunToTcp(config, iFace)
-	for {
+const ConnTag = "conn"
+const HandshakeTag = "handshake"
+
+var _ctx context.Context
+var cancel context.CancelFunc
+
+func StartClientForApi(config config.Config, outputStream <-chan []byte, inputStream chan<- []byte, writeCallback, readCallback func(int), _ctx context.Context) {
+	go Tun2Conn(config, outputStream, _ctx, readCallback)
+	for xtun.ContextOpened(_ctx) {
 		conn, err := net.Dial("tcp", config.ServerAddr)
 		if err != nil {
 			time.Sleep(3 * time.Second)
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		err = handshake(config, conn)
+		err = Handshake(config, conn)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		cache.GetCache().Set("conn", conn, 24*time.Hour)
-		tcpToTun(config, conn, iFace)
-		cache.GetCache().Delete("conn")
+		cache.GetCache().Set(ConnTag, conn, 24*time.Hour)
+		Conn2Tun(config, conn, inputStream, _ctx, writeCallback)
+		cache.GetCache().Delete(ConnTag)
 	}
 }
 
-func handshake(config config.Config, conn net.Conn) error {
+// StartClient starts the tcp client
+func StartClient(iFace *water.Interface, config config.Config) {
+	log.Println("vtun tcp client started")
+	_ctx, cancel = context.WithCancel(context.Background())
+	outputStream := make(chan []byte)
+	go xtun.ReadFromTun(iFace, config, outputStream, _ctx)
+	inputStream := make(chan []byte)
+	go xtun.WriteToTun(iFace, config, inputStream, _ctx)
+	StartClientForApi(
+		config, outputStream, inputStream,
+		func(n int) { counter.IncrWrittenBytes(n) },
+		func(n int) { counter.IncrReadBytes(n) },
+		_ctx,
+	)
+}
+
+func Handshake(config config.Config, conn net.Conn) error {
 	var obj *xproto.ClientHandshakePacket
 	var err error
-	if v, ok := cache.GetCache().Get("handshake"); ok {
+	if v, ok := cache.GetCache().Get(HandshakeTag); ok {
 		obj = v.(*xproto.ClientHandshakePacket)
 	} else {
 		obj, err = xproto.GenClientHandshakePacket(config)
@@ -51,9 +73,8 @@ func handshake(config config.Config, conn net.Conn) error {
 			conn.Close()
 			return err
 		}
-		cache.GetCache().Set("handshake", obj, 24*time.Hour)
+		cache.GetCache().Set(HandshakeTag, obj, 24*time.Hour)
 	}
-
 	_, err = conn.Write(obj.Bytes())
 	if err != nil {
 		conn.Close()
@@ -63,24 +84,18 @@ func handshake(config config.Config, conn net.Conn) error {
 	return nil
 }
 
-// tunToTcp sends packets from tun to tcp
-func tunToTcp(config config.Config, iFace *water.Interface) {
+// Tun2Conn sends packets from tun to conn
+func Tun2Conn(config config.Config, outputStream <-chan []byte, _ctx context.Context, callback func(int)) {
 	authKey := xproto.ParseAuthKeyFromString(config.Key)
-	buffer := make([]byte, config.BufferSize)
 	xp := &xcrypto.XCrypto{}
 	err := xp.Init(config.Key)
 	if err != nil {
 		netutil.PrintErr(err, config.Verbose)
 		return
 	}
-	for {
-		n, err := iFace.Read(buffer)
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			continue
-		}
-		b := buffer[:n]
-		if v, ok := cache.GetCache().Get("conn"); ok {
+	for xtun.ContextOpened(_ctx) {
+		b := <-outputStream
+		if v, ok := cache.GetCache().Get(ConnTag); ok {
 			if config.Obfs {
 				b = cipher.XOR(b)
 			}
@@ -92,13 +107,13 @@ func tunToTcp(config config.Config, iFace *water.Interface) {
 			if config.Compress {
 				b = snappy.Encode(nil, b)
 			}
-			conn := v.(net.Conn)
 			ph := &xproto.ClientSendPacketHeader{
 				ProtocolVersion: xproto.ProtocolVersion,
 				Key:             authKey,
 				Length:          len(b),
 			}
-			_, err := conn.Write(ph.Bytes())
+			conn := v.(net.Conn)
+			_, err = conn.Write(ph.Bytes())
 			if err != nil {
 				conn.Close()
 				netutil.PrintErr(err, config.Verbose)
@@ -110,13 +125,13 @@ func tunToTcp(config config.Config, iFace *water.Interface) {
 				netutil.PrintErr(err, config.Verbose)
 				continue
 			}
-			counter.IncrWrittenBytes(n)
+			callback(n)
 		}
 	}
 }
 
-// tcpToTun sends packets from tcp to tun
-func tcpToTun(config config.Config, conn net.Conn, iFace *water.Interface) {
+// Conn2Tun sends packets from conn to tun
+func Conn2Tun(config config.Config, conn net.Conn, inputStream chan<- []byte, _ctx context.Context, callback func(int)) {
 	defer conn.Close()
 	header := make([]byte, xproto.ServerSendPacketHeaderLength)
 	packet := make([]byte, config.BufferSize)
@@ -126,7 +141,7 @@ func tcpToTun(config config.Config, conn net.Conn, iFace *water.Interface) {
 		netutil.PrintErr(err, config.Verbose)
 		return
 	}
-	for {
+	for xtun.ContextOpened(_ctx) {
 		n, err := conn.Read(header)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
@@ -166,11 +181,11 @@ func tcpToTun(config config.Config, conn net.Conn, iFace *water.Interface) {
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		n, err = iFace.Write(b)
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			break
-		}
-		counter.IncrReadBytes(n)
+		inputStream <- b[:]
+		callback(xproto.ServerSendPacketHeaderLength + ph.Length)
 	}
+}
+
+func Close() {
+	cancel()
 }

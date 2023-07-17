@@ -22,11 +22,11 @@ import (
 )
 
 // StartServer starts the ws server
-func StartServer(iface *water.Interface, config config.Config) {
+func StartServer(iFace *water.Interface, config config.Config) {
 	// server -> client
-	go toClient(config, iface)
+	go toClient(config, iFace)
 	// client -> server
-	http.HandleFunc(config.WebSocketPath, func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(config.Path, func(w http.ResponseWriter, r *http.Request) {
 		if !checkPermission(w, r, config) {
 			return
 		}
@@ -35,7 +35,7 @@ func StartServer(iface *water.Interface, config config.Config) {
 			log.Printf("[server] failed to upgrade http %v", err)
 			return
 		}
-		toServer(config, wsconn, iface)
+		toServer(config, wsconn, iFace)
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
@@ -152,10 +152,10 @@ func checkPermission(w http.ResponseWriter, req *http.Request, config config.Con
 }
 
 // toClient sends data to client
-func toClient(config config.Config, iface *water.Interface) {
+func toClient(config config.Config, iFace *water.Interface) {
 	packet := make([]byte, config.BufferSize)
 	for {
-		n, err := iface.Read(packet)
+		n, err := iFace.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
@@ -181,7 +181,7 @@ func toClient(config config.Config, iface *water.Interface) {
 }
 
 // toServer sends data to server
-func toServer(config config.Config, wsconn net.Conn, iface *water.Interface) {
+func toServer(config config.Config, wsconn net.Conn, iFace *water.Interface) {
 	defer wsconn.Close()
 	for {
 		b, op, err := wsutil.ReadClientData(wsconn)
@@ -204,7 +204,7 @@ func toServer(config config.Config, wsconn net.Conn, iface *water.Interface) {
 			if key := netutil.GetSrcKey(b); key != "" {
 				cache.GetCache().Set(key, wsconn, 24*time.Hour)
 				counter.IncrReadBytes(len(b))
-				iface.Write(b)
+				iFace.Write(b)
 			}
 		}
 	}

@@ -1,10 +1,11 @@
 package kcp
 
 import (
+	"context"
 	"crypto/sha1"
 	"errors"
-	"fmt"
 	"github.com/net-byte/vtun/common/xproto"
+	"github.com/net-byte/vtun/common/xtun"
 	"log"
 	"runtime"
 	"strings"
@@ -21,26 +22,25 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-func StartClient(iFace *water.Interface, config config.Config) {
-	log.Println("vtun kcp client started")
+const ConnTag = "stream"
+
+var _ctx context.Context
+var cancel context.CancelFunc
+
+func StartClientForApi(config config.Config, outputStream <-chan []byte, inputStream chan<- []byte, writeCallback, readCallback func(int), _ctx context.Context) {
 	key := pbkdf2.Key([]byte(config.Key), []byte("default_salt"), 1024, 32, sha1.New)
 	block, err := kcp.NewAESBlockCrypt(key)
 	if err != nil {
 		netutil.PrintErr(err, config.Verbose)
 		return
 	}
-	go tunToKcp(config, iFace)
-	for {
+	go tunToKcp(config, outputStream, _ctx, writeCallback)
+	for xtun.ContextOpened(_ctx) {
 		if session, err := kcp.DialWithOptions(config.ServerAddr, block, 10, 3); err == nil {
 			go CheckKCPSessionAlive(session, config)
-			err = handshake(config, session)
-			if err != nil {
-				netutil.PrintErr(err, config.Verbose)
-				continue
-			}
-			cache.GetCache().Set("kcpConn", session, 24*time.Hour)
-			kcpToTun(config, session, iFace)
-			cache.GetCache().Delete("kcpConn")
+			cache.GetCache().Set(ConnTag, session, 24*time.Hour)
+			kcpToTun(config, session, inputStream, _ctx, readCallback)
+			cache.GetCache().Delete(ConnTag)
 		} else {
 			netutil.PrintErr(err, config.Verbose)
 			time.Sleep(3 * time.Second)
@@ -49,98 +49,68 @@ func StartClient(iFace *water.Interface, config config.Config) {
 	}
 }
 
-func handshake(config config.Config, session *kcp.UDPSession) error {
-	var obj *xproto.ClientHandshakePacket
-	var err error
-	if v, ok := cache.GetCache().Get("handshake"); ok {
-		obj = v.(*xproto.ClientHandshakePacket)
-	} else {
-		obj, err = xproto.GenClientHandshakePacket(config)
-		if err != nil {
-			session.Close()
-			return err
-		}
-		cache.GetCache().Set("handshake", obj, 24*time.Hour)
-	}
-
-	_, err = session.Write(obj.Bytes())
-	if err != nil {
-		session.Close()
-		return err
-	}
-
-	return nil
+func StartClient(iFace *water.Interface, config config.Config) {
+	log.Println("vtun kcp client started")
+	_ctx, cancel = context.WithCancel(context.Background())
+	outputStream := make(chan []byte)
+	go xtun.ReadFromTun(iFace, config, outputStream, _ctx)
+	inputStream := make(chan []byte)
+	go xtun.WriteToTun(iFace, config, inputStream, _ctx)
+	StartClientForApi(
+		config, outputStream, inputStream,
+		func(n int) { counter.IncrWrittenBytes(n) },
+		func(n int) { counter.IncrReadBytes(n) },
+		_ctx,
+	)
 }
 
-func tunToKcp(config config.Config, iFace *water.Interface) {
-	authKey := xproto.ParseAuthKeyFromString(config.Key)
-	buffer := make([]byte, config.BufferSize)
-	for {
-		n, err := iFace.Read(buffer)
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			continue
-		}
-		b := buffer[:n]
-		if v, ok := cache.GetCache().Get("kcpConn"); ok {
-			if config.Obfs {
-				b = cipher.XOR(b)
-			}
-			if config.Compress {
-				b = snappy.Encode(nil, b)
-			}
-			ph := &xproto.ClientSendPacketHeader{
-				ProtocolVersion: xproto.ProtocolVersion,
-				Key:             authKey,
-				Length:          len(b),
-			}
-			session := v.(*kcp.UDPSession)
-			_, err = session.Write(ph.Bytes())
-			if err != nil {
-				session.Close()
-				netutil.PrintErr(err, config.Verbose)
-				continue
-			}
-			n, err = session.Write(b[:])
-			if err != nil {
-				session.Close()
-				netutil.PrintErr(err, config.Verbose)
-				continue
-			}
-			counter.IncrWrittenBytes(n)
-		}
-	}
-}
-
-func kcpToTun(config config.Config, session *kcp.UDPSession, iFace *water.Interface) {
-	defer session.Close()
-	header := make([]byte, xproto.ServerSendPacketHeaderLength)
+func tunToKcp(config config.Config, outputStream <-chan []byte, _ctx context.Context, callback func(int)) {
 	packet := make([]byte, config.BufferSize)
-	for {
-		n, err := session.Read(header)
+	shb := make([]byte, 2)
+	for xtun.ContextOpened(_ctx) {
+		b := <-outputStream
+		n := len(b)
+		if config.Obfs {
+			b = cipher.XOR(b)
+		}
+		if config.Compress {
+			b = snappy.Encode(nil, b)
+		}
+		xproto.WriteLength(shb, n)
+		copy(packet[len(shb):len(shb)+n], b)
+		copy(packet[:len(shb)], shb)
+		if v, ok := cache.GetCache().Get(ConnTag); ok {
+			session := v.(*kcp.UDPSession)
+			n, err := session.Write(packet[:len(shb)+n])
+			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
+				continue
+			}
+			callback(len(shb) + n)
+		}
+	}
+}
+
+func kcpToTun(config config.Config, session *kcp.UDPSession, inputStream chan<- []byte, _ctx context.Context, callback func(int)) {
+	packet := make([]byte, config.BufferSize)
+	shb := make([]byte, 2)
+	defer session.Close()
+	for xtun.ContextOpened(_ctx) {
+		n, err := session.Read(shb)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if n != xproto.ServerSendPacketHeaderLength {
-			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, xproto.ServerSendPacketHeaderLength)), config.Verbose)
+		if n < 2 {
 			break
 		}
-		ph := xproto.ParseServerSendPacketHeader(header[:n])
-		if ph == nil {
-			netutil.PrintErr(errors.New("ph == nil"), config.Verbose)
-			break
-		}
-		n, err = splitRead(session, ph.Length, packet[:ph.Length])
+		shn := xproto.ReadLength(shb)
+		count, err := splitRead(session, shn, packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if n != ph.Length {
-			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, ph.Length)), config.Verbose)
-			break
-		}
-		b := packet[:n]
+		b := packet[:count]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
@@ -151,12 +121,8 @@ func kcpToTun(config config.Config, session *kcp.UDPSession, iFace *water.Interf
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		n, err = iFace.Write(b)
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			break
-		}
-		counter.IncrReadBytes(n)
+		inputStream <- b[:]
+		callback(n)
 	}
 }
 
@@ -185,4 +151,8 @@ func CheckKCPSessionAlive(session *kcp.UDPSession, config config.Config) {
 		}
 
 	}
+}
+
+func Close() {
+	cancel()
 }

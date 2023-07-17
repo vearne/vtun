@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"time"
@@ -56,7 +55,6 @@ type Client struct {
 
 func (cl *Client) getURL() string {
 	url := cl.ServerAddr + cl.Path
-	log.Panicln(url)
 	return cl.Dialer.GetProto() + url
 }
 

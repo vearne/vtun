@@ -26,7 +26,7 @@ func StartServer(iFace *water.Interface, config config.Config) {
 	}
 	defer listener.Close()
 	// server -> client
-	go toClient(config, iFace)
+	go ToClient(config, iFace)
 	// client -> server
 	for {
 		conn, err := listener.Accept()
@@ -34,12 +34,12 @@ func StartServer(iFace *water.Interface, config config.Config) {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		go toServer(config, conn, iFace)
+		go ToServer(config, conn, iFace)
 	}
 }
 
-// toClient sends packets from iFace to conn
-func toClient(config config.Config, iFace *water.Interface) {
+// ToClient sends packets from iFace to conn
+func ToClient(config config.Config, iFace *water.Interface) {
 	buffer := make([]byte, config.BufferSize)
 	xp := &xcrypto.XCrypto{}
 	err := xp.Init(config.Key)
@@ -92,8 +92,8 @@ func toClient(config config.Config, iFace *water.Interface) {
 	}
 }
 
-// toServer sends packets from conn to iFace
-func toServer(config config.Config, conn net.Conn, iFace *water.Interface) {
+// ToServer sends packets from conn to iFace
+func ToServer(config config.Config, conn net.Conn, iFace *water.Interface) {
 	defer conn.Close()
 	handshake := make([]byte, xproto.ClientHandshakePacketLength)
 	header := make([]byte, xproto.ClientSendPacketHeaderLength)
