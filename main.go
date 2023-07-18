@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,7 +11,19 @@ import (
 	"github.com/net-byte/vtun/common/config"
 )
 
-var _version = "v1.7.0"
+var (
+	_version   = "v1.7.0"
+	_gitHash   = "nil"
+	_buildTime = "nil"
+	_goVersion = "nil"
+)
+
+func displayVersionInfo() {
+	log.Printf("vtun version %s", _version)
+	log.Printf("git hash %s", _gitHash)
+	log.Printf("build time %s", _buildTime)
+	log.Printf("go version %s", _goVersion)
+}
 
 func main() {
 	config := config.Config{}
@@ -23,8 +36,8 @@ func main() {
 	flag.StringVar(&config.ServerIP, "sip", "172.16.0.1", "server ip")
 	flag.StringVar(&config.ServerIPv6, "sip6", "fced:9999::1", "server ipv6")
 	flag.StringVar(&config.Key, "k", "freedom@2023", "key")
-	flag.StringVar(&config.Protocol, "p", "udp", "protocol udp/tls/grpc/quic/utls/dtls/h2/ws/wss")
-	flag.StringVar(&config.WebSocketPath, "path", "/freedom", "websocket path")
+	flag.StringVar(&config.Protocol, "p", "udp", "protocol udp/tls/grpc/quic/utls/dtls/h2/http/tcp/https/ws/wss")
+	flag.StringVar(&config.Path, "path", "/freedom", "path")
 	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
 	flag.BoolVar(&config.GlobalMode, "g", false, "client global mode")
 	flag.BoolVar(&config.Obfs, "obfs", false, "enable data obfuscation")
@@ -36,7 +49,9 @@ func main() {
 	flag.BoolVar(&config.TLSInsecureSkipVerify, "isv", false, "tls insecure skip verify")
 	flag.BoolVar(&config.Verbose, "v", false, "enable verbose output")
 	flag.BoolVar(&config.PSKMode, "psk", false, "enable psk mode (dtls only)")
+	flag.StringVar(&config.Host, "host", "", "http host")
 	flag.Parse()
+	displayVersionInfo()
 	app := app.NewApp(&config, _version)
 	app.InitConfig()
 	go app.StartApp()

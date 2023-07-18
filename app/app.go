@@ -1,22 +1,23 @@
 package app
 
 import (
-	"github.com/net-byte/vtun/dtls"
-	"github.com/net-byte/vtun/h2"
-	"github.com/net-byte/vtun/kcp"
-	"github.com/net-byte/vtun/quic"
-	"github.com/net-byte/vtun/utls"
-	"log"
-
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/netutil"
+	"github.com/net-byte/vtun/dtls"
 	"github.com/net-byte/vtun/grpc"
+	"github.com/net-byte/vtun/h1"
+	"github.com/net-byte/vtun/h2"
+	"github.com/net-byte/vtun/kcp"
+	"github.com/net-byte/vtun/quic"
+	"github.com/net-byte/vtun/tcp"
 	"github.com/net-byte/vtun/tls"
 	"github.com/net-byte/vtun/tun"
 	"github.com/net-byte/vtun/udp"
+	"github.com/net-byte/vtun/utls"
 	"github.com/net-byte/vtun/ws"
 	"github.com/net-byte/water"
+	"log"
 )
 
 var _banner = `
@@ -30,7 +31,7 @@ A simple VPN written in Go.
 `
 var _srcUrl = "https://github.com/net-byte/vtun"
 
-// vtun app struct
+// App vtun app struct
 type App struct {
 	Config  *config.Config
 	Version string
@@ -38,7 +39,6 @@ type App struct {
 }
 
 func NewApp(config *config.Config, version string) *App {
-
 	return &App{
 		Config:  config,
 		Version: version,
@@ -62,7 +62,6 @@ func (app *App) InitConfig() {
 
 // StartApp starts the app
 func (app *App) StartApp() {
-
 	switch app.Config.Protocol {
 	case "udp":
 		if app.Config.ServerMode {
@@ -117,6 +116,18 @@ func (app *App) StartApp() {
 			h2.StartServer(app.Iface, *app.Config)
 		} else {
 			h2.StartClient(app.Iface, *app.Config)
+		}
+	case "tcp":
+		if app.Config.ServerMode {
+			tcp.StartServer(app.Iface, *app.Config)
+		} else {
+			tcp.StartClient(app.Iface, *app.Config)
+		}
+	case "http", "https":
+		if app.Config.ServerMode {
+			h1.StartServer(app.Iface, *app.Config)
+		} else {
+			h1.StartClient(app.Iface, *app.Config)
 		}
 	default:
 		if app.Config.ServerMode {

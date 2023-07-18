@@ -14,8 +14,16 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
+// Server the server struct
+type Server struct {
+	config    config.Config
+	iFace     *water.Interface
+	localConn *net.UDPConn
+	connCache *cache.Cache
+}
+
 // StartServer starts the udp server
-func StartServer(iface *water.Interface, config config.Config) {
+func StartServer(iFace *water.Interface, config config.Config) {
 	log.Printf("vtun udp server started on %v", config.LocalAddr)
 	localAddr, err := net.ResolveUDPAddr("udp", config.LocalAddr)
 	if err != nil {
@@ -26,24 +34,16 @@ func StartServer(iface *water.Interface, config config.Config) {
 		log.Fatalln("failed to listen on udp socket:", err)
 	}
 	defer conn.Close()
-	s := &Server{config: config, iface: iface, localConn: conn, connCache: cache.New(30*time.Minute, 10*time.Minute)}
+	s := &Server{config: config, iFace: iFace, localConn: conn, connCache: cache.New(30*time.Minute, 10*time.Minute)}
 	go s.tunToUdp()
 	s.udpToTun()
-}
-
-// the server struct
-type Server struct {
-	config    config.Config
-	iface     *water.Interface
-	localConn *net.UDPConn
-	connCache *cache.Cache
 }
 
 // tunToUdp sends packets from tun to udp
 func (s *Server) tunToUdp() {
 	packet := make([]byte, s.config.BufferSize)
 	for {
-		n, err := s.iface.Read(packet)
+		n, err := s.iFace.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, s.config.Verbose)
 			break
@@ -89,7 +89,7 @@ func (s *Server) udpToTun() {
 			b = cipher.XOR(b)
 		}
 		if key := netutil.GetSrcKey(b); key != "" {
-			s.iface.Write(b)
+			s.iFace.Write(b)
 			s.connCache.Set(key, cliAddr, 24*time.Hour)
 			counter.IncrReadBytes(n)
 		}

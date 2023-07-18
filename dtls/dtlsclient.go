@@ -1,27 +1,29 @@
 package dtls
 
 import (
-	"errors"
-	"fmt"
+	"context"
+	"github.com/golang/snappy"
+	"github.com/net-byte/vtun/common/cipher"
+	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/xproto"
+	"github.com/net-byte/vtun/common/xtun"
 	"github.com/pion/dtls/v2"
 	"log"
 	"net"
 	"time"
 
-	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
-	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
-	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/water"
 )
 
-// StartClient starts the dtls client
-func StartClient(iFace *water.Interface, config config.Config) {
-	log.Println("vtun dtls client started")
-	go tunToTLS(config, iFace)
+const ConnTag = "conn"
+
+var _ctx context.Context
+var cancel context.CancelFunc
+
+func StartClientForApi(config config.Config, outputStream <-chan []byte, inputStream chan<- []byte, writeCallback, readCallback func(int), _ctx context.Context) {
 	var tlsConfig *dtls.Config
 	if config.PSKMode {
 		tlsConfig = &dtls.Config{
@@ -41,100 +43,81 @@ func StartClient(iFace *water.Interface, config config.Config) {
 			tlsConfig.ServerName = config.TLSSni
 		}
 	}
-	for {
+	go tun2Conn(config, outputStream, _ctx, readCallback)
+	for xtun.ContextOpened(_ctx) {
+		ctx, cancel := context.WithTimeout(_ctx, 30*time.Second)
+		defer cancel()
 		addr, err := net.ResolveUDPAddr("udp", config.ServerAddr)
 		if err != nil {
 			time.Sleep(3 * time.Second)
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		conn, err := dtls.Dial("udp", addr, tlsConfig)
+		conn, err := dtls.DialWithContext(ctx, "udp", addr, tlsConfig)
 		if err != nil {
 			time.Sleep(3 * time.Second)
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		cache.GetCache().Set("dtlsConn", conn, 24*time.Hour)
-		tlsToTun(config, conn, iFace)
-		cache.GetCache().Delete("dtlsConn")
+		cache.GetCache().Set(ConnTag, conn, 24*time.Hour)
+		conn2Tun(config, conn, inputStream, _ctx, writeCallback)
+		cache.GetCache().Delete(ConnTag)
+		conn.Close()
 	}
 }
 
-// tunToTLS sends packets from tun to tls
-func tunToTLS(config config.Config, iFace *water.Interface) {
-	authKey := xproto.ParseAuthKeyFromString(config.Key)
-	buffer := make([]byte, config.BufferSize)
-	for {
-		n, err := iFace.Read(buffer)
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			break
-		}
-		fmt.Printf("iface read: %v", buffer[:n])
-		if v, ok := cache.GetCache().Get("dtlsConn"); ok {
-			b := buffer[:n]
+// StartClient starts the dtls client
+func StartClient(iFace *water.Interface, config config.Config) {
+	log.Println("vtun dtls client started")
+	_ctx, cancel = context.WithCancel(context.Background())
+	outputStream := make(chan []byte)
+	go xtun.ReadFromTun(iFace, config, outputStream, _ctx)
+	inputStream := make(chan []byte)
+	go xtun.WriteToTun(iFace, config, inputStream, _ctx)
+	StartClientForApi(
+		config, outputStream, inputStream,
+		func(n int) { counter.IncrWrittenBytes(n) },
+		func(n int) { counter.IncrReadBytes(n) },
+		_ctx,
+	)
+}
+
+// tun2Conn sends packets from tun to conn
+func tun2Conn(config config.Config, outputStream <-chan []byte, _ctx context.Context, callback func(int)) {
+	for xtun.ContextOpened(_ctx) {
+		b := <-outputStream
+		if v, ok := cache.GetCache().Get(ConnTag); ok {
 			if config.Obfs {
 				b = cipher.XOR(b)
 			}
 			if config.Compress {
 				b = snappy.Encode(nil, b)
 			}
-			conn := v.(net.Conn)
-			ph := &xproto.ClientSendPacketHeader{
-				ProtocolVersion: xproto.ProtocolVersion,
-				Key:             authKey,
-				Length:          len(b),
-			}
-			_, err = conn.Write(ph.Bytes())
+			conn := v.(*dtls.Conn)
+			n, err := conn.Write(xproto.Copy(b))
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
 				continue
 			}
-			n, err = v.(net.Conn).Write(b[:])
-			if err != nil {
-				netutil.PrintErr(err, config.Verbose)
-				continue
-			}
-			counter.IncrWrittenBytes(n)
+			callback(n)
 		}
 	}
 }
 
-// tlsToTun sends packets from tls to tun
-func tlsToTun(config config.Config, conn net.Conn, iFace *water.Interface) {
-	defer func(conn net.Conn) {
-		err := conn.Close()
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-		}
-	}(conn)
-	header := make([]byte, xproto.ServerSendPacketHeaderLength)
-	packet := make([]byte, config.BufferSize)
-	for {
-		n, err := conn.Read(header)
+// conn2Tun sends packets from conn to tun
+func conn2Tun(config config.Config, conn *dtls.Conn, inputStream chan<- []byte, _ctx context.Context, callback func(int)) {
+	defer conn.Close()
+	buffer := make([]byte, config.BufferSize)
+	for xtun.ContextOpened(_ctx) {
+		count, err := conn.Read(buffer)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if n != xproto.ServerSendPacketHeaderLength {
-			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, xproto.ServerSendPacketHeaderLength)), config.Verbose)
-			break
+		if count == 0 {
+			continue
 		}
-		ph := xproto.ParseServerSendPacketHeader(header[:n])
-		if ph == nil {
-			netutil.PrintErr(errors.New("ph == nil"), config.Verbose)
-			break
-		}
-		n, err = conn.Read(packet[:ph.Length])
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			break
-		}
-		if n != ph.Length {
-			netutil.PrintErr(errors.New(fmt.Sprintf("received length <%d> not equals <%d>!", n, ph.Length)), config.Verbose)
-			break
-		}
-		b := packet[:n]
+		b := buffer[:count]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
@@ -145,11 +128,11 @@ func tlsToTun(config config.Config, conn net.Conn, iFace *water.Interface) {
 		if config.Obfs {
 			b = cipher.XOR(b)
 		}
-		_, err = iFace.Write(b)
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			break
-		}
-		counter.IncrReadBytes(n)
+		inputStream <- xproto.Copy(b)
+		callback(len(b))
 	}
+}
+
+func Close() {
+	cancel()
 }

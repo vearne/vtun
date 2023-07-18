@@ -12,7 +12,7 @@ import (
 )
 
 // CreateTun creates a tun interface
-func CreateTun(config config.Config) (iface *water.Interface) {
+func CreateTun(config config.Config) (iFace *water.Interface) {
 	c := water.Config{DeviceType: water.TUN}
 	c.PlatformSpecificParams = water.PlatformSpecificParams{}
 	os := runtime.GOOS
@@ -23,17 +23,17 @@ func CreateTun(config config.Config) (iface *water.Interface) {
 	if config.DeviceName != "" {
 		c.PlatformSpecificParams.Name = config.DeviceName
 	}
-	iface, err := water.New(c)
+	iFace, err := water.New(c)
 	if err != nil {
 		log.Fatalln("failed to create tun interface:", err)
 	}
-	log.Printf("interface created %v", iface.Name())
-	setRoute(config, iface)
-	return iface
+	log.Printf("interface created %v", iFace.Name())
+	setRoute(config, iFace)
+	return iFace
 }
 
 // setRoute sets the system routes
-func setRoute(config config.Config, iface *water.Interface) {
+func setRoute(config config.Config, iFace *water.Interface) {
 	ip, _, err := net.ParseCIDR(config.CIDR)
 	if err != nil {
 		log.Panicf("error cidr %v", config.CIDR)
@@ -44,42 +44,41 @@ func setRoute(config config.Config, iface *water.Interface) {
 	}
 	os := runtime.GOOS
 	if os == "linux" {
-		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "mtu", strconv.Itoa(config.MTU))
-		netutil.ExecCmd("/sbin/ip", "addr", "add", config.CIDR, "dev", iface.Name())
-		netutil.ExecCmd("/sbin/ip", "-6", "addr", "add", config.CIDRv6, "dev", iface.Name())
-		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iface.Name(), "up")
+		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iFace.Name(), "mtu", strconv.Itoa(config.MTU))
+		netutil.ExecCmd("/sbin/ip", "addr", "add", config.CIDR, "dev", iFace.Name())
+		netutil.ExecCmd("/sbin/ip", "-6", "addr", "add", config.CIDRv6, "dev", iFace.Name())
+		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iFace.Name(), "up")
 		if !config.ServerMode && config.GlobalMode {
-			physicalIface := netutil.GetInterface()
+			physicaliFace := netutil.GetInterface()
 			serverAddrIP := netutil.LookupServerAddrIP(config.ServerAddr)
-			if physicalIface != "" && serverAddrIP != nil {
+			if physicaliFace != "" && serverAddrIP != nil {
 				if config.LocalGateway != "" {
-					netutil.ExecCmd("/sbin/ip", "route", "add", "0.0.0.0/1", "dev", iface.Name())
-					netutil.ExecCmd("/sbin/ip", "route", "add", "128.0.0.0/1", "dev", iface.Name())
+					netutil.ExecCmd("/sbin/ip", "route", "add", "0.0.0.0/1", "dev", iFace.Name())
+					netutil.ExecCmd("/sbin/ip", "route", "add", "128.0.0.0/1", "dev", iFace.Name())
 					if serverAddrIP.To4() != nil {
-						netutil.ExecCmd("/sbin/ip", "route", "add", serverAddrIP.To4().String()+"/32", "via", config.LocalGateway, "dev", physicalIface)
+						netutil.ExecCmd("/sbin/ip", "route", "add", serverAddrIP.To4().String()+"/32", "via", config.LocalGateway, "dev", physicaliFace)
 					}
 				}
 				if config.LocalGatewayv6 != "" {
-					netutil.ExecCmd("/sbin/ip", "-6", "route", "add", "::/1", "dev", iface.Name())
+					netutil.ExecCmd("/sbin/ip", "-6", "route", "add", "::/1", "dev", iFace.Name())
 					if serverAddrIP.To16() != nil {
-						netutil.ExecCmd("/sbin/ip", "-6", "route", "add", serverAddrIP.To16().String()+"/128", "via", config.LocalGatewayv6, "dev", physicalIface)
+						netutil.ExecCmd("/sbin/ip", "-6", "route", "add", serverAddrIP.To16().String()+"/128", "via", config.LocalGatewayv6, "dev", physicaliFace)
 					}
 				}
 			}
 		}
-
 	} else if os == "darwin" {
-		netutil.ExecCmd("ifconfig", iface.Name(), "inet", ip.String(), config.ServerIP, "up")
-		netutil.ExecCmd("ifconfig", iface.Name(), "inet6", ipv6.String(), config.ServerIPv6, "up")
+		netutil.ExecCmd("ifconfig", iFace.Name(), "inet", ip.String(), config.ServerIP, "up")
+		netutil.ExecCmd("ifconfig", iFace.Name(), "inet6", ipv6.String(), config.ServerIPv6, "up")
 		if !config.ServerMode && config.GlobalMode {
-			physicalIface := netutil.GetInterface()
+			physicaliFace := netutil.GetInterface()
 			serverAddrIP := netutil.LookupServerAddrIP(config.ServerAddr)
-			if physicalIface != "" && serverAddrIP != nil {
+			if physicaliFace != "" && serverAddrIP != nil {
 				if config.LocalGateway != "" {
 					netutil.ExecCmd("route", "add", "default", config.ServerIP)
 					netutil.ExecCmd("route", "change", "default", config.ServerIP)
-					netutil.ExecCmd("route", "add", "0.0.0.0/1", "-interface", iface.Name())
-					netutil.ExecCmd("route", "add", "128.0.0.0/1", "-interface", iface.Name())
+					netutil.ExecCmd("route", "add", "0.0.0.0/1", "-interface", iFace.Name())
+					netutil.ExecCmd("route", "add", "128.0.0.0/1", "-interface", iFace.Name())
 					if serverAddrIP.To4() != nil {
 						netutil.ExecCmd("route", "add", serverAddrIP.To4().String(), config.LocalGateway)
 					}
@@ -87,7 +86,7 @@ func setRoute(config config.Config, iface *water.Interface) {
 				if config.LocalGatewayv6 != "" {
 					netutil.ExecCmd("route", "add", "-inet6", "default", config.ServerIPv6)
 					netutil.ExecCmd("route", "change", "-inet6", "default", config.ServerIPv6)
-					netutil.ExecCmd("route", "add", "-inet6", "::/1", "-interface", iface.Name())
+					netutil.ExecCmd("route", "add", "-inet6", "::/1", "-interface", iFace.Name())
 					if serverAddrIP.To16() != nil {
 						netutil.ExecCmd("route", "add", "-inet6", serverAddrIP.To16().String(), config.LocalGatewayv6)
 					}
@@ -117,7 +116,7 @@ func setRoute(config config.Config, iface *water.Interface) {
 	} else {
 		log.Printf("not support os %v", os)
 	}
-	log.Printf("interface configured %v", iface.Name())
+	log.Printf("interface configured %v", iFace.Name())
 }
 
 // ResetRoute resets the system routes

@@ -1,14 +1,34 @@
 #!/bin/bash
+RELEASE_BIN_DIR='./bin/'
+function create_dir() {
+    if [ ! -d $1 ];then
+        mkdir $1
+    fi
+}
 
-#Linux amd64
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/vtun-linux-amd64 ./main.go
-#Linux arm64
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o ./bin/vtun-linux-arm64 ./main.go
-#Mac amd64
-CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o ./bin/vtun-darwin-amd64 ./main.go
-#Mac arm64
-CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o ./bin/vtun-darwin-arm64 ./main.go
-#Windows amd64
-CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o ./bin/vtun-win-amd64.exe ./main.go
+function go_build() {
+    suffix=''
+    if [[ "$1" == "windows" ]]; then
+        suffix='.exe'
+    fi
+    CGO_ENABLED=0 GOOS=$1 GOARCH=$2 go build -o "${RELEASE_BIN_DIR}vtun-$1_$2${suffix}" -ldflags "-w -s -X 'main._version=1.0.$(date +%Y%m%d)' -X 'main._goVersion=$(go version)' -X 'main._gitHash=$(git show -s --format=%H)' -X 'main._buildTime=$(git show -s --format=%cd)'" ./main.go
+}
 
-echo "DONE!!!"
+function main() {
+    rm -rf $RELEASE_BIN_DIR
+    go clean
+    go mod tidy
+    create_dir $RELEASE_BIN_DIR
+    go_build linux 386
+    go_build linux amd64
+    go_build linux arm
+    go_build linux arm64
+    go_build darwin arm64
+    go_build darwin amd64
+    go_build windows 386
+    go_build windows amd64
+    go_build windows arm
+    go_build windows arm64
+}
+
+main
