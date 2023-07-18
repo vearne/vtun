@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	_version   = "v1.7.0"
+	_version   = "v1.7.1"
 	_gitHash   = "nil"
 	_buildTime = "nil"
 	_goVersion = "nil"
