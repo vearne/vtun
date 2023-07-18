@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os/exec"
 	"strings"
+	"tailscale.com/net/interfaces"
 	"time"
 
 	"github.com/gobwas/ws"
@@ -27,7 +28,7 @@ func ConnectServer(config config.Config) net.Conn {
 			host = config.TLSSni
 		}
 	}
-	u := url.URL{Scheme: scheme, Host: host, Path: config.WebSocketPath}
+	u := url.URL{Scheme: scheme, Host: host, Path: config.Path}
 	header := make(http.Header)
 	header.Set("user-agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36")
 	if config.Key != "" {
@@ -55,7 +56,7 @@ func ConnectServer(config config.Config) net.Conn {
 	return c
 }
 
-// GetInterfaceName returns the name of interface
+// GetInterface returns the name of interface
 func GetInterface() (name string) {
 	ifaces := getAllInterfaces()
 	if len(ifaces) == 0 {
@@ -74,18 +75,18 @@ func GetInterface() (name string) {
 
 // getAllInterfaces returns all interfaces
 func getAllInterfaces() []net.Interface {
-	ifaces, err := net.Interfaces()
+	iFaceList, err := net.Interfaces()
 	if err != nil {
 		log.Println(err)
 		return nil
 	}
 
 	var outInterfaces []net.Interface
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagLoopback == 0 && iface.Flags&net.FlagUp == 1 && isPhysicalInterface(iface.Name) {
-			netAddrs, _ := iface.Addrs()
-			if len(netAddrs) > 0 {
-				outInterfaces = append(outInterfaces, iface)
+	for _, iFace := range iFaceList {
+		if iFace.Flags&net.FlagLoopback == 0 && iFace.Flags&net.FlagUp == 1 && isPhysicalInterface(iFace.Name) {
+			netAddrList, _ := iFace.Addrs()
+			if len(netAddrList) > 0 {
+				outInterfaces = append(outInterfaces, iFace)
 			}
 		}
 	}
@@ -103,7 +104,7 @@ func isPhysicalInterface(addr string) bool {
 	return false
 }
 
-// Lookup IP address of the given hostname
+// LookupIP Lookup IP address of the given hostname
 func LookupIP(domain string) net.IP {
 	ips, err := net.LookupIP(domain)
 	if err != nil || len(ips) == 0 {
@@ -130,7 +131,7 @@ func GetIPv4Src(packet []byte) net.IP {
 	return net.IPv4(packet[12], packet[13], packet[14], packet[15])
 }
 
-// GEtIPv4Dst returns the IPv4 destination address of the packet
+// GetIPv4Dst returns the IPv4 destination address of the packet
 func GetIPv4Dst(packet []byte) net.IP {
 	return net.IPv4(packet[16], packet[17], packet[18], packet[19])
 }
@@ -156,7 +157,7 @@ func GetSrcKey(packet []byte) string {
 	return key
 }
 
-// GetdstKey returns the destination key of the packets
+// GetDstKey returns the destination key of the packets
 func GetDstKey(packet []byte) string {
 	key := ""
 	if IsIPv4(packet) && len(packet) >= 20 {
@@ -167,9 +168,9 @@ func GetDstKey(packet []byte) string {
 	return key
 }
 
-// ExecuteCommand executes the given command
+// ExecCmd executes the given command
 func ExecCmd(c string, args ...string) string {
-	log.Printf("exec %v %v", c, args)
+	//log.Printf("exec %v %v", c, args)
 	cmd := exec.Command(c, args...)
 	out, err := cmd.Output()
 	if err != nil {
@@ -214,12 +215,33 @@ func GetDefaultHttpResponse() []byte {
 	return []byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 6\r\nConnection: keep-alive\r\nCache-Control: no-cache\r\nCF-Cache-Status: DYNAMIC\r\nServer: cloudflare\r\n\r\nfollow")
 }
 
+func GetDefaultHttpHandleFunc() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Content-Length", "6")
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("CF-Cache-Status", "DYNAMIC")
+		w.Header().Set("Server", "cloudflare")
+		w.Write([]byte("follow"))
+	})
+}
+
 // PrintErr returns the error log
 func PrintErr(err error, enableVerbose bool) {
 	if !enableVerbose {
 		return
 	}
 	log.Printf("error:%v", err)
+}
+
+// PrintErrF returns the error log
+func PrintErrF(enableVerbose bool, formatString string, args ...any) {
+	if !enableVerbose {
+		return
+	}
+	log.Printf("error: "+formatString, args...)
 }
 
 // PrintStats returns the stats info
@@ -233,4 +255,8 @@ func PrintStats(enableVerbose bool, serverMode bool) {
 			log.Printf("stats:%v", counter.PrintBytes(serverMode))
 		}
 	}()
+}
+
+func DefaultRouteInterface() (string, error) {
+	return interfaces.DefaultRouteInterface()
 }

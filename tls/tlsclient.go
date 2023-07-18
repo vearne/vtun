@@ -1,24 +1,23 @@
 package tls
 
 import (
+	"context"
 	"crypto/tls"
-	"log"
-	"net"
-	"time"
-
-	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
-	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
+	"github.com/net-byte/vtun/common/xtun"
+	"github.com/net-byte/vtun/tcp"
 	"github.com/net-byte/water"
+	"log"
+	"time"
 )
 
-// StartClient starts the tls client
-func StartClient(iface *water.Interface, config config.Config) {
-	log.Println("vtun tls client started")
-	go tunToTLS(config, iface)
+var _ctx context.Context
+var cancel context.CancelFunc
+
+func StartClientForApi(config config.Config, outputStream <-chan []byte, inputStream chan<- []byte, writeCallback, readCallback func(int), _ctx context.Context) {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: config.TLSInsecureSkipVerify,
 		MinVersion:         tls.VersionTLS13,
@@ -36,73 +35,42 @@ func StartClient(iface *water.Interface, config config.Config) {
 	if config.TLSSni != "" {
 		tlsConfig.ServerName = config.TLSSni
 	}
-	for {
+	go tcp.Tun2Conn(config, outputStream, _ctx, readCallback)
+	for xtun.ContextOpened(_ctx) {
 		conn, err := tls.Dial("tcp", config.ServerAddr, tlsConfig)
 		if err != nil {
 			time.Sleep(3 * time.Second)
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		cache.GetCache().Set("tlsconn", conn, 24*time.Hour)
-		tlsToTun(config, conn, iface)
-		cache.GetCache().Delete("tlsconn")
+		err = tcp.Handshake(config, conn)
+		if err != nil {
+			time.Sleep(3 * time.Second)
+			netutil.PrintErr(err, config.Verbose)
+			continue
+		}
+		cache.GetCache().Set(tcp.ConnTag, conn, 24*time.Hour)
+		tcp.Conn2Tun(config, conn, inputStream, _ctx, writeCallback)
+		cache.GetCache().Delete(tcp.ConnTag)
 	}
 }
 
-// tunToTLS sends packets from tun to tls
-func tunToTLS(config config.Config, iface *water.Interface) {
-	packet := make([]byte, config.BufferSize)
-	for {
-		n, err := iface.Read(packet)
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			break
-		}
-		if v, ok := cache.GetCache().Get("tlsconn"); ok {
-			b := packet[:n]
-			if config.Obfs {
-				b = cipher.XOR(b)
-			}
-			if config.Compress {
-				b = snappy.Encode(nil, b)
-			}
-			tlsconn := v.(net.Conn)
-			_, err = tlsconn.Write(b)
-			if err != nil {
-				netutil.PrintErr(err, config.Verbose)
-				continue
-			}
-			counter.IncrWrittenBytes(n)
-		}
-	}
+// StartClient starts the tls client
+func StartClient(iFace *water.Interface, config config.Config) {
+	log.Println("vtun tls client started")
+	_ctx, cancel = context.WithCancel(context.Background())
+	outputStream := make(chan []byte)
+	go xtun.ReadFromTun(iFace, config, outputStream, _ctx)
+	inputStream := make(chan []byte)
+	go xtun.WriteToTun(iFace, config, inputStream, _ctx)
+	StartClientForApi(
+		config, outputStream, inputStream,
+		func(n int) { counter.IncrWrittenBytes(n) },
+		func(n int) { counter.IncrReadBytes(n) },
+		_ctx,
+	)
 }
 
-// tlsToTun sends packets from tls to tun
-func tlsToTun(config config.Config, tlsconn net.Conn, iface *water.Interface) {
-	defer tlsconn.Close()
-	packet := make([]byte, config.BufferSize)
-	for {
-		n, err := tlsconn.Read(packet)
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			break
-		}
-		b := packet[:n]
-		if config.Compress {
-			b, err = snappy.Decode(nil, b)
-			if err != nil {
-				netutil.PrintErr(err, config.Verbose)
-				break
-			}
-		}
-		if config.Obfs {
-			b = cipher.XOR(b)
-		}
-		_, err = iface.Write(b)
-		if err != nil {
-			netutil.PrintErr(err, config.Verbose)
-			break
-		}
-		counter.IncrReadBytes(n)
-	}
+func Close() {
+	cancel()
 }

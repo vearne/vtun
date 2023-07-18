@@ -20,6 +20,9 @@ A simple VPN written in Go.
 * VPN over utls
 * VPN over dtls
 * VPN over h2
+* VPN over http  (Use aes-256-gcm encryption by default)
+* VPN over tcp   (Use aes-256-gcm encryption by default)
+* VPN over https (Use aes-256-gcm encryption by default)
 # Usage
 
 ```
@@ -47,7 +50,7 @@ Usage of vtun:
   -obfs
       enable data obfuscation
   -p string
-      protocol udp/tls/grpc/quic/utls/dtls/h2/ws/wss (default "udp")
+      protocol udp/tls/grpc/quic/utls/dtls/h2/http/tcp/https/ws/wss (default "udp")
   -path string
       websocket path (default "/freedom")
   -privatekey string
@@ -151,9 +154,14 @@ netbyte/vtun -S -l :3001 -c 172.16.0.1/24 -k 123456
 
 ## Mobile client
 
-### [Android](https://github.com/net-byte/vTunnel)
+### 1. [vTunnel](https://github.com/net-byte/vTunnel)
 <p>
 <a href="https://play.google.com/store/apps/details?id=com.netbyte.vtunnel"><img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" height="100"></a>
+</p>
+
+### 2. GoFly VPN
+<p>
+<a href="https://play.google.com/store/apps/details?id=app.fjj.gofly"><img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" height="100"></a>
 </p>
 
 # License

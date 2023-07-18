@@ -3,21 +3,21 @@ package quic
 import (
 	"context"
 	"crypto/tls"
-	"log"
-	"time"
-
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
+	"github.com/net-byte/vtun/common/xproto"
 	"github.com/net-byte/water"
 	"github.com/quic-go/quic-go"
+	"log"
+	"time"
 )
 
 // StartServer starts the quic server
-func StartServer(iface *water.Interface, config config.Config) {
+func StartServer(iFace *water.Interface, config config.Config) {
 	log.Printf("vtun quic server started on %v", config.LocalAddr)
 	tlsCert, err := tls.LoadX509KeyPair(config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath)
 	if err != nil {
@@ -32,7 +32,7 @@ func StartServer(iface *water.Interface, config config.Config) {
 		log.Panic(err)
 	}
 	//server -> client
-	go toClient(config, iface)
+	go toClient(config, iFace)
 	for {
 		conn, err := listener.Accept(context.Background())
 		if err != nil {
@@ -47,26 +47,28 @@ func StartServer(iface *water.Interface, config config.Config) {
 					break
 				}
 				//client -> server
-				toServer(config, stream, iface)
+				toServer(config, stream, iFace)
 			}
-			conn.CloseWithError(quic.ApplicationErrorCode(0x01), "closed")
+			err := conn.CloseWithError(quic.ApplicationErrorCode(0x01), "closed")
+			if err != nil {
+				netutil.PrintErr(err, config.Verbose)
+				return
+			}
 		}()
 	}
 }
 
-// toClient sends packets from iface to quicconn
-func toClient(config config.Config, iface *water.Interface) {
+// toClient sends packets from iFace to quic
+func toClient(config config.Config, iFace *water.Interface) {
 	packet := make([]byte, config.BufferSize)
-	shb := make([]byte, 2)
+	header := make([]byte, xproto.HeaderLength)
 	for {
-		shn, err := iface.Read(packet)
+		n, err := iFace.Read(packet)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		shb[0] = byte(shn >> 8 & 0xff)
-		shb[1] = byte(shn & 0xff)
-		b := packet[:shn]
+		b := packet[:n]
 		if key := netutil.GetDstKey(b); key != "" {
 			if v, ok := cache.GetCache().Get(key); ok {
 				if config.Obfs {
@@ -75,10 +77,9 @@ func toClient(config config.Config, iface *water.Interface) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
-				copy(packet[len(shb):len(shb)+len(b)], b)
-				copy(packet[:len(shb)], shb)
+				xproto.WriteLength(header, len(b))
 				stream := v.(quic.Stream)
-				n, err := stream.Write(packet[:len(shb)+len(b)])
+				n, err = stream.Write(xproto.Merge(header, b))
 				if err != nil {
 					cache.GetCache().Delete(key)
 					netutil.PrintErr(err, config.Verbose)
@@ -90,47 +91,32 @@ func toClient(config config.Config, iface *water.Interface) {
 	}
 }
 
-// toServer sends packets from quicConn to iface
-func toServer(config config.Config, stream quic.Stream, iface *water.Interface) {
+// toServer sends packets from quic to iFace
+func toServer(config config.Config, stream quic.Stream, iFace *water.Interface) {
 	packet := make([]byte, config.BufferSize)
-	shb := make([]byte, 2)
+	header := make([]byte, xproto.HeaderLength)
 	defer stream.Close()
 	for {
-		n, err := stream.Read(shb)
+		n, err := stream.Read(header)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			break
 		}
-		if n < 2 {
+		if n < xproto.HeaderLength {
+			netutil.PrintErrF(config.Verbose, "%d < header_length %d\n", n, xproto.HeaderLength)
 			break
 		}
-		shn := 0
-		shn = ((shn & 0x00) | int(shb[0])) << 8
-		shn = shn | int(shb[1])
-		splitSize := 99
-		var count = 0
-		if shn < splitSize {
-			n, err = stream.Read(packet[:shn])
-			if err != nil {
-				netutil.PrintErr(err, config.Verbose)
-				break
-			}
-			count = n
-		} else {
-			for count < shn {
-				receiveSize := splitSize
-				if shn-count < splitSize {
-					receiveSize = shn - count
-				}
-				n, err = stream.Read(packet[count : count+receiveSize])
-				if err != nil {
-					netutil.PrintErr(err, config.Verbose)
-					break
-				}
-				count += n
-			}
+		length := xproto.ReadLength(header)
+		count, err := splitRead(stream, length, packet)
+		if err != nil {
+			netutil.PrintErr(err, config.Verbose)
+			break
 		}
-		b := packet[:shn]
+		if count != length || count <= 0 {
+			netutil.PrintErrF(config.Verbose, "count %d != length %d\n", count, length)
+			break
+		}
+		b := packet[:count]
 		if config.Compress {
 			b, err = snappy.Decode(nil, b)
 			if err != nil {
@@ -143,7 +129,7 @@ func toServer(config config.Config, stream quic.Stream, iface *water.Interface) 
 		}
 		if key := netutil.GetSrcKey(b); key != "" {
 			cache.GetCache().Set(key, stream, 24*time.Hour)
-			n, err = iface.Write(b)
+			n, err = iFace.Write(b)
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
 				break
