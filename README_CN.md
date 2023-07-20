@@ -40,6 +40,8 @@ Usage of vtun:
   -dn string
       device name
   -g  client global mode
+  -host string
+      http host
   -isv
       tls insecure skip verify
   -k string
