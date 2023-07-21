@@ -20,9 +20,9 @@ A simple VPN written in Go.
 * VPN over utls
 * VPN over dtls
 * VPN over h2
-* VPN over http  (Use aes-256-gcm encryption by default)
-* VPN over tcp   (Use aes-256-gcm encryption by default)
-* VPN over https (Use aes-256-gcm encryption by default)
+* VPN over http
+* VPN over tcp
+* VPN over https
 # Usage
 
 ```
@@ -39,6 +39,8 @@ Usage of vtun:
   -dn string
       device name
   -g  client global mode
+  -host string
+      http host
   -isv
       tls insecure skip verify
   -k string

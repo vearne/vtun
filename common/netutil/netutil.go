@@ -22,6 +22,9 @@ import (
 func ConnectServer(config config.Config) net.Conn {
 	scheme := "ws"
 	host := config.ServerAddr
+	if config.Host != "" {
+		host = config.Host
+	}
 	if config.Protocol == "wss" {
 		scheme = "wss"
 		if config.TLSSni != "" {
