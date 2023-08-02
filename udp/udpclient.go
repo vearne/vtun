@@ -3,6 +3,7 @@ package udp
 import (
 	"log"
 	"net"
+	"time"
 
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cipher"
@@ -33,6 +34,7 @@ func StartClient(iFace *water.Interface, config config.Config) {
 	log.Println("vtun udp client started")
 	c := &Client{config: config, iFace: iFace, conn: conn}
 	go c.udpToTun()
+	go c.keepAlive()
 	c.tunToUdp()
 }
 
@@ -83,5 +85,35 @@ func (c *Client) tunToUdp() {
 			continue
 		}
 		counter.IncrWrittenBytes(n)
+	}
+}
+
+func (c *Client) keepAlive() {
+	srcIp, _, err := net.ParseCIDR(c.config.CIDR)
+	if err != nil {
+		netutil.PrintErr(err, c.config.Verbose)
+		return
+	}
+
+	// dst ip(pingIpPacket[12:16]): 0.0.0.0, src ip(pingIpPacket[16:20]): 0.0.0.0
+	pingIpPacket := []byte{0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x40, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00}
+	copy(pingIpPacket[12:16], srcIp[12:16]) // modify ping packet src ip to client CIDR ip
+
+	if c.config.Obfs {
+		pingIpPacket = cipher.XOR(pingIpPacket)
+	}
+	if c.config.Compress {
+		pingIpPacket = snappy.Encode(nil, pingIpPacket)
+	}
+
+	for {
+		time.Sleep(time.Second * 10)
+
+		_, err := c.conn.Write(pingIpPacket)
+		if err != nil {
+			netutil.PrintErr(err, c.config.Verbose)
+			continue
+		}
 	}
 }
