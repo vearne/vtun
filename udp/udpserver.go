@@ -88,10 +88,40 @@ func (s *Server) udpToTun() {
 		if s.config.Obfs {
 			b = cipher.XOR(b)
 		}
-		if key := netutil.GetSrcKey(b); key != "" {
-			s.iFace.Write(b)
-			s.connCache.Set(key, cliAddr, 24*time.Hour)
-			counter.IncrReadBytes(n)
+
+		cidrIP, _, err := net.ParseCIDR(s.config.CIDR)
+		if err != nil {
+			netutil.PrintErr(err, s.config.Verbose)
+			return
+		}
+
+		if dstKey := netutil.GetDstKey(b); dstKey != "" {
+			// the package come from vtun udp client in-code ping operation
+			if dstKey == "0.0.0.0" {
+				srcKey := netutil.GetSrcKey(b)
+				s.connCache.Set(srcKey, cliAddr, 24*time.Hour)
+				continue
+			}
+
+			// the package come from vtun udp client, send to this vtun udp server
+			if dstKey == cidrIP.String() {
+				if key := netutil.GetSrcKey(b); key != "" {
+					s.iFace.Write(b)
+					s.connCache.Set(key, cliAddr, 24*time.Hour)
+					counter.IncrReadBytes(n)
+				}
+				continue
+			}
+
+			// the package come from vtun udp client, send to another client
+			if v, ok := s.connCache.Get(dstKey); ok {
+				_, err := s.localConn.WriteToUDP(b, v.(*net.UDPAddr))
+				if err != nil {
+					s.connCache.Delete(dstKey)
+					continue
+				}
+				counter.IncrWrittenBytes(n)
+			}
 		}
 	}
 }
