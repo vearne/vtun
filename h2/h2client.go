@@ -33,12 +33,15 @@ func StartClientForApi(config config.Config, outputStream <-chan []byte, inputSt
 	if config.TLSSni != "" {
 		tlsConfig.ServerName = config.TLSSni
 	}
+	httpHeader := http.Header{}
+	httpHeader.Add("Accept-Encoding", "identity")
 	client := &Client{
 		Client: &http.Client{
 			Transport: &http2.Transport{
 				TLSClientConfig: tlsConfig,
 			},
 		},
+		Header: httpHeader,
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -155,6 +158,9 @@ func (c *Client) Connect(ctx context.Context, urlStr string) (*Conn, *http.Respo
 	if err != nil {
 		return nil, nil, err
 	}
+	req.Proto = "HTTP/2"
+	req.ProtoMajor = 2
+	req.ProtoMinor = 0
 	if c.Header != nil {
 		req.Header = c.Header
 	}
@@ -165,6 +171,8 @@ func (c *Client) Connect(ctx context.Context, urlStr string) (*Conn, *http.Respo
 	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
+		reader.Close()
+		writer.Close()
 		return nil, nil, err
 	}
 	conn, ctx := newConn(req.Context(), resp.Body, writer)
