@@ -19,10 +19,10 @@ var (
 )
 
 func displayVersionInfo() {
-	log.Printf("vtun version %s", _version)
-	log.Printf("git hash %s", _gitHash)
-	log.Printf("build time %s", _buildTime)
-	log.Printf("go version %s", _goVersion)
+	log.Printf("vtun version -> %s", _version)
+	log.Printf("git hash -> %s", _gitHash)
+	log.Printf("build time -> %s", _buildTime)
+	log.Printf("go version -> %s", _goVersion)
 }
 
 func main() {

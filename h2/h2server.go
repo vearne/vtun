@@ -32,6 +32,8 @@ func StartServer(iFace *water.Interface, config config.Config) {
 }
 
 func ServeHTTP(w http.ResponseWriter, r *http.Request, config config.Config, iFace *water.Interface) {
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusOK)
 	conn, err := Accept(w, r)
 	if err != nil {
 		log.Printf("Failed creating connection from %s: %s", r.RemoteAddr, err)
