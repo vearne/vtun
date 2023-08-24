@@ -3,11 +3,12 @@ package quic
 import (
 	"context"
 	"crypto/tls"
+	"log"
+	"time"
+
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/xproto"
 	"github.com/net-byte/vtun/common/xtun"
-	"log"
-	"time"
 
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
@@ -33,7 +34,7 @@ func StartClientForApi(config config.Config, outputStream <-chan []byte, inputSt
 	}
 	go tunToStream(config, outputStream, _ctx, writeCallback)
 	for xtun.ContextOpened(_ctx) {
-		conn, err := quic.DialAddr(config.ServerAddr, tlsConfig, nil)
+		conn, err := quic.DialAddr(_ctx, config.ServerAddr, tlsConfig, nil)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			time.Sleep(3 * time.Second)

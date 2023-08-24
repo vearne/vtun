@@ -1,16 +1,16 @@
 module github.com/net-byte/vtun
 
-go 1.20
+go 1.21
 
 require (
-	github.com/gobwas/ws v1.1.0
+	github.com/gobwas/ws v1.3.0
 	github.com/golang/snappy v0.0.4
 	github.com/inhies/go-bytesize v0.0.0-20210819104631-275770b98743
 	github.com/net-byte/go-gateway v0.0.2
 	github.com/net-byte/water v0.0.9
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pion/dtls/v2 v2.2.7
-	github.com/quic-go/quic-go v0.32.0
+	github.com/quic-go/quic-go v0.38.0
 	github.com/refraction-networking/utls v1.3.2
 	github.com/stretchr/testify v1.8.3
 	github.com/xtaci/kcp-go v5.4.20+incompatible
@@ -26,7 +26,7 @@ require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gaukas/godicttls v0.0.3 // indirect
-	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
+	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/golang/mock v1.6.0 // indirect
@@ -40,14 +40,12 @@ require (
 	github.com/klauspost/reedsolomon v1.11.8 // indirect
 	github.com/mdlayher/netlink v1.7.2 // indirect
 	github.com/mdlayher/socket v0.4.1 // indirect
-	github.com/onsi/ginkgo/v2 v2.2.0 // indirect
+	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/transport/v2 v2.2.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/quic-go/qtls-go1-18 v0.2.0 // indirect
-	github.com/quic-go/qtls-go1-19 v0.2.0 // indirect
-	github.com/quic-go/qtls-go1-20 v0.1.0 // indirect
+	github.com/quic-go/qtls-go1-20 v0.3.2 // indirect
 	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
