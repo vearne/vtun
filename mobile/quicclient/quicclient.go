@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/net-byte/vtun/common/xchan"
 	kc "github.com/net-byte/vtun/mobile/config"
-	"github.com/net-byte/vtun/quic"
+	"github.com/net-byte/vtun/transport/protocol/quic"
 )
 
 var _ctx context.Context

@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/xtun"
-	"github.com/net-byte/vtun/tcp"
+	"github.com/net-byte/vtun/transport/protocol/tcp"
 	"log"
 	"time"
 

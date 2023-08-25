@@ -3,7 +3,7 @@ package tls
 import (
 	"crypto/tls"
 	"github.com/net-byte/vtun/common/config"
-	"github.com/net-byte/vtun/tcp"
+	"github.com/net-byte/vtun/transport/protocol/tcp"
 	"github.com/net-byte/water"
 	"log"
 )

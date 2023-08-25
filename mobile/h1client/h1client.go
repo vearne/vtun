@@ -3,8 +3,8 @@ package h1client
 import (
 	"context"
 	"github.com/net-byte/vtun/common/xchan"
-	"github.com/net-byte/vtun/h1"
 	kc "github.com/net-byte/vtun/mobile/config"
+	"github.com/net-byte/vtun/transport/protocol/h1"
 )
 
 var _ctx context.Context
