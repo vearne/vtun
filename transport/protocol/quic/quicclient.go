@@ -3,19 +3,20 @@ package quic
 import (
 	"context"
 	"crypto/tls"
-	"github.com/net-byte/vtun/common/x/xproto"
-	"github.com/net-byte/vtun/common/x/xtun"
 	"log"
 	"time"
 
 	"github.com/golang/snappy"
+	"github.com/net-byte/water"
+	"github.com/quic-go/quic-go"
+
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
-	"github.com/net-byte/water"
-	"github.com/quic-go/quic-go"
+	"github.com/net-byte/vtun/common/x/xproto"
+	"github.com/net-byte/vtun/common/x/xtun"
 )
 
 const ConnTag = "stream"
@@ -33,7 +34,9 @@ func StartClientForApi(config config.Config, outputStream <-chan []byte, inputSt
 	}
 	go tunToStream(config, outputStream, _ctx, writeCallback)
 	for xtun.ContextOpened(_ctx) {
-		conn, err := quic.DialAddr(_ctx, config.ServerAddr, tlsConfig, nil)
+		conn, err := quic.DialAddr(_ctx, config.ServerAddr, tlsConfig, &quic.Config{
+			KeepAlivePeriod: 10 * time.Second,
+		})
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			time.Sleep(3 * time.Second)
