@@ -15,7 +15,7 @@ import (
 	"github.com/net-byte/vtun/transport/protocol/udp"
 	"github.com/net-byte/vtun/transport/protocol/utls"
 	"github.com/net-byte/vtun/transport/protocol/ws"
-	"github.com/net-byte/vtun/tun"
+	"github.com/net-byte/vtun/transport/tun"
 	"github.com/net-byte/water"
 	"log"
 )

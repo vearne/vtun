@@ -1,7 +1,7 @@
 package grpc
 
 import (
-	proto2 "github.com/net-byte/vtun/transport/protocol/grpc/proto"
+	"github.com/net-byte/vtun/transport/protocol/grpc/proto"
 	"log"
 	"net/http"
 	"strings"
@@ -21,13 +21,13 @@ import (
 
 // The StreamService is the implementation of the StreamServer interface
 type StreamService struct {
-	proto2.UnimplementedGrpcServeServer
+	proto.UnimplementedGrpcServeServer
 	config config.Config
 	iface  *water.Interface
 }
 
 // Tunnel implements the StreamServer interface
-func (s *StreamService) Tunnel(srv proto2.GrpcServe_TunnelServer) error {
+func (s *StreamService) Tunnel(srv proto.GrpcServe_TunnelServer) error {
 	toServer(srv, s.config, s.iface)
 	return nil
 }
@@ -50,7 +50,7 @@ func StartServer(iface *water.Interface, config config.Config) {
 	}
 	mux := GetHTTPServeMux()
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
-	proto2.RegisterGrpcServeServer(grpcServer, &StreamService{config: config, iface: iface})
+	proto.RegisterGrpcServeServer(grpcServer, &StreamService{config: config, iface: iface})
 	go toClient(config, iface)
 	err = http.ListenAndServeTLS(config.LocalAddr, config.TLSCertificateFilePath, config.TLSCertificateKeyFilePath, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
@@ -83,7 +83,7 @@ func toClient(config config.Config, iface *water.Interface) {
 				if config.Compress {
 					b = snappy.Encode(nil, b)
 				}
-				err := v.(proto2.GrpcServe_TunnelServer).Send(&proto2.PacketData{Data: b})
+				err := v.(proto.GrpcServe_TunnelServer).Send(&proto.PacketData{Data: b})
 				if err != nil {
 					cache.GetCache().Delete(key)
 					continue
@@ -95,7 +95,7 @@ func toClient(config config.Config, iface *water.Interface) {
 }
 
 // toServer sends packets from grpc to tun
-func toServer(srv proto2.GrpcServe_TunnelServer, config config.Config, iface *water.Interface) {
+func toServer(srv proto.GrpcServe_TunnelServer, config config.Config, iface *water.Interface) {
 	for {
 		packet, err := srv.Recv()
 		if err != nil {

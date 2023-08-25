@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 	"crypto/tls"
-	proto2 "github.com/net-byte/vtun/transport/protocol/grpc/proto"
+	"github.com/net-byte/vtun/transport/protocol/grpc/proto"
 	"log"
 	"time"
 
@@ -37,7 +37,7 @@ func StartClient(iface *water.Interface, config config.Config) {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
-		streamClient := proto2.NewGrpcServeClient(conn)
+		streamClient := proto.NewGrpcServeClient(conn)
 		stream, err := streamClient.Tunnel(context.Background())
 		if err != nil {
 			conn.Close()
@@ -68,8 +68,8 @@ func tunToGrpc(config config.Config, iface *water.Interface) {
 			if config.Compress {
 				b = snappy.Encode(nil, b)
 			}
-			grpcconn := v.(proto2.GrpcServe_TunnelClient)
-			err = grpcconn.Send(&proto2.PacketData{Data: b})
+			grpcconn := v.(proto.GrpcServe_TunnelClient)
+			err = grpcconn.Send(&proto.PacketData{Data: b})
 			if err != nil {
 				netutil.PrintErr(err, config.Verbose)
 				continue
@@ -80,7 +80,7 @@ func tunToGrpc(config config.Config, iface *water.Interface) {
 }
 
 // grpcToTun sends packets from grpc to tun
-func grpcToTun(config config.Config, stream proto2.GrpcServe_TunnelClient, iface *water.Interface) {
+func grpcToTun(config config.Config, stream proto.GrpcServe_TunnelClient, iface *water.Interface) {
 	for {
 		packet, err := stream.Recv()
 		if err != nil {

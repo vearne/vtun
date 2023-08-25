@@ -23,7 +23,7 @@ import (
 const ConnTag = "h2conn"
 
 var _ctx context.Context
-var cancel context.CancelFunc
+var _cancel context.CancelFunc
 
 func StartClientForApi(config config.Config, outputStream <-chan []byte, inputStream chan<- []byte, writeCallback, readCallback func(int), _ctx context.Context) {
 	go tunToH2(config, outputStream, _ctx, readCallback)
@@ -43,23 +43,23 @@ func StartClientForApi(config config.Config, outputStream <-chan []byte, inputSt
 		},
 		Header: httpHeader,
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	for xtun.ContextOpened(_ctx) {
+		ctx, cancel := context.WithCancel(_ctx)
 		conn, resp, err := client.Connect(ctx, fmt.Sprintf("https://%s%s", config.ServerAddr, config.Path))
 		if err != nil {
+			cancel()
 			time.Sleep(3 * time.Second)
 			netutil.PrintErrF(config.Verbose, "Initiate conn: %s\n", err)
 			continue
 		}
-		defer conn.Close()
 		if resp.StatusCode != http.StatusOK {
+			cancel()
 			time.Sleep(3 * time.Second)
 			netutil.PrintErrF(config.Verbose, "bad status code: %d\n", resp.StatusCode)
 			continue
 		}
 		cache.GetCache().Set(ConnTag, conn, 24*time.Hour)
-		h2ToTun(config, conn, inputStream, _ctx, writeCallback)
+		h2ToTun(config, conn, inputStream, ctx, cancel, writeCallback)
 		cache.GetCache().Delete(ConnTag)
 		conn.Close()
 	}
@@ -68,7 +68,7 @@ func StartClientForApi(config config.Config, outputStream <-chan []byte, inputSt
 // StartClient starts the h2 client
 func StartClient(iFace *water.Interface, config config.Config) {
 	log.Println("vtun h2 client started")
-	_ctx, cancel = context.WithCancel(context.Background())
+	_ctx, _cancel = context.WithCancel(context.Background())
 	outputStream := make(chan []byte, 1000)
 	go xtun.ReadFromTun(iFace, config, outputStream, _ctx)
 	inputStream := make(chan []byte, 1000)
@@ -106,8 +106,8 @@ func tunToH2(config config.Config, outputStream <-chan []byte, _ctx context.Cont
 }
 
 // h2ToTun sends packets from h2 to tun
-func h2ToTun(config config.Config, conn *Conn, inputStream chan<- []byte, _ctx context.Context, callback func(int)) {
-	defer conn.Close()
+func h2ToTun(config config.Config, conn *Conn, inputStream chan<- []byte, _ctx context.Context, _cancel context.CancelFunc, callback func(int)) {
+	defer _cancel()
 	buffer := make([]byte, config.BufferSize)
 	header := make([]byte, xproto.HeaderLength)
 	for xtun.ContextOpened(_ctx) {
@@ -186,5 +186,5 @@ var defaultClient = Client{
 }
 
 func Close() {
-	cancel()
+	_cancel()
 }
