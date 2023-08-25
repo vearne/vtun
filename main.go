@@ -51,7 +51,7 @@ func main() {
 			log.Fatalf("Failed to load config from file: %s", err)
 		}
 	}
-	app := app.NewApp(&cfg, common.Version)
+	app := app.NewApp(&cfg)
 	app.InitConfig()
 	go app.StartApp()
 	quit := make(chan os.Signal, 1)
