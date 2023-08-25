@@ -1,5 +1,10 @@
 package config
 
+import (
+	"encoding/json"
+	"os"
+)
+
 // Config The config struct
 type Config struct {
 	DeviceName                string `json:"device_name"`
@@ -28,4 +33,18 @@ type Config struct {
 	Verbose                   bool   `json:"verbose"`
 	PSKMode                   bool   `json:"psk_mode"`
 	Host                      string `json:"host"`
+}
+
+func (c Config) LoadConfig(configFile string, config *Config) (err error) {
+	file, err := os.Open(configFile)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(config)
+	if err != nil {
+		return
+	}
+	return
 }

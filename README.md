@@ -38,6 +38,8 @@ Usage of vtun:
       enable data compression
   -dn string
       device name
+  -f string
+      config file
   -g  client global mode
   -host string
       http host
