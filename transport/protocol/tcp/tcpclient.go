@@ -4,13 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/net-byte/vtun/common/x/xcrypto"
+	"github.com/net-byte/vtun/common/x/xproto"
+	"github.com/net-byte/vtun/common/x/xtun"
 	"log"
 	"net"
 	"time"
-
-	"github.com/net-byte/vtun/common/xcrypto"
-	"github.com/net-byte/vtun/common/xproto"
-	"github.com/net-byte/vtun/common/xtun"
 
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"

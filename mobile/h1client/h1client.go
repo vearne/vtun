@@ -2,7 +2,7 @@ package h1client
 
 import (
 	"context"
-	"github.com/net-byte/vtun/common/xchan"
+	"github.com/net-byte/vtun/common/x/xchan"
 	kc "github.com/net-byte/vtun/mobile/config"
 	"github.com/net-byte/vtun/transport/protocol/h1"
 )

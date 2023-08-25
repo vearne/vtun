@@ -3,17 +3,16 @@ package quic
 import (
 	"context"
 	"crypto/tls"
+	"github.com/net-byte/vtun/common/x/xproto"
+	"github.com/net-byte/vtun/common/x/xtun"
 	"log"
 	"time"
-
-	"github.com/net-byte/vtun/common/counter"
-	"github.com/net-byte/vtun/common/xproto"
-	"github.com/net-byte/vtun/common/xtun"
 
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
+	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
 	"github.com/net-byte/water"
 	"github.com/quic-go/quic-go"

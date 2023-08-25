@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/net-byte/vtun/common"
 	"log"
 	"os"
 	"os/signal"
@@ -11,56 +12,46 @@ import (
 	"github.com/net-byte/vtun/common/config"
 )
 
-var (
-	_version   = "v1.7.1"
-	_gitHash   = "nil"
-	_buildTime = "nil"
-	_goVersion = "nil"
-)
+var cfg = config.Config{}
+var configFile string
 
-func displayVersionInfo() {
-	log.Printf("vtun version -> %s", _version)
-	log.Printf("git hash -> %s", _gitHash)
-	log.Printf("build time -> %s", _buildTime)
-	log.Printf("go version -> %s", _goVersion)
+func init() {
+	flag.StringVar(&configFile, "f", "", "config file")
+	flag.StringVar(&cfg.DeviceName, "dn", config.DefaultConfig.DeviceName, "device name")
+	flag.StringVar(&cfg.CIDR, "c", config.DefaultConfig.CIDR, "tun interface cidr")
+	flag.StringVar(&cfg.CIDRv6, "c6", config.DefaultConfig.CIDRv6, "tun interface ipv6 cidr")
+	flag.IntVar(&cfg.MTU, "mtu", config.DefaultConfig.MTU, "tun mtu")
+	flag.StringVar(&cfg.LocalAddr, "l", config.DefaultConfig.LocalAddr, "local address")
+	flag.StringVar(&cfg.ServerAddr, "s", config.DefaultConfig.ServerAddr, "server address")
+	flag.StringVar(&cfg.ServerIP, "sip", config.DefaultConfig.ServerIP, "server ip")
+	flag.StringVar(&cfg.ServerIPv6, "sip6", config.DefaultConfig.ServerIPv6, "server ipv6")
+	flag.StringVar(&cfg.Key, "k", config.DefaultConfig.Key, "key")
+	flag.StringVar(&cfg.Protocol, "p", config.DefaultConfig.Protocol, "protocol udp/tls/grpc/quic/utls/dtls/h2/http/tcp/https/ws/wss")
+	flag.StringVar(&cfg.Path, "path", config.DefaultConfig.Path, "path")
+	flag.BoolVar(&cfg.ServerMode, "S", config.DefaultConfig.ServerMode, "server mode")
+	flag.BoolVar(&cfg.GlobalMode, "g", config.DefaultConfig.GlobalMode, "client global mode")
+	flag.BoolVar(&cfg.Obfs, "obfs", config.DefaultConfig.Obfs, "enable data obfuscation")
+	flag.BoolVar(&cfg.Compress, "compress", config.DefaultConfig.Compress, "enable data compression")
+	flag.IntVar(&cfg.Timeout, "t", config.DefaultConfig.Timeout, "dial timeout in seconds")
+	flag.StringVar(&cfg.TLSCertificateFilePath, "certificate", config.DefaultConfig.TLSCertificateFilePath, "tls certificate file path")
+	flag.StringVar(&cfg.TLSCertificateKeyFilePath, "privatekey", config.DefaultConfig.TLSCertificateKeyFilePath, "tls certificate key file path")
+	flag.StringVar(&cfg.TLSSni, "sni", config.DefaultConfig.TLSSni, "tls handshake sni")
+	flag.BoolVar(&cfg.TLSInsecureSkipVerify, "isv", config.DefaultConfig.TLSInsecureSkipVerify, "tls insecure skip verify")
+	flag.BoolVar(&cfg.Verbose, "v", config.DefaultConfig.Verbose, "enable verbose output")
+	flag.BoolVar(&cfg.PSKMode, "psk", config.DefaultConfig.PSKMode, "enable psk mode (dtls only)")
+	flag.StringVar(&cfg.Host, "host", config.DefaultConfig.Host, "http host")
+	flag.Parse()
 }
 
 func main() {
-	config := config.Config{}
-	var configFile string
-	flag.StringVar(&configFile, "f", "", "config file")
-	flag.StringVar(&config.DeviceName, "dn", "", "device name")
-	flag.StringVar(&config.CIDR, "c", "172.16.0.10/24", "tun interface cidr")
-	flag.StringVar(&config.CIDRv6, "c6", "fced:9999::9999/64", "tun interface ipv6 cidr")
-	flag.IntVar(&config.MTU, "mtu", 1500, "tun mtu")
-	flag.StringVar(&config.LocalAddr, "l", ":3000", "local address")
-	flag.StringVar(&config.ServerAddr, "s", ":3001", "server address")
-	flag.StringVar(&config.ServerIP, "sip", "172.16.0.1", "server ip")
-	flag.StringVar(&config.ServerIPv6, "sip6", "fced:9999::1", "server ipv6")
-	flag.StringVar(&config.Key, "k", "freedom@2023", "key")
-	flag.StringVar(&config.Protocol, "p", "udp", "protocol udp/tls/grpc/quic/utls/dtls/h2/http/tcp/https/ws/wss")
-	flag.StringVar(&config.Path, "path", "/freedom", "path")
-	flag.BoolVar(&config.ServerMode, "S", false, "server mode")
-	flag.BoolVar(&config.GlobalMode, "g", false, "client global mode")
-	flag.BoolVar(&config.Obfs, "obfs", false, "enable data obfuscation")
-	flag.BoolVar(&config.Compress, "compress", false, "enable data compression")
-	flag.IntVar(&config.Timeout, "t", 30, "dial timeout in seconds")
-	flag.StringVar(&config.TLSCertificateFilePath, "certificate", "./certs/server.pem", "tls certificate file path")
-	flag.StringVar(&config.TLSCertificateKeyFilePath, "privatekey", "./certs/server.key", "tls certificate key file path")
-	flag.StringVar(&config.TLSSni, "sni", "", "tls handshake sni")
-	flag.BoolVar(&config.TLSInsecureSkipVerify, "isv", false, "tls insecure skip verify")
-	flag.BoolVar(&config.Verbose, "v", false, "enable verbose output")
-	flag.BoolVar(&config.PSKMode, "psk", false, "enable psk mode (dtls only)")
-	flag.StringVar(&config.Host, "host", "", "http host")
-	flag.Parse()
-	displayVersionInfo()
+	common.DisplayVersionInfo()
 	if configFile != "" {
-		err := config.LoadConfig(configFile, &config)
+		err := cfg.LoadConfig(configFile)
 		if err != nil {
 			log.Fatalf("Failed to load config from file: %s", err)
 		}
 	}
-	app := app.NewApp(&config, _version)
+	app := app.NewApp(&cfg, common.Version)
 	app.InitConfig()
 	go app.StartApp()
 	quit := make(chan os.Signal, 1)

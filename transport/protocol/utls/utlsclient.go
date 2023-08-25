@@ -3,7 +3,7 @@ package utls
 import (
 	"context"
 	"github.com/net-byte/vtun/common/counter"
-	"github.com/net-byte/vtun/common/xtun"
+	"github.com/net-byte/vtun/common/x/xtun"
 	"github.com/net-byte/vtun/transport/protocol/tcp"
 	utls "github.com/refraction-networking/utls"
 	"log"

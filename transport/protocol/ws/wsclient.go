@@ -2,7 +2,7 @@ package ws
 
 import (
 	"context"
-	"github.com/net-byte/vtun/common/xtun"
+	"github.com/net-byte/vtun/common/x/xtun"
 	"log"
 	"net"
 	"time"
