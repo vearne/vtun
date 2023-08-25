@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/net-byte/vtun/common/xcrypto"
-	"github.com/net-byte/vtun/common/xproto"
-	"github.com/net-byte/vtun/common/xtun"
 	"log"
 	"net"
 	"time"
+
+	"github.com/net-byte/vtun/common/xcrypto"
+	"github.com/net-byte/vtun/common/xproto"
+	"github.com/net-byte/vtun/common/xtun"
 
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cache"
@@ -29,17 +30,27 @@ var cancel context.CancelFunc
 func StartClientForApi(config config.Config, outputStream <-chan []byte, inputStream chan<- []byte, writeCallback, readCallback func(int), _ctx context.Context) {
 	go Tun2Conn(config, outputStream, _ctx, readCallback)
 	for xtun.ContextOpened(_ctx) {
-		conn, err := net.Dial("tcp", config.ServerAddr)
+		var (
+			conn *net.TCPConn
+			err  error
+		)
+
+		tcpAddr, _ := net.ResolveTCPAddr("tcp", config.ServerAddr)
+		conn, err = net.DialTCP("tcp", nil, tcpAddr)
 		if err != nil {
 			time.Sleep(3 * time.Second)
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
+
 		err = Handshake(config, conn)
 		if err != nil {
 			netutil.PrintErr(err, config.Verbose)
 			continue
 		}
+		conn.SetKeepAlive(true)
+		conn.SetKeepAlivePeriod(10 * time.Second)
+
 		cache.GetCache().Set(ConnTag, conn, 24*time.Hour)
 		Conn2Tun(config, conn, inputStream, _ctx, writeCallback)
 		cache.GetCache().Delete(ConnTag)
@@ -62,7 +73,7 @@ func StartClient(iFace *water.Interface, config config.Config) {
 	)
 }
 
-func Handshake(config config.Config, conn net.Conn) error {
+func Handshake(config config.Config, conn *net.TCPConn) error {
 	var obj *xproto.ClientHandshakePacket
 	var err error
 	if v, ok := cache.GetCache().Get(HandshakeTag); ok {
