@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/net-byte/vtun/common"
 	"log"
 	"os"
 	"os/signal"
@@ -10,20 +11,6 @@ import (
 	"github.com/net-byte/vtun/app"
 	"github.com/net-byte/vtun/common/config"
 )
-
-var (
-	_version   = "v1.7.1"
-	_gitHash   = "nil"
-	_buildTime = "nil"
-	_goVersion = "nil"
-)
-
-func displayVersionInfo() {
-	log.Printf("vtun version -> %s", _version)
-	log.Printf("git hash -> %s", _gitHash)
-	log.Printf("build time -> %s", _buildTime)
-	log.Printf("go version -> %s", _goVersion)
-}
 
 var cfg = config.Config{}
 var configFile string
@@ -57,14 +44,14 @@ func init() {
 }
 
 func main() {
-	displayVersionInfo()
+	common.DisplayVersionInfo()
 	if configFile != "" {
 		err := cfg.LoadConfig(configFile)
 		if err != nil {
 			log.Fatalf("Failed to load config from file: %s", err)
 		}
 	}
-	app := app.NewApp(&cfg, _version)
+	app := app.NewApp(&cfg, common.Version)
 	app.InitConfig()
 	go app.StartApp()
 	quit := make(chan os.Signal, 1)
