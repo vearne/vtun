@@ -1,5 +1,5 @@
 language: go
 go:
-    - 1.18
+    - 1.21
 script:
     - go test -v ./...
