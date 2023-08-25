@@ -1,0 +1,8 @@
+{
+    "_": "This is an example config file.",
+    "server_mode": true,
+    "local_addr": ":3002",
+    "cidr": "172.16.0.1/24",
+    "key": "123456",
+    "protocol": "ws"
+}
