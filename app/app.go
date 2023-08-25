@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/net-byte/vtun/common"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/netutil"
@@ -38,10 +39,10 @@ type App struct {
 	Iface   *water.Interface
 }
 
-func NewApp(config *config.Config, version string) *App {
+func NewApp(config *config.Config) *App {
 	return &App{
 		Config:  config,
-		Version: version,
+		Version: common.Version,
 	}
 }
 
