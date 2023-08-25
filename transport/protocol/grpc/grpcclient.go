@@ -3,13 +3,15 @@ package grpc
 import (
 	"context"
 	"crypto/tls"
-	"github.com/net-byte/vtun/transport/protocol/grpc/proto"
 	"log"
 	"time"
+
+	"github.com/net-byte/vtun/transport/protocol/grpc/proto"
 
 	"github.com/golang/snappy"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/net-byte/vtun/common/cache"
 	"github.com/net-byte/vtun/common/cipher"
@@ -29,9 +31,20 @@ func StartClient(iface *water.Interface, config config.Config) {
 	if config.TLSSni != "" {
 		tlsConfig.ServerName = config.TLSSni
 	}
+
 	creds := credentials.NewTLS(tlsConfig)
+
+	var heartbeat = keepalive.ClientParameters{
+		Time:                10 * time.Second, // send pings every 10 seconds if there is no activity
+		Timeout:             10 * time.Second, // wait 10 second for ping ack before considering the connection dead
+		PermitWithoutStream: true,             // send pings even without active streams
+	}
 	for {
-		conn, err := grpc.Dial(config.ServerAddr, grpc.WithBlock(), grpc.WithTransportCredentials(creds))
+		conn, err := grpc.Dial(config.ServerAddr,
+			grpc.WithBlock(),
+			grpc.WithTransportCredentials(creds),
+			grpc.WithKeepaliveParams(heartbeat),
+		)
 		if err != nil {
 			time.Sleep(3 * time.Second)
 			netutil.PrintErr(err, config.Verbose)
