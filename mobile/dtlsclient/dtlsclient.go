@@ -3,8 +3,8 @@ package dtlsclient
 import (
 	"context"
 	"github.com/net-byte/vtun/common/xchan"
-	"github.com/net-byte/vtun/dtls"
 	kc "github.com/net-byte/vtun/mobile/config"
+	"github.com/net-byte/vtun/transport/protocol/dtls"
 )
 
 var _ctx context.Context

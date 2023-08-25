@@ -2,8 +2,8 @@ package utls
 
 import (
 	"github.com/net-byte/vtun/common/config"
-	"github.com/net-byte/vtun/tcp"
-	"github.com/net-byte/vtun/tls"
+	"github.com/net-byte/vtun/transport/protocol/tcp"
+	"github.com/net-byte/vtun/transport/protocol/tls"
 	"github.com/net-byte/water"
 	utls "github.com/refraction-networking/utls"
 	"log"

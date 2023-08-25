@@ -21,27 +21,30 @@ import (
 const ConnTag = "conn"
 
 var _ctx context.Context
-var cancel context.CancelFunc
+var _cancel context.CancelFunc
 
 func StartClientForApi(config config.Config, outputStream <-chan []byte, inputStream chan<- []byte, writeCallback, readCallback func(int), _ctx context.Context) {
 	go tunToWs(config, outputStream, _ctx, writeCallback)
 	for xtun.ContextOpened(_ctx) {
+		ctx, cancel := context.WithCancel(_ctx)
 		conn := netutil.ConnectServer(config)
 		if conn == nil {
+			cancel()
 			time.Sleep(3 * time.Second)
 			continue
 		}
 		cache.GetCache().Set(ConnTag, conn, 24*time.Hour)
-		go wsToTun(config, conn, inputStream, _ctx, readCallback)
-		ping(conn, config, _ctx)
+		go wsToTun(config, conn, inputStream, ctx, cancel, readCallback)
+		ping(conn, config, ctx, cancel)
 		cache.GetCache().Delete(ConnTag)
+		conn.Close()
 	}
 }
 
 // StartClient starts the ws client
 func StartClient(iFace *water.Interface, config config.Config) {
 	log.Println("vtun websocket client started")
-	_ctx, cancel = context.WithCancel(context.Background())
+	_ctx, _cancel = context.WithCancel(context.Background())
 	outputStream := make(chan []byte)
 	go xtun.ReadFromTun(iFace, config, outputStream, _ctx)
 	inputStream := make(chan []byte)
@@ -54,8 +57,8 @@ func StartClient(iFace *water.Interface, config config.Config) {
 	)
 }
 
-func ping(conn net.Conn, config config.Config, _ctx context.Context) {
-	defer conn.Close()
+func ping(conn net.Conn, config config.Config, _ctx context.Context, _cancel context.CancelFunc) {
+	defer _cancel()
 	for xtun.ContextOpened(_ctx) {
 		err := wsutil.WriteClientMessage(conn, ws.OpText, []byte("ping"))
 		if err != nil {
@@ -66,8 +69,8 @@ func ping(conn net.Conn, config config.Config, _ctx context.Context) {
 }
 
 // wsToTun sends packets from ws to tun
-func wsToTun(config config.Config, conn net.Conn, inputStream chan<- []byte, _ctx context.Context, callback func(int)) {
-	defer conn.Close()
+func wsToTun(config config.Config, conn net.Conn, inputStream chan<- []byte, _ctx context.Context, _cancel context.CancelFunc, callback func(int)) {
+	defer _cancel()
 	for xtun.ContextOpened(_ctx) {
 		packet, err := wsutil.ReadServerBinary(conn)
 		if err != nil {
@@ -109,5 +112,5 @@ func tunToWs(config config.Config, outputStream <-chan []byte, _ctx context.Cont
 }
 
 func Close() {
-	cancel()
+	_cancel()
 }

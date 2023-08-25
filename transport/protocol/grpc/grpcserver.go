@@ -1,13 +1,13 @@
 package grpc
 
 import (
+	"github.com/net-byte/vtun/transport/protocol/grpc/proto"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/golang/snappy"
-	"github.com/net-byte/vtun/grpc/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 

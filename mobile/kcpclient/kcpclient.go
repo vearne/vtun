@@ -3,8 +3,8 @@ package kcpclient
 import (
 	"context"
 	"github.com/net-byte/vtun/common/xchan"
-	"github.com/net-byte/vtun/kcp"
 	kc "github.com/net-byte/vtun/mobile/config"
+	"github.com/net-byte/vtun/transport/protocol/kcp"
 )
 
 var _ctx context.Context

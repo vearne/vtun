@@ -73,7 +73,7 @@ func StartClient(iFace *water.Interface, config config.Config) {
 	)
 }
 
-func Handshake(config config.Config, conn *net.TCPConn) error {
+func Handshake(config config.Config, conn net.Conn) error {
 	var obj *xproto.ClientHandshakePacket
 	var err error
 	if v, ok := cache.GetCache().Get(HandshakeTag); ok {

@@ -3,11 +3,11 @@ package grpc
 import (
 	"context"
 	"crypto/tls"
+	"github.com/net-byte/vtun/transport/protocol/grpc/proto"
 	"log"
 	"time"
 
 	"github.com/golang/snappy"
-	"github.com/net-byte/vtun/grpc/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
