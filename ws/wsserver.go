@@ -52,7 +52,7 @@ func StartServer(iFace *water.Interface, config config.Config) {
 	http.HandleFunc("/ip", func(w http.ResponseWriter, req *http.Request) {
 		ip := req.Header.Get("X-Forwarded-For")
 		if ip == "" {
-			ip = strings.Split(req.RemoteAddr, ":")[0]
+			ip, _, _ = net.SplitHostPort(req.RemoteAddr)
 		}
 		resp := fmt.Sprintf("%v", ip)
 		io.WriteString(w, resp)
