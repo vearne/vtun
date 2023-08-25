@@ -3,7 +3,7 @@ package xcrypto
 import (
 	"github.com/golang/snappy"
 	"github.com/net-byte/vtun/common/cipher"
-	"github.com/net-byte/vtun/common/xcrypto"
+	"github.com/net-byte/vtun/common/x/xcrypto"
 )
 
 var xp = xcrypto.XCrypto{}

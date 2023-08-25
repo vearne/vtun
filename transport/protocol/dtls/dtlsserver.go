@@ -9,7 +9,7 @@ import (
 	"github.com/net-byte/vtun/common/config"
 	"github.com/net-byte/vtun/common/counter"
 	"github.com/net-byte/vtun/common/netutil"
-	"github.com/net-byte/vtun/common/xproto"
+	"github.com/net-byte/vtun/common/x/xproto"
 	"github.com/net-byte/water"
 	"github.com/pion/dtls/v2"
 	"log"
