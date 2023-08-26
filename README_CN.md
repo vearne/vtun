@@ -160,7 +160,6 @@ netbyte/vtun -S -l :3001 -c 172.16.0.1/24 -k 123456
 ### 1. 安装 gomobile
 ```
 go install golang.org/x/mobile/cmd/gomobile@latest
-go get golang.org/x/mobile/bind
 gomobile init
 ```
 
