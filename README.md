@@ -156,6 +156,25 @@ docker run  -d --privileged --restart=always --net=host --name vtun-server \
 netbyte/vtun -S -l :3001 -c 172.16.0.1/24 -k 123456
 ```
 
+## How to build mobile libs
+
+
+### 1. install gomobile
+```
+go install golang.org/x/mobile/cmd/gomobile@latest
+go get golang.org/x/mobile/bind
+gomobile init
+```
+
+### 2. install android [ndk](https://developer.android.com/studio/projects/install-ndk)
+
+
+### 3. build android .aar file
+```
+make android
+```
+
+
 ## Mobile client
 
 ### 1. [vTunnel](https://github.com/net-byte/vTunnel)

@@ -14,8 +14,8 @@ require (
 	github.com/refraction-networking/utls v1.3.2
 	github.com/stretchr/testify v1.8.3
 	github.com/xtaci/kcp-go v5.4.20+incompatible
-	golang.org/x/crypto v0.8.0
-	golang.org/x/net v0.10.0
+	golang.org/x/crypto v0.12.0
+	golang.org/x/net v0.14.0
 	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.30.0
 	tailscale.com v1.44.0
@@ -52,11 +52,11 @@ require (
 	github.com/xtaci/lossyconn v0.0.0-20200209145036-adba10fffc37 // indirect
 	go4.org/mem v0.0.0-20220726221520-4f986261bf13 // indirect
 	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53 // indirect
-	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/sys v0.8.1-0.20230609144347-5059a07aa46a // indirect
-	golang.org/x/text v0.9.0 // indirect
-	golang.org/x/tools v0.9.1 // indirect
+	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/sync v0.3.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/text v0.12.0 // indirect
+	golang.org/x/tools v0.12.1-0.20230818130535-1517d1a3ba60 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20220703234212-c31a7b1ab478 // indirect
 	golang.zx2c4.com/wireguard/windows v0.5.3 // indirect

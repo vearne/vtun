@@ -16,7 +16,7 @@ function go_build() {
     if [[ "$1" == "windows" ]]; then
         suffix='.exe'
     fi
-    CGO_ENABLED=0 GOOS=$1 GOARCH=$2 go build -o "${RELEASE_BIN_DIR}${RELEASE_NAME}-$1_$2${suffix}" -ldflags "-w -s -X '${PACKAGE_NAME}.Version=1.0.$(date +%Y%m%d)' -X '${PACKAGE_NAME}.GoVersion=$(go version)' -X '${PACKAGE_NAME}.GitHash=$(git show -s --format=%H)' -X '${PACKAGE_NAME}.BuildTime=$(git show -s --format=%cd)'" ./main.go
+    CGO_ENABLED=0 GOOS=$1 GOARCH=$2 go build -o "${RELEASE_BIN_DIR}${RELEASE_NAME}-$1-$2${suffix}" -ldflags "-w -s -X '${PACKAGE_NAME}.Version=1.0.$(date +%Y%m%d)' -X '${PACKAGE_NAME}.GoVersion=$(go version)' -X '${PACKAGE_NAME}.GitHash=$(git show -s --format=%H)' -X '${PACKAGE_NAME}.BuildTime=$(git show -s --format=%cd)'" ./main.go
 }
 
 # main
