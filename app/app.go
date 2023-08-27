@@ -1,6 +1,8 @@
 package app
 
 import (
+	"log"
+
 	"github.com/net-byte/vtun/common"
 	"github.com/net-byte/vtun/common/cipher"
 	"github.com/net-byte/vtun/common/config"
@@ -18,19 +20,7 @@ import (
 	"github.com/net-byte/vtun/transport/protocol/ws"
 	"github.com/net-byte/vtun/transport/tun"
 	"github.com/net-byte/water"
-	"log"
 )
-
-var _banner = `
-_                 
-__ __ | |_   _  _   _ _  
-\ V / |  _| | || | | ' \ 
- \_/   \__|  \_,_| |_||_|
-						 
-A simple VPN written in Go.
-%s
-`
-var _srcUrl = "https://github.com/net-byte/vtun"
 
 // App vtun app struct
 type App struct {
@@ -48,8 +38,6 @@ func NewApp(config *config.Config) *App {
 
 // InitConfig initializes the config
 func (app *App) InitConfig() {
-	log.Printf(_banner, _srcUrl)
-	log.Printf("vtun version %s", app.Version)
 	if !app.Config.ServerMode {
 		app.Config.LocalGateway = netutil.DiscoverGateway(true)
 		app.Config.LocalGatewayv6 = netutil.DiscoverGateway(false)
