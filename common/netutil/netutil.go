@@ -151,6 +151,9 @@ func GetIPv6Dst(packet []byte) net.IP {
 
 // GetSrcKey returns the source key of the packet
 func GetSrcKey(packet []byte) string {
+	if len(packet) == 0 {
+		return ""
+	}
 	key := ""
 	if IsIPv4(packet) && len(packet) >= 20 {
 		key = GetIPv4Src(packet).To4().String()
@@ -162,6 +165,9 @@ func GetSrcKey(packet []byte) string {
 
 // GetDstKey returns the destination key of the packets
 func GetDstKey(packet []byte) string {
+	if len(packet) == 0 {
+		return ""
+	}
 	key := ""
 	if IsIPv4(packet) && len(packet) >= 20 {
 		key = GetIPv4Dst(packet).To4().String()
