@@ -3,14 +3,16 @@ package netutil
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"os/exec"
 	"strings"
-	"tailscale.com/net/interfaces"
 	"time"
+
+	"tailscale.com/net/interfaces"
 
 	"github.com/gobwas/ws"
 	"github.com/net-byte/go-gateway"
@@ -175,6 +177,21 @@ func GetDstKey(packet []byte) string {
 		key = GetIPv6Dst(packet).To16().String()
 	}
 	return key
+}
+
+type ExecCmdRecorder struct {
+	cmds []string
+}
+
+func (ec *ExecCmdRecorder) ExecCmd(c string, args ...string) string {
+	cmd := fmt.Sprintf("%s %s", c, strings.Join(args, " "))
+	ec.cmds = append(ec.cmds, cmd)
+
+	return ExecCmd(c, args...)
+}
+
+func (ec *ExecCmdRecorder) String() string {
+	return strings.Join(ec.cmds, "\n")
 }
 
 // ExecCmd executes the given command
