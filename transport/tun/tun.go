@@ -42,53 +42,55 @@ func setRoute(config config.Config, iFace *water.Interface) {
 	if err != nil {
 		log.Panicf("error ipv6 cidr %v", config.CIDRv6)
 	}
+
+	execr := netutil.ExecCmdRecorder{}
 	os := runtime.GOOS
 	if os == "linux" {
-		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iFace.Name(), "mtu", strconv.Itoa(config.MTU))
-		netutil.ExecCmd("/sbin/ip", "addr", "add", config.CIDR, "dev", iFace.Name())
-		netutil.ExecCmd("/sbin/ip", "-6", "addr", "add", config.CIDRv6, "dev", iFace.Name())
-		netutil.ExecCmd("/sbin/ip", "link", "set", "dev", iFace.Name(), "up")
+		execr.ExecCmd("/sbin/ip", "link", "set", "dev", iFace.Name(), "mtu", strconv.Itoa(config.MTU))
+		execr.ExecCmd("/sbin/ip", "addr", "add", config.CIDR, "dev", iFace.Name())
+		execr.ExecCmd("/sbin/ip", "-6", "addr", "add", config.CIDRv6, "dev", iFace.Name())
+		execr.ExecCmd("/sbin/ip", "link", "set", "dev", iFace.Name(), "up")
 		if !config.ServerMode && config.GlobalMode {
 			physicaliFace := netutil.GetInterface()
 			serverAddrIP := netutil.LookupServerAddrIP(config.ServerAddr)
 			if physicaliFace != "" && serverAddrIP != nil {
 				if config.LocalGateway != "" {
-					netutil.ExecCmd("/sbin/ip", "route", "add", "0.0.0.0/1", "dev", iFace.Name())
-					netutil.ExecCmd("/sbin/ip", "route", "add", "128.0.0.0/1", "dev", iFace.Name())
+					execr.ExecCmd("/sbin/ip", "route", "add", "0.0.0.0/1", "dev", iFace.Name())
+					execr.ExecCmd("/sbin/ip", "route", "add", "128.0.0.0/1", "dev", iFace.Name())
 					if serverAddrIP.To4() != nil {
-						netutil.ExecCmd("/sbin/ip", "route", "add", serverAddrIP.To4().String()+"/32", "via", config.LocalGateway, "dev", physicaliFace)
+						execr.ExecCmd("/sbin/ip", "route", "add", serverAddrIP.To4().String()+"/32", "via", config.LocalGateway, "dev", physicaliFace)
 					}
 				}
 				if config.LocalGatewayv6 != "" {
-					netutil.ExecCmd("/sbin/ip", "-6", "route", "add", "::/1", "dev", iFace.Name())
+					execr.ExecCmd("/sbin/ip", "-6", "route", "add", "::/1", "dev", iFace.Name())
 					if serverAddrIP.To16() != nil {
-						netutil.ExecCmd("/sbin/ip", "-6", "route", "add", serverAddrIP.To16().String()+"/128", "via", config.LocalGatewayv6, "dev", physicaliFace)
+						execr.ExecCmd("/sbin/ip", "-6", "route", "add", serverAddrIP.To16().String()+"/128", "via", config.LocalGatewayv6, "dev", physicaliFace)
 					}
 				}
 			}
 		}
 	} else if os == "darwin" {
-		netutil.ExecCmd("ifconfig", iFace.Name(), "inet", ip.String(), config.ServerIP, "up")
-		netutil.ExecCmd("ifconfig", iFace.Name(), "inet6", ipv6.String(), config.ServerIPv6, "up")
+		execr.ExecCmd("ifconfig", iFace.Name(), "inet", ip.String(), config.ServerIP, "up")
+		execr.ExecCmd("ifconfig", iFace.Name(), "inet6", ipv6.String(), config.ServerIPv6, "up")
 		if !config.ServerMode && config.GlobalMode {
 			physicaliFace := netutil.GetInterface()
 			serverAddrIP := netutil.LookupServerAddrIP(config.ServerAddr)
 			if physicaliFace != "" && serverAddrIP != nil {
 				if config.LocalGateway != "" {
-					netutil.ExecCmd("route", "add", "default", config.ServerIP)
-					netutil.ExecCmd("route", "change", "default", config.ServerIP)
-					netutil.ExecCmd("route", "add", "0.0.0.0/1", "-interface", iFace.Name())
-					netutil.ExecCmd("route", "add", "128.0.0.0/1", "-interface", iFace.Name())
+					execr.ExecCmd("route", "add", "default", config.ServerIP)
+					execr.ExecCmd("route", "change", "default", config.ServerIP)
+					execr.ExecCmd("route", "add", "0.0.0.0/1", "-interface", iFace.Name())
+					execr.ExecCmd("route", "add", "128.0.0.0/1", "-interface", iFace.Name())
 					if serverAddrIP.To4() != nil {
-						netutil.ExecCmd("route", "add", serverAddrIP.To4().String(), config.LocalGateway)
+						execr.ExecCmd("route", "add", serverAddrIP.To4().String(), config.LocalGateway)
 					}
 				}
 				if config.LocalGatewayv6 != "" {
-					netutil.ExecCmd("route", "add", "-inet6", "default", config.ServerIPv6)
-					netutil.ExecCmd("route", "change", "-inet6", "default", config.ServerIPv6)
-					netutil.ExecCmd("route", "add", "-inet6", "::/1", "-interface", iFace.Name())
+					execr.ExecCmd("route", "add", "-inet6", "default", config.ServerIPv6)
+					execr.ExecCmd("route", "change", "-inet6", "default", config.ServerIPv6)
+					execr.ExecCmd("route", "add", "-inet6", "::/1", "-interface", iFace.Name())
 					if serverAddrIP.To16() != nil {
-						netutil.ExecCmd("route", "add", "-inet6", serverAddrIP.To16().String(), config.LocalGatewayv6)
+						execr.ExecCmd("route", "add", "-inet6", serverAddrIP.To16().String(), config.LocalGatewayv6)
 					}
 				}
 			}
@@ -98,17 +100,17 @@ func setRoute(config config.Config, iFace *water.Interface) {
 			serverAddrIP := netutil.LookupServerAddrIP(config.ServerAddr)
 			if serverAddrIP != nil {
 				if config.LocalGateway != "" {
-					netutil.ExecCmd("cmd", "/C", "route", "delete", "0.0.0.0", "mask", "0.0.0.0")
-					netutil.ExecCmd("cmd", "/C", "route", "add", "0.0.0.0", "mask", "0.0.0.0", config.ServerIP, "metric", "6")
+					execr.ExecCmd("cmd", "/C", "route", "delete", "0.0.0.0", "mask", "0.0.0.0")
+					execr.ExecCmd("cmd", "/C", "route", "add", "0.0.0.0", "mask", "0.0.0.0", config.ServerIP, "metric", "6")
 					if serverAddrIP.To4() != nil {
-						netutil.ExecCmd("cmd", "/C", "route", "add", serverAddrIP.To4().String()+"/32", config.LocalGateway, "metric", "5")
+						execr.ExecCmd("cmd", "/C", "route", "add", serverAddrIP.To4().String()+"/32", config.LocalGateway, "metric", "5")
 					}
 				}
 				if config.LocalGatewayv6 != "" {
-					netutil.ExecCmd("cmd", "/C", "route", "-6", "delete", "::/0", "mask", "::/0")
-					netutil.ExecCmd("cmd", "/C", "route", "-6", "add", "::/0", "mask", "::/0", config.ServerIPv6, "metric", "6")
+					execr.ExecCmd("cmd", "/C", "route", "-6", "delete", "::/0", "mask", "::/0")
+					execr.ExecCmd("cmd", "/C", "route", "-6", "add", "::/0", "mask", "::/0", config.ServerIPv6, "metric", "6")
 					if serverAddrIP.To16() != nil {
-						netutil.ExecCmd("cmd", "/C", "route", "-6", "add", serverAddrIP.To16().String()+"/128", config.LocalGatewayv6, "metric", "5")
+						execr.ExecCmd("cmd", "/C", "route", "-6", "add", serverAddrIP.To16().String()+"/128", config.LocalGatewayv6, "metric", "5")
 					}
 				}
 			}
@@ -117,6 +119,10 @@ func setRoute(config config.Config, iFace *water.Interface) {
 		log.Printf("not support os %v", os)
 	}
 	log.Printf("interface configured %v", iFace.Name())
+
+	if config.Verbose {
+		log.Printf("set route commands:\n%s", execr.String())
+	}
 }
 
 // ResetRoute resets the system routes
@@ -124,27 +130,34 @@ func ResetRoute(config config.Config) {
 	if config.ServerMode || !config.GlobalMode {
 		return
 	}
+
 	os := runtime.GOOS
+	execr := netutil.ExecCmdRecorder{}
+
 	if os == "darwin" {
 		if config.LocalGateway != "" {
-			netutil.ExecCmd("route", "add", "default", config.LocalGateway)
-			netutil.ExecCmd("route", "change", "default", config.LocalGateway)
+			execr.ExecCmd("route", "add", "default", config.LocalGateway)
+			execr.ExecCmd("route", "change", "default", config.LocalGateway)
 		}
 		if config.LocalGatewayv6 != "" {
-			netutil.ExecCmd("route", "add", "-inet6", "default", config.LocalGatewayv6)
-			netutil.ExecCmd("route", "change", "-inet6", "default", config.LocalGatewayv6)
+			execr.ExecCmd("route", "add", "-inet6", "default", config.LocalGatewayv6)
+			execr.ExecCmd("route", "change", "-inet6", "default", config.LocalGatewayv6)
 		}
 	} else if os == "windows" {
 		serverAddrIP := netutil.LookupServerAddrIP(config.ServerAddr)
 		if serverAddrIP != nil {
 			if config.LocalGateway != "" {
-				netutil.ExecCmd("cmd", "/C", "route", "delete", "0.0.0.0", "mask", "0.0.0.0")
-				netutil.ExecCmd("cmd", "/C", "route", "add", "0.0.0.0", "mask", "0.0.0.0", config.LocalGateway, "metric", "6")
+				execr.ExecCmd("cmd", "/C", "route", "delete", "0.0.0.0", "mask", "0.0.0.0")
+				execr.ExecCmd("cmd", "/C", "route", "add", "0.0.0.0", "mask", "0.0.0.0", config.LocalGateway, "metric", "6")
 			}
 			if config.LocalGatewayv6 != "" {
-				netutil.ExecCmd("cmd", "/C", "route", "-6", "delete", "::/0", "mask", "::/0")
-				netutil.ExecCmd("cmd", "/C", "route", "-6", "add", "::/0", "mask", "::/0", config.LocalGatewayv6, "metric", "6")
+				execr.ExecCmd("cmd", "/C", "route", "-6", "delete", "::/0", "mask", "::/0")
+				execr.ExecCmd("cmd", "/C", "route", "-6", "add", "::/0", "mask", "::/0", config.LocalGatewayv6, "metric", "6")
 			}
 		}
+	}
+
+	if config.Verbose {
+		log.Printf("reset route commands:\n%s", execr.String())
 	}
 }
