@@ -28,3 +28,6 @@ clean:
 
 cleanmodcache:
 	go clean -modcache
+
+test:
+	go test ./...
