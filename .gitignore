@@ -19,4 +19,5 @@ vtun
 logs/
 bin/
 scripts/client.sh
+vendor
 
